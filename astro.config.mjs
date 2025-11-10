@@ -34,7 +34,7 @@ export default defineConfig({
   },
 
   // Experimental features
-  experimental: {
-    contentCollectionCache: true,
-  },
+  // experimental: {
+  //   contentCollectionCache: true,
+  // },
 });
