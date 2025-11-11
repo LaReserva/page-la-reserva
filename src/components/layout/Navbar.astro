@@ -1,0 +1,46 @@
+---
+// src/components/layout/Navbar.astro
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const navLinks = [
+  { name: 'Inicio', href: '/' },
+  { name: 'Servicios', href: '/servicios' },
+  { name: 'Paquetes', href: '/paquetes' },
+  { name: 'Portafolio', href: '/portafolio' },
+  { name: 'Nosotros', href: '/nosotros' },
+  { name: 'Blog', href: '/blog' },
+  { name: 'Contacto', href: '/contacto' },
+];
+
+function isActive(path: string) {
+  if (path === '/') {
+    return currentPath === '/';
+  }
+  return currentPath.startsWith(path);
+}
+---
+
+<nav class="hidden lg:block">
+  <ul class="flex items-center gap-8">
+    {navLinks.map(link => (
+      <li>
+        <a 
+          href={link.href}
+          class={`
+            font-medium transition-colors duration-200
+            ${isActive(link.href) 
+              ? 'text-primary-500' 
+              : 'text-secondary-600 hover:text-primary-500'
+            }
+          `}
+        >
+          {link.name}
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>

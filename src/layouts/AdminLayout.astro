@@ -1,0 +1,33 @@
+---
+// src/layouts/AdminLayout.astro
+import BaseLayout from './BaseLayout.astro';
+import AdminSidebar from '@/components/admin/AdminSidebar.astro';
+import AdminHeader from '@/components/admin/AdminHeader.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<BaseLayout title={title} noindex={true}>
+  <div class="flex h-screen bg-secondary-50">
+    <!-- Sidebar -->
+    <AdminSidebar />
+    
+    <!-- Main content area -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Admin Header -->
+      <AdminHeader />
+      
+      <!-- Main content -->
+      <main class="flex-1 overflow-y-auto">
+        <div class="container-custom py-8">
+          <slot />
+        </div>
+      </main>
+    </div>
+  </div>
+</BaseLayout>
+```
