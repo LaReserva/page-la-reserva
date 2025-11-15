@@ -1,5 +1,16 @@
 ---
+// src/pages/index.astro
+import PageLayout from '@/layouts/PageLayout.astro';
+import { Hero } from '@/components/sections/Hero';
+import { TestimonialsSlider } from '@/components/sections/TestimonialsSlider';
+import { supabase } from '@/lib/supabase';
 
+const { data: testimonials } = await supabase
+  .from('testimonials')
+  .select('*')
+  .eq('approved', true)
+  .eq('featured', true)
+  .limit(5);
 ---
 
 <html lang="en">
@@ -11,6 +22,29 @@
 		<title>La Reserva</title>
 	</head>
 	<body>
-		<h1>Astro</h1>
+		<PageLayout title="Inicio">
+			<Hero
+			  client:load
+			  title="Mixología Exclusiva para Momentos Únicos"
+			  subtitle="Transformamos tu celebración en una experiencia memorable con cócteles de autor y servicio excepcional"
+			  backgroundImage="/images/hero-cocktail.jpg"
+			/>
+			
+			<section class="section bg-secondary-50">
+				<div class="container-custom">
+				  <div class="text-center mb-12">
+					<h2 class="mb-4">Lo que dicen nuestros clientes</h2>
+					<p class="text-lg text-secondary-400">
+					  Experiencias reales de eventos memorables
+					</p>
+				  </div>
+			  
+				  {testimonials && testimonials.length > 0 && (
+					<TestimonialsSlider client:load testimonials={testimonials} />
+				  )}
+				</div>
+			</section>
+			<!-- Resto del contenido -->
+		</PageLayout>
 	</body>
 </html>

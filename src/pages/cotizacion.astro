@@ -1,0 +1,22 @@
+---
+// src/pages/cotizacion.astro
+import PageLayout from '@/layouts/PageLayout.astro';
+import { QuoteForm } from '@/components/forms/QuoteForm';
+---
+
+<PageLayout title="Solicitar Cotización">
+  <section class="section">
+    <div class="container-custom max-w-2xl">
+      <div class="text-center mb-12">
+        <h1 class="mb-4">Solicita tu Cotización</h1>
+        <p class="text-lg text-secondary-400">
+          Completa el formulario y te contactaremos pronto
+        </p>
+      </div>
+
+      <div class="card">
+        <QuoteForm client:load />
+      </div>
+    </div>
+  </section>
+</PageLayout>

@@ -1,6 +1,7 @@
 ---
 // src/layouts/BaseLayout.astro --- MODIFICAR CON DATOS REALES
-import '@/styles/global.css';
+// import '@/styles/global.css';---------------------Revisar por que esta dando error
+import { ToastProvider } from '@/components/ui/Toast';
 
 interface Props {
   title: string;
@@ -75,6 +76,8 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
     </script>
   </head>
   <body class="antialiased">
-    <slot />
+    <ToastProvider client:load> 
+      <slot />
+    </ToastProvider>
   </body>
 </html>
