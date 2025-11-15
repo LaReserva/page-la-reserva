@@ -1,14 +1,14 @@
 ---
-// src/components/ui/Input.astro
+// src/components/ui/Textarea.astro
 import { cn } from '@/utils/utils';
 
 interface Props {
-  type?: 'text' | 'email' | 'tel' | 'number' | 'password' | 'date' | 'time';
   name: string;
   id?: string;
   label?: string;
   placeholder?: string;
-  value?: string | number;
+  value?: string;
+  rows?: number;
   required?: boolean;
   disabled?: boolean;
   error?: string;
@@ -17,12 +17,12 @@ interface Props {
 }
 
 const {
-  type = 'text',
   name,
   id = name,
   label,
   placeholder,
   value,
+  rows = 4,
   required = false,
   disabled = false,
   error,
@@ -30,8 +30,8 @@ const {
   class: className,
 } = Astro.props;
 
-const inputClasses = cn(
-  'w-full px-4 py-3 border rounded-lg transition-all duration-200',
+const textareaClasses = cn(
+  'w-full px-4 py-3 border rounded-lg transition-all duration-200 resize-none',
   'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
   'disabled:bg-secondary-100 disabled:cursor-not-allowed',
   error ? 'border-red-500' : 'border-secondary-200',
@@ -47,16 +47,15 @@ const inputClasses = cn(
     </label>
   )}
   
-  <input
-    type={type}
+  <textarea
     name={name}
     id={id}
-    class={inputClasses}
+    class={textareaClasses}
     placeholder={placeholder}
-    value={value}
+    rows={rows}
     required={required}
     disabled={disabled}
-  />
+  >{value}</textarea>
   
   {error && (
     <p class="text-sm text-red-500">

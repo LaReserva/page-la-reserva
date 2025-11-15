@@ -1,0 +1,85 @@
+---
+// src/components/ui/Select.astro
+import { cn } from '@/utils/utils';
+
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  name: string;
+  id?: string;
+  label?: string;
+  options: Option[];
+  value?: string;
+  required?: boolean;
+  disabled?: boolean;
+  error?: string;
+  placeholder?: string;
+  class?: string;
+}
+
+const {
+  name,
+  id = name,
+  label,
+  options,
+  value,
+  required = false,
+  disabled = false,
+  error,
+  placeholder = 'Selecciona una opción',
+  class: className,
+} = Astro.props;
+
+const selectClasses = cn(
+  'w-full px-4 py-3 border rounded-lg transition-all duration-200',
+  'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+  'disabled:bg-secondary-100 disabled:cursor-not-allowed',
+  'appearance-none bg-no-repeat bg-right',
+  error ? 'border-red-500' : 'border-secondary-200',
+  className
+);
+---
+
+<div class="space-y-2">
+  {label && (
+    <label for={id} class="block text-sm font-semibold text-secondary-600">
+      {label}
+      {required && <span class="text-red-500 ml-1">*</span>}
+    </label>
+  )}
+  
+  <div class="relative">
+    <select
+      name={name}
+      id={id}
+      class={selectClasses}
+      required={required}
+      disabled={disabled}
+    >
+      <option value="" disabled selected={!value}>
+        {placeholder}
+      </option>
+      {options.map(option => (
+        <option value={option.value} selected={value === option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+    
+    <!-- Chevron icon -->
+    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+      <svg class="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  </div>
+  
+  {error && (
+    <p class="text-sm text-red-500">
+      {error}
+    </p>
+  )}
+</div>
