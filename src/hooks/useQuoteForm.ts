@@ -1,7 +1,9 @@
-// src/hooks/useQuoteForm.ts --modificar en la documen
+// src/hooks/useQuoteForm.ts
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import type { QuoteFormData } from '@/utils/validators';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { quoteSchema, type QuoteFormData } from '@/utils/validators';
+import { supabase } from '@/lib/supabase';
 
 export function useQuoteForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -9,6 +11,8 @@ export function useQuoteForm() {
   const [success, setSuccess] = useState(false);
 
   const form = useForm<QuoteFormData>({
+      // @ts-ignore - Incompatibilidad temporal de tipos
+    resolver: zodResolver(quoteSchema),
     defaultValues: {
       name: '',
       email: '',
@@ -25,33 +29,25 @@ export function useQuoteForm() {
       setIsSubmitting(true);
       setError(null);
 
-      // Validación manual básica
-      if (!data.name || data.name.length < 2) {
-        throw new Error('Nombre muy corto');
-      }
-      if (!data.email || !data.email.includes('@')) {
-        throw new Error('Email inválido');
-      }
-      if (!data.phone || data.phone.length < 9) {
-        throw new Error('Teléfono inválido');
-      }
-      if (!data.eventType) {
-        throw new Error('Selecciona un tipo de evento');
-      }
-      if (!data.eventDate) {
-        throw new Error('Fecha requerida');
-      }
-      if (data.guestCount < 25 || data.guestCount > 500) {
-        throw new Error('Cantidad de invitados debe estar entre 25 y 500');
-      }
+      const { error: supabaseError } = await supabase
+        .from('quotes')
+        .insert({
+          client_name: data.name,
+          client_email: data.email,
+          client_phone: data.phone,
+          event_type: data.eventType,
+          event_date: data.eventDate,
+          guest_count: data.guestCount,
+          message: data.message,
+          status: 'new',
+        });
 
-      console.log('Datos validados:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (supabaseError) throw supabaseError;
 
       setSuccess(true);
       form.reset();
-    } catch (err: any) {
-      setError(err.message || 'Error al enviar cotización');
+    } catch (err) {
+      setError('Error al enviar cotización. Por favor intenta de nuevo.');
       console.error(err);
     } finally {
       setIsSubmitting(false);

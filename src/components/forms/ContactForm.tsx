@@ -16,6 +16,7 @@ export function ContactForm() {
     reset,
     formState: { errors },
   } = useForm<ContactFormData>({
+    // @ts-ignore - Incompatibilidad temporal de tipos
     resolver: zodResolver(contactSchema),
   });
 
