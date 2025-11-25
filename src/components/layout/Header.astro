@@ -25,9 +25,10 @@ const currentPath = Astro.url.pathname;
       <Navbar currentPath={currentPath} />
       
       <!-- CTA Button (Desktop) -->
-      <a href="/cotizacion" class="hidden lg:block btn btn-primary">
+      <div class="hidden lg:block"> <a href="/cotizacion" class="btn btn-primary">
         Cotizar Evento
-      </a>
+        </a>
+      </div>
       
       <!-- Mobile Menu Button -->
       <button

@@ -152,6 +152,8 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-size: 0.75rem;
+  width: fit-content; 
+  max-width: 100%; /* Por seguridad, para que no se salga de la pantalla en textos largos */
 }
 
 @media (min-width: 768px) { /* Tablets y superiores */

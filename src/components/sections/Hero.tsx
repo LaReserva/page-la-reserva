@@ -58,10 +58,10 @@ export function Hero({
             transition={{ duration: 0.8, delay: 0.4 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <a href={ctaPrimary.href} className="btn-primary">
+            <a href={ctaPrimary.href} className="btn btn-primary">
               {ctaPrimary.text}
             </a>
-            <a href={ctaSecondary.href} className="btn-outline">
+            <a href={ctaSecondary.href} className=" btn btn-outline">
               {ctaSecondary.text}
             </a>
           </motion.div>
