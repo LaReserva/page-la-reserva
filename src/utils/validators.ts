@@ -1,10 +1,19 @@
 // src/utils/validators.ts
+
+/**
+ * LA RESERVA - VALIDADORES CON ZOD
+ * 
+ * Schemas de validación para formularios usando Zod.
+ * Proporciona validación type-safe en cliente y servidor.
+ */
+
 import { z } from 'zod';
 import { VALIDATION, ERROR_MESSAGES } from './constants';
 
-/**
- * Schema para formulario de cotización
- */
+// ============================================
+// 1. SCHEMA: COTIZACIÓN
+// ============================================
+
 export const quoteSchema = z.object({
   name: z
     .string()
@@ -50,9 +59,10 @@ export const quoteSchema = z.object({
 
 export type QuoteFormData = z.infer<typeof quoteSchema>;
 
-/**
- * Schema para formulario de contacto
- */
+// ============================================
+// 2. SCHEMA: CONTACTO
+// ============================================
+
 export const contactSchema = z.object({
   name: z
     .string()
@@ -80,9 +90,10 @@ export const contactSchema = z.object({
 
 export type ContactFormData = z.infer<typeof contactSchema>;
 
-/**
- * Schema para newsletter
- */
+// ============================================
+// 3. SCHEMA: NEWSLETTER
+// ============================================
+
 export const newsletterSchema = z.object({
   email: z
     .string()
@@ -91,9 +102,10 @@ export const newsletterSchema = z.object({
 
 export type NewsletterFormData = z.infer<typeof newsletterSchema>;
 
-/**
- * Schema para login de admin
- */
+// ============================================
+// 4. SCHEMA: LOGIN ADMIN
+// ============================================
+
 export const loginSchema = z.object({
   email: z
     .string()
@@ -106,9 +118,10 @@ export const loginSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
-/**
- * Schema para crear/editar evento (admin)
- */
+// ============================================
+// 5. SCHEMA: EVENTO (Admin)
+// ============================================
+
 export const eventSchema = z.object({
   clientName: z
     .string()

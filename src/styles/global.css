@@ -14,15 +14,15 @@
 
 /* Base styles */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: smooth; /* Desplazamiento suave para anclas */
 }
 
 body {
   font-family: var(--font-body);
   color: #2D2D2D;
   background-color: white;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased; /* Mejora la apariencia de las fuentes en WebKit */
+  -moz-osx-font-smoothing: grayscale; /* Mejora la apariencia de las fuentes en macOS */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -32,18 +32,18 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
   font-size: 3rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
+  font-weight: 700; /* Bold */
+  letter-spacing: 0.08em; /* Espacio entre letras */
+  line-height: 1.2; /* Altura de línea */
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) { /* Tablets y superiores */
   h1 {
     font-size: 3.75rem;
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px) { /* Escritorio y superiores */
   h1 {
     font-size: 4.5rem;
   }
@@ -55,13 +55,13 @@ h2 {
   letter-spacing: 0.06em;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) { /* Tablets y superiores */
   h2 {
     font-size: 2.25rem;
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px) { /* Escritorio y superiores */
   h2 {
     font-size: 3rem;
   }
@@ -72,7 +72,7 @@ h3 {
   font-weight: 700;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) { /* Tablets y superiores */
   h3 {
     font-size: 1.875rem;
   }
@@ -83,18 +83,18 @@ h4 {
   font-weight: 700;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) { /* Tablets y superiores */
   h4 {
     font-size: 1.5rem;
   }
 }
 
 p {
-  line-height: 1.75;
+  line-height: 1.75; /* Mejor legibilidad en párrafos */
 }
 
 a {
-  transition: color 0.2s;
+  transition: color 0.2s; /* Transición suave para el color de enlace */
 }
 
 /* Utility classes */
@@ -103,14 +103,14 @@ a {
   padding-bottom: 4rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) { /* Tablets y superiores */
   .section {
     padding-top: 6rem;
     padding-bottom: 6rem;
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px) { /* Escritorio y superiores */
   .section {
     padding-top: 8rem;
     padding-bottom: 8rem;
@@ -120,20 +120,20 @@ a {
 .container-custom {
   width: 100%;
   max-width: 80rem;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  margin-left: auto;/* Centra el contenido horizontalmente */
+  margin-right: auto;/* Centra el contenido horizontalmente */
+  padding-left: 1rem;/* Espaciado lateral */
+  padding-right: 1rem;/* Espaciado lateral */
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) { /* Tablets y superiores */
   .container-custom {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px) { /* Escritorio y superiores */
   .container-custom {
     padding-left: 2rem;
     padding-right: 2rem;
@@ -145,22 +145,22 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.5rem;/* Espaciado interno */
   font-weight: 600;
   border-radius: 9999px;
   transition: all 0.2s;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) { /* Tablets y superiores */
   .btn {
     font-size: 1rem;
   }
 }
 
-.btn:disabled {
+.btn:disabled { /* Estilo para botones deshabilitados */
   opacity: 0.5;
   cursor: not-allowed;
 }

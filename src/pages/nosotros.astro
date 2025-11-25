@@ -1,0 +1,58 @@
+---
+// src/pages/nosotros.astro
+import PageLayout from '@/layouts/PageLayout.astro';
+import Card from '@/components/ui/Card.astro';
+---
+
+<PageLayout title="Nosotros" description="Conoce al equipo de La Reserva. Expertos en mixología con más de 10 años de experiencia.">
+  <section class="section">
+    <div class="container-custom max-w-4xl">
+      <h1 class="text-center mb-8">Sobre La Reserva</h1>
+      
+      <div class="prose prose-lg mx-auto mb-16">
+        <p class="lead">
+          Somos especialistas en crear experiencias memorables a través de la mixología artesanal. 
+          Con más de 10 años de experiencia, hemos transformado cientos de eventos en Lima.
+        </p>
+        
+        <h2>Nuestra Historia</h2>
+        <p>
+          La Reserva nació de la pasión por la mixología y el deseo de elevar la experiencia de 
+          eventos en Lima. Cada cóctel que preparamos es una obra de arte, cada servicio es una 
+          experiencia única.
+        </p>
+
+        <h2>Nuestra Misión</h2>
+        <p>
+          Crear experiencias únicas a través de la mixología artesanal, elevando cada evento con 
+          cócteles de autor y un servicio excepcional.
+        </p>
+
+        <h2>Nuestra Visión</h2>
+        <p>
+          Ser la empresa de bartending referente en eventos exclusivos en Lima, reconocida por 
+          nuestra excelencia, innovación y atención personalizada.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+        <Card class="text-center">
+          <div class="text-4xl font-bold text-primary-500 mb-2">+10</div>
+          <p class="text-sm">Años de Experiencia</p>
+        </Card>
+        <Card class="text-center">
+          <div class="text-4xl font-bold text-primary-500 mb-2">+200</div>
+          <p class="text-sm">Eventos Realizados</p>
+        </Card>
+        <Card class="text-center">
+          <div class="text-4xl font-bold text-primary-500 mb-2">100%</div>
+          <p class="text-sm">Clientes Satisfechos</p>
+        </Card>
+        <Card class="text-center">
+          <div class="text-4xl font-bold text-primary-500 mb-2">5★</div>
+          <p class="text-sm">Calificación Promedio</p>
+        </Card>
+      </div>
+    </div>
+  </section>
+</PageLayout>

@@ -1,0 +1,36 @@
+---
+// src/pages/portafolio.astro
+import PageLayout from '@/layouts/PageLayout.astro';
+import { supabase } from '@/lib/supabase';
+
+const { data: images } = await supabase
+  .from('event_images')
+  .select('*, event:events(event_type, event_date, status)')
+  .eq('events.status', 'completed')
+  .order('created_at', { ascending: false });
+---
+
+<PageLayout title="Portafolio" description="Galería de eventos realizados por La Reserva en Lima.">
+  <section class="section">
+    <div class="container-custom">
+      <h1 class="text-center mb-12">Nuestro Portafolio</h1>
+      
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {images?.map(img => (
+          <div class="relative aspect-square overflow-hidden rounded-lg group">
+            <img 
+              src={img.image_url} 
+              alt={img.caption || 'Evento'}
+              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            />
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span class="text-white font-semibold">
+                {img.event?.event_type}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</PageLayout>

@@ -1,27 +1,40 @@
 // src/utils/constants.ts
 
 /**
- * URLs y endpoints
+ * LA RESERVA - CONSTANTES DEL PROYECTO
+ * 
+ * Centraliza todas las constantes utilizadas en el proyecto.
+ * 
+ * @version 1.0
+ * @date Octubre 2025
  */
+
+// ============================================
+// 1. INFORMACIÓN BÁSICA
+// ============================================
+
 export const SITE_URL = import.meta.env.PUBLIC_SITE_URL || 'https://lareserva.pe';
 export const API_URL = `${SITE_URL}/api`;
 
-/**
- * Información de contacto
- */
+export const SITE_INFO = {
+  name: 'La Reserva',
+  tagline: 'Mixología Exclusiva',
+  fullName: 'La Reserva - Mixología Exclusiva',
+  description: 'Bartending premium para eventos exclusivos en Lima, Perú.',
+  location: 'Lima, Perú',
+  founded: 2015,
+  yearsOfExperience: 10,
+} as const;
+
 export const CONTACT_INFO = {
   phone: '+51999888777',
   phoneFormatted: '+51 999 888 777',
-  email: 'contacto@lareserva.pe',
+  email: 'lareservabartending@gmail.com',
   whatsapp: '+51999888777',
   whatsappUrl: 'https://wa.me/51999888777',
   address: 'Lima, Perú',
-  addressFull: 'Lima Metropolitana, Perú',
 } as const;
 
-/**
- * Horarios de atención
- */
 export const BUSINESS_HOURS = {
   weekdays: 'Lunes - Viernes: 9:00 AM - 5:00 PM',
   saturday: 'Sábado: 9:00 AM - 1:00 PM',
@@ -29,31 +42,31 @@ export const BUSINESS_HOURS = {
   responseTime: 'Respuestas dentro de 1 hora',
 } as const;
 
-/**
- * Redes sociales
- */
 export const SOCIAL_LINKS = {
-  instagram: 'https://instagram.com/lareservabar',
-  facebook: 'https://facebook.com/lareservabar',
-  tiktok: 'https://tiktok.com/@lareserva',
+  instagram: {
+    url: 'https://instagram.com/lareservabar',
+    handle: '@lareservabar',
+  },
+  facebook: {
+    url: 'https://facebook.com/lareservabar',
+    handle: 'La Reserva',
+  },
+  tiktok: {
+    url: 'https://tiktok.com/@lareserva',
+    handle: '@lareserva',
+  },
 } as const;
 
-/**
- * Tipos de eventos disponibles
- */
-export const EVENT_TYPES = [
-  { value: 'boda', label: 'Boda' },
-  { value: 'corporativo', label: 'Evento Corporativo' },
-  { value: 'cumpleanos', label: 'Cumpleaños' },
-  { value: 'aniversario', label: 'Aniversario' },
-  { value: 'graduacion', label: 'Graduación' },
-  { value: 'baby-shower', label: 'Baby Shower' },
-  { value: 'otro', label: 'Otro' },
-] as const;
+// ============================================
+// 2. LÍMITES Y VALIDACIONES
+// ============================================
 
-/**
- * Rangos de invitados
- */
+export const GUEST_LIMITS = {
+  min: 25,
+  max: 500,
+  recommended: 100,
+} as const;
+
 export const GUEST_RANGES = [
   { value: '25-50', label: '25 - 50 invitados' },
   { value: '51-100', label: '51 - 100 invitados' },
@@ -63,18 +76,28 @@ export const GUEST_RANGES = [
   { value: '500+', label: 'Más de 500 invitados' },
 ] as const;
 
-/**
- * Límites de invitados
- */
-export const GUEST_LIMITS = {
-  min: 25,
-  max: 500,
-  recommended: 100,
+export const VALIDATION = {
+  name: { min: 2, max: 100 },
+  email: { max: 255 },
+  phone: { min: 9, max: 15 },
+  message: { min: 10, max: 1000 },
+  guests: { min: 25, max: 500 },
 } as const;
 
-/**
- * Estados de cotizaciones
- */
+// ============================================
+// 3. TIPOS DE EVENTOS Y ESTADOS
+// ============================================
+
+export const EVENT_TYPES = [
+  { value: 'boda', label: 'Boda', icon: '💍' },
+  { value: 'corporativo', label: 'Evento Corporativo', icon: '🏢' },
+  { value: 'cumpleanos', label: 'Cumpleaños', icon: '🎂' },
+  { value: 'aniversario', label: 'Aniversario', icon: '🥂' },
+  { value: 'graduacion', label: 'Graduación', icon: '🎓' },
+  { value: 'baby-shower', label: 'Baby Shower', icon: '👶' },
+  { value: 'otro', label: 'Otro', icon: '🎉' },
+] as const;
+
 export const QUOTE_STATUSES = {
   new: { label: 'Nueva', color: 'blue' },
   contacted: { label: 'Contactada', color: 'yellow' },
@@ -83,9 +106,6 @@ export const QUOTE_STATUSES = {
   declined: { label: 'Declinada', color: 'red' },
 } as const;
 
-/**
- * Estados de eventos
- */
 export const EVENT_STATUSES = {
   pending: { label: 'Pendiente', color: 'yellow' },
   confirmed: { label: 'Confirmado', color: 'green' },
@@ -93,8 +113,34 @@ export const EVENT_STATUSES = {
   cancelled: { label: 'Cancelado', color: 'red' },
 } as const;
 
+// ============================================
+// 4. MENSAJES
+// ============================================
+
+export const ERROR_MESSAGES = {
+  required: 'Este campo es obligatorio',
+  invalidEmail: 'Email inválido',
+  invalidPhone: 'Teléfono inválido',
+  minLength: (min: number) => `Mínimo ${min} caracteres`,
+  maxLength: (max: number) => `Máximo ${max} caracteres`,
+  minValue: (min: number) => `Valor mínimo: ${min}`,
+  maxValue: (max: number) => `Valor máximo: ${max}`,
+  pastDate: 'La fecha debe ser futura',
+  generic: 'Ocurrió un error. Intenta de nuevo.',
+} as const;
+
+export const SUCCESS_MESSAGES = {
+  quoteSubmitted: '¡Gracias! Tu cotización ha sido enviada.',
+  contactSubmitted: '¡Mensaje enviado!',
+  subscribed: '¡Suscripción exitosa!',
+  copied: 'Copiado al portapapeles',
+} as const;
+// ============================================
+// 5. SERVICIOS PRINCIPALES
+// ============================================
+
 /**
- * Servicios principales
+ * Servicios ofrecidos por La Reserva
  */
 export const SERVICES = [
   {
@@ -112,6 +158,9 @@ export const SERVICES = [
       'Setup y decoración de barra',
       'Servicio durante todo el evento',
     ],
+    guestRange: '25-500',
+    duration: 4,
+    popular: true,
   },
   {
     id: 'mixologia-corporativa',
@@ -127,6 +176,9 @@ export const SERVICES = [
       'Barra corporativa premium',
       'Material promocional incluido',
     ],
+    guestRange: '30-500',
+    duration: 4,
+    popular: false,
   },
   {
     id: 'cocteles-autor',
@@ -142,6 +194,9 @@ export const SERVICES = [
       'Técnicas artesanales',
       'Presentación impecable',
     ],
+    guestRange: '25-100',
+    duration: 4,
+    popular: false,
   },
   {
     id: 'barra-movil',
@@ -157,11 +212,18 @@ export const SERVICES = [
       'Setup y desmontaje',
       'Variedad de diseños disponibles',
     ],
+    guestRange: '20-200',
+    duration: 8,
+    popular: false,
   },
 ] as const;
 
+// ============================================
+// 6. PAQUETES PREDEFINIDOS
+// ============================================
+
 /**
- * Paquetes predefinidos
+ * Paquetes predefinidos de servicios
  */
 export const PACKAGES = [
   {
@@ -172,6 +234,8 @@ export const PACKAGES = [
     price: 1800,
     guestRange: '25-50',
     duration: 4,
+    bartenders: 1,
+    cocktails: 3,
     features: [
       '1 bartender profesional',
       'Barra básica equipada',
@@ -180,6 +244,7 @@ export const PACKAGES = [
       'Setup y limpieza',
     ],
     popular: false,
+    serviceType: 'bartending-eventos',
   },
   {
     id: 'completo',
@@ -189,6 +254,8 @@ export const PACKAGES = [
     price: 3500,
     guestRange: '100-200',
     duration: 5,
+    bartenders: 2,
+    cocktails: 5,
     features: [
       '2 bartenders profesionales',
       'Barra premium equipada',
@@ -199,6 +266,7 @@ export const PACKAGES = [
       'Setup y limpieza completa',
     ],
     popular: true,
+    serviceType: 'bartending-eventos',
   },
   {
     id: 'premium',
@@ -208,6 +276,8 @@ export const PACKAGES = [
     price: 6500,
     guestRange: '200-500',
     duration: 6,
+    bartenders: 3,
+    cocktails: 8,
     features: [
       '3+ bartenders profesionales',
       'Doble barra premium',
@@ -220,36 +290,188 @@ export const PACKAGES = [
       'Setup, limpieza y coordinación completa',
     ],
     popular: false,
+    serviceType: 'bartending-eventos',
   },
 ] as const;
 
+// ============================================
+// 7. CÓCTELES DESTACADOS
+// ============================================
+
 /**
- * Cócteles destacados (para portafolio)
+ * Cócteles para mostrar en portafolio/menú
  */
 export const FEATURED_COCKTAILS = [
   {
+    id: 'pisco-sour-reserva',
     name: 'Pisco Sour Reserva',
     description: 'Nuestro clásico peruano con un toque especial',
     category: 'Clásicos',
+    ingredients: ['Pisco acholado', 'Limón', 'Jarabe', 'Amargo de angostura'],
+    difficulty: 'medium',
   },
   {
+    id: 'old-fashioned-ahumado',
     name: 'Old Fashioned Ahumado',
     description: 'Bourbon premium con ahumado artesanal',
     category: 'Clásicos',
+    ingredients: ['Bourbon', 'Angostura', 'Azúcar demerara', 'Twist de naranja'],
+    difficulty: 'hard',
   },
   {
+    id: 'margarita-maracuya',
     name: 'Margarita de Maracuyá',
     description: 'Fusión tropical con maracuyá fresco',
     category: 'Tropicales',
+    ingredients: ['Tequila', 'Triple sec', 'Maracuyá', 'Limón'],
+    difficulty: 'medium',
+  },
+  {
+    id: 'mojito-clasico',
+    name: 'Mojito Clásico',
+    description: 'Refrescante cóctel cubano',
+    category: 'Clásicos',
+    ingredients: ['Ron blanco', 'Menta', 'Limón', 'Azúcar', 'Soda'],
+    difficulty: 'easy',
+  },
+  {
+    id: 'negroni',
+    name: 'Negroni',
+    description: 'Clásico italiano amargo y sofisticado',
+    category: 'Clásicos',
+    ingredients: ['Gin', 'Campari', 'Vermut rojo'],
+    difficulty: 'easy',
   },
 ] as const;
+
+// ============================================
+// 8. ADD-ONS Y PERSONALIZACIONES
+// ============================================
+
+/**
+ * Servicios adicionales disponibles
+ */
+export const ADD_ONS = [
+  {
+    id: 'decoracion-tematica',
+    name: 'Decoración Temática',
+    description: 'Decoración personalizada de barra según tema del evento',
+    price: 400,
+    unit: 'evento',
+  },
+  {
+    id: 'bartender-extra',
+    name: 'Bartender Adicional',
+    description: 'Bartender profesional extra por 4 horas',
+    price: 300,
+    unit: 'bartender',
+  },
+  {
+    id: 'hora-extra',
+    name: 'Hora Adicional',
+    description: 'Extensión de servicio por hora adicional',
+    price: 80,
+    unit: 'hora/bartender',
+  },
+  {
+    id: 'coctel-signature',
+    name: 'Cóctel Signature',
+    description: 'Creación de cóctel exclusivo para tu evento',
+    price: 350,
+    unit: 'cóctel',
+  },
+  {
+    id: 'tasting-session',
+    name: 'Tasting Session',
+    description: 'Degustación previa de cócteles (hasta 6 personas)',
+    price: 250,
+    unit: 'sesión',
+  },
+  {
+    id: 'workshop',
+    name: 'Workshop de Mixología',
+    description: 'Taller de preparación de cócteles (1 hora)',
+    price: 500,
+    unit: 'hora',
+  },
+  {
+    id: 'estacion-mocktails',
+    name: 'Estación de Mocktails',
+    description: 'Barra separada de cócteles sin alcohol',
+    price: 400,
+    unit: 'estación',
+  },
+  {
+    id: 'branding-corporativo',
+    name: 'Branding Corporativo',
+    description: 'Servilletas, coasters y menú con logo de empresa',
+    price: 600,
+    unit: 'evento',
+  },
+] as const;
+
+// ============================================
+// 9. PRECIOS Y DESCUENTOS
+// ============================================
+
+/**
+ * Estructura de descuentos
+ */
+export const DISCOUNTS = {
+  recurrentClient: {
+    second: 0.10, // 10%
+    third: 0.15,  // 15%
+    frequent: 0.20, // 20%
+  },
+  largeEvents: {
+    '200-299': 0.05, // 5%
+    '300-499': 0.08, // 8%
+    '500+': 0.10,    // 10%
+  },
+  lowSeason: {
+    months: [1, 2, 3], // Enero, Febrero, Marzo
+    discount: 0.15,     // 15%
+  },
+  earlyPayment: {
+    daysInAdvance: 30,
+    discount: 0.05, // 5%
+  },
+  referral: {
+    referrer: 100,  // S/ 100 off
+    referred: 50,   // S/ 50 off
+  },
+} as const;
+
+/**
+ * Políticas de pago
+ */
+export const PAYMENT_POLICIES = {
+  deposit: {
+    percentage: 50,
+    description: '50% de adelanto para confirmar',
+  },
+  balance: {
+    dueDate: 'Antes del evento',
+    description: '50% restante antes o el día del evento',
+  },
+  methods: [
+    { id: 'transfer', name: 'Transferencia bancaria', fee: 0 },
+    { id: 'deposit', name: 'Depósito bancario', fee: 0 },
+    { id: 'yape', name: 'Yape / Plin', fee: 0 },
+    { id: 'cash', name: 'Efectivo', fee: 0 },
+  ],
+} as const;
+
+// ============================================
+// 10. SEO Y METADATA
+// ============================================
 
 /**
  * Metadata por defecto para SEO
  */
 export const DEFAULT_SEO = {
   title: 'La Reserva - Mixología Exclusiva',
-  description: 'Bartending premium para eventos exclusivos en Lima, Perú. Cócteles de autor, servicio excepcional y experiencias memorables.',
+  description: 'Bartending premium para eventos exclusivos en Lima, Perú. Cócteles de autor y servicio excepcional.',
   keywords: [
     'bartending lima',
     'mixología perú',
@@ -258,57 +480,44 @@ export const DEFAULT_SEO = {
     'bartender para bodas',
     'servicio de bar',
     'coctelería lima',
+    'bartending corporativo',
+    'eventos exclusivos',
+    'barra móvil',
   ],
   ogImage: '/images/og-image.jpg',
+  twitterCard: 'summary_large_image',
 } as const;
 
 /**
- * Configuración de validación
+ * Metadata por página
  */
-export const VALIDATION = {
-  name: {
-    min: 2,
-    max: 100,
+export const PAGE_METADATA = {
+  home: {
+    title: 'Inicio',
+    description: 'Bartending premium para eventos exclusivos en Lima, Perú. Cócteles de autor y servicio excepcional.',
   },
-  email: {
-    max: 255,
+  services: {
+    title: 'Servicios de Bartending',
+    description: 'Descubre nuestros servicios de bartending y mixología exclusiva para eventos en Lima.',
   },
-  phone: {
-    min: 9,
-    max: 15,
+  packages: {
+    title: 'Paquetes de Eventos',
+    description: 'Paquetes completos de bartending para bodas, eventos corporativos y celebraciones en Lima.',
   },
-  message: {
-    min: 10,
-    max: 1000,
+  portfolio: {
+    title: 'Portafolio de Eventos',
+    description: 'Galería de eventos realizados. Cócteles de autor y experiencias memorables en Lima.',
   },
-  guests: {
-    min: GUEST_LIMITS.min,
-    max: GUEST_LIMITS.max,
+  about: {
+    title: 'Sobre Nosotros',
+    description: 'Conoce al equipo de La Reserva. Expertos en mixología con más de 10 años de experiencia.',
   },
-} as const;
-
-/**
- * Mensajes de error comunes
- */
-export const ERROR_MESSAGES = {
-  required: 'Este campo es obligatorio',
-  invalidEmail: 'Email inválido',
-  invalidPhone: 'Teléfono inválido',
-  minLength: (min: number) => `Mínimo ${min} caracteres`,
-  maxLength: (max: number) => `Máximo ${max} caracteres`,
-  minValue: (min: number) => `Valor mínimo: ${min}`,
-  maxValue: (max: number) => `Valor máximo: ${max}`,
-  invalidDate: 'Fecha inválida',
-  pastDate: 'La fecha debe ser futura',
-  generic: 'Ocurrió un error. Por favor intenta de nuevo.',
-} as const;
-
-/**
- * Mensajes de éxito
- */
-export const SUCCESS_MESSAGES = {
-  quoteSubmitted: '¡Gracias! Tu cotización ha sido enviada. Te contactaremos pronto.',
-  contactSubmitted: '¡Mensaje enviado! Te responderemos a la brevedad.',
-  subscribed: '¡Suscripción exitosa! Recibirás nuestras novedades.',
-  copied: 'Copiado al portapapeles',
+  contact: {
+    title: 'Contacto',
+    description: 'Contáctanos para tu próximo evento. WhatsApp, email y ubicación en Lima.',
+  },
+  blog: {
+    title: 'Blog',
+    description: 'Artículos sobre mixología, tendencias y consejos para eventos.',
+  },
 } as const;
