@@ -1,71 +1,74 @@
 ---
 // src/components/ui/Input.astro
+import type { HTMLAttributes } from 'astro/types';
 import { cn } from '@/utils/utils';
 
-interface Props {
-  type?: 'text' | 'email' | 'tel' | 'number' | 'password' | 'date' | 'time';
-  name: string;
+interface Props extends HTMLAttributes<'input'> {
+  name: string; // Hacemos 'name' obligatorio para formularios
   id?: string;
   label?: string;
-  placeholder?: string;
-  value?: string | number;
-  required?: boolean;
-  disabled?: boolean;
   error?: string;
   hint?: string;
-  class?: string;
+  // 'required', 'type', 'value', 'disabled', etc. ya vienen en HTMLAttributes
 }
 
 const {
-  type = 'text',
   name,
   id = name,
   label,
-  placeholder,
-  value,
-  required = false,
-  disabled = false,
   error,
   hint,
   class: className,
+  ...rest // Capturamos el resto (type, value, required, etc.)
 } = Astro.props;
 
 const inputClasses = cn(
+  // Base styles
   'w-full px-4 py-3 border rounded-lg transition-all duration-200',
+  'bg-white text-secondary-900 placeholder:text-secondary-400',
+  
+  // Focus styles (Dorado de marca)
   'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-  'disabled:bg-secondary-100 disabled:cursor-not-allowed',
-  error ? 'border-red-500' : 'border-secondary-200',
+  
+  // Disabled state
+  'disabled:bg-secondary-50 disabled:text-secondary-400 disabled:cursor-not-allowed',
+  
+  // Error state (Borde y Ring rojo)
+  error 
+    ? 'border-red-500 focus:ring-red-500 text-red-900 placeholder:text-red-300' 
+    : 'border-secondary-200',
+    
   className
 );
 ---
 
 <div class="space-y-2">
   {label && (
-    <label for={id} class="block text-sm font-semibold text-secondary-600">
+    <label for={id} class="block text-sm font-semibold text-secondary-700">
       {label}
-      {required && <span class="text-red-500 ml-1">*</span>}
+      {/* Usamos rest.required para saber si mostrar el asterisco */}
+      {rest.required && <span class="text-red-500 ml-1">*</span>}
     </label>
   )}
   
   <input
-    type={type}
     name={name}
     id={id}
     class={inputClasses}
-    placeholder={placeholder}
-    value={value}
-    required={required}
-    disabled={disabled}
+    {...rest}
   />
   
   {error && (
-    <p class="text-sm text-red-500">
+    <p class="text-sm text-red-500 flex items-center gap-1 animate-fade-in">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
       {error}
     </p>
   )}
   
   {hint && !error && (
-    <p class="text-sm text-secondary-400">
+    <p class="text-sm text-secondary-500">
       {hint}
     </p>
   )}
