@@ -12,6 +12,19 @@
 // ============================================
 // 1. INFORMACIÓN BÁSICA
 // ============================================
+import { 
+  Martini, 
+  Briefcase, 
+  Sparkles, 
+  Truck, 
+  Gem, 
+  Building2, 
+  Cake, 
+  CalendarHeart, 
+  GraduationCap, 
+  Baby, 
+  PartyPopper 
+} from 'lucide-react';
 
 export const SITE_URL = import.meta.env.PUBLIC_SITE_URL || 'https://lareserva.pe';
 export const API_URL = `${SITE_URL}/api`;
@@ -20,7 +33,7 @@ export const SITE_INFO = {
   name: 'La Reserva',
   tagline: 'Mixología Exclusiva',
   fullName: 'La Reserva - Mixología Exclusiva',
-  description: 'Bartending premium para eventos exclusivos en Lima, Perú.',
+  description: 'Bartender para eventos exclusivos en Lima, Perú.', //Revisar después
   location: 'Lima, Perú',
   founded: 2015,
   yearsOfExperience: 10,
@@ -89,13 +102,14 @@ export const VALIDATION = {
 // ============================================
 
 export const EVENT_TYPES = [
-  { value: 'boda', label: 'Boda', icon: '💍' },
-  { value: 'corporativo', label: 'Evento Corporativo', icon: '🏢' },
-  { value: 'cumpleanos', label: 'Cumpleaños', icon: '🎂' },
-  { value: 'aniversario', label: 'Aniversario', icon: '🥂' },
-  { value: 'graduacion', label: 'Graduación', icon: '🎓' },
-  { value: 'baby-shower', label: 'Baby Shower', icon: '👶' },
-  { value: 'otro', label: 'Otro', icon: '🎉' },
+  // Usamos 'Gem' para bodas (anillo) y 'Building2' para corporativo (edificio moderno)
+  { value: 'boda', label: 'Boda', icon: 'Gem' },
+  { value: 'corporativo', label: 'Evento Corporativo', icon: 'Building2' },
+  { value: 'cumpleanos', label: 'Cumpleaños', icon: 'Cake' },
+  { value: 'aniversario', label: 'Aniversario', icon: 'CalendarHeart' },
+  { value: 'graduacion', label: 'Graduación', icon: 'GraduationCap' },
+  { value: 'baby-shower', label: 'Baby Shower', icon: 'Baby' },
+  { value: 'otro', label: 'Otro', icon: 'PartyPopper' },
 ] as const;
 
 export const QUOTE_STATUSES = {
@@ -149,7 +163,7 @@ export const SERVICES = [
     slug: 'bartending-eventos',
     description: 'Servicio completo de barra y bartenders profesionales para tu evento especial.',
     priceFrom: 1800,
-    icon: 'cocktail',
+    icon: 'Martini',
     features: [
       'Bartenders profesionales certificados',
       'Barra completa equipada',
@@ -168,7 +182,7 @@ export const SERVICES = [
     slug: 'mixologia-corporativa',
     description: 'Experiencia de coctelería personalizada para eventos empresariales y team building.',
     priceFrom: 2500,
-    icon: 'briefcase',
+    icon: 'Briefcase',
     features: [
       'Cócteles signature con branding',
       'Presentación profesional',
@@ -186,7 +200,7 @@ export const SERVICES = [
     slug: 'cocteles-autor',
     description: 'Creación de cócteles exclusivos diseñados especialmente para tu evento íntimo.',
     priceFrom: 2200,
-    icon: 'sparkles',
+    icon: 'Sparkles',
     features: [
       'Consulta previa personalizada',
       'Receta exclusiva creada para ti',
@@ -204,7 +218,7 @@ export const SERVICES = [
     slug: 'barra-movil',
     description: 'Barra móvil completamente equipada con todo lo necesario para tu evento.',
     priceFrom: 800,
-    icon: 'truck',
+    icon: 'Truck',
     features: [
       'Barra portátil elegante',
       'Equipo completo de bartending',
@@ -309,6 +323,7 @@ export const FEATURED_COCKTAILS = [
     category: 'Clásicos',
     ingredients: ['Pisco acholado', 'Limón', 'Jarabe', 'Amargo de angostura'],
     difficulty: 'medium',
+    imageUrl: '/images/cocktails/pisco-sour-reserva.jpg',
   },
   {
     id: 'old-fashioned-ahumado',
@@ -317,6 +332,7 @@ export const FEATURED_COCKTAILS = [
     category: 'Clásicos',
     ingredients: ['Bourbon', 'Angostura', 'Azúcar demerara', 'Twist de naranja'],
     difficulty: 'hard',
+    imageUrl: '/images/cocktails/old-fashioned-ahumado.jpg',
   },
   {
     id: 'margarita-maracuya',
@@ -325,6 +341,7 @@ export const FEATURED_COCKTAILS = [
     category: 'Tropicales',
     ingredients: ['Tequila', 'Triple sec', 'Maracuyá', 'Limón'],
     difficulty: 'medium',
+    imageUrl: '/images/cocktails/margarita-maracuya.jpg',
   },
   {
     id: 'mojito-clasico',
@@ -333,6 +350,7 @@ export const FEATURED_COCKTAILS = [
     category: 'Clásicos',
     ingredients: ['Ron blanco', 'Menta', 'Limón', 'Azúcar', 'Soda'],
     difficulty: 'easy',
+    imageUrl: '/images/cocktails/mojito-clasico.jpg',
   },
   {
     id: 'negroni',
@@ -341,6 +359,7 @@ export const FEATURED_COCKTAILS = [
     category: 'Clásicos',
     ingredients: ['Gin', 'Campari', 'Vermut rojo'],
     difficulty: 'easy',
+    imageUrl: '/images/cocktails/negroni.jpg',
   },
 ] as const;
 
@@ -521,3 +540,24 @@ export const PAGE_METADATA = {
     description: 'Artículos sobre mixología, tendencias y consejos para eventos.',
   },
 } as const;
+
+/**
+ * Mapa para renderizar los iconos dinámicamente en el frontend.
+ * Uso: const Icon = ICON_MAP[service.icon]; return <Icon />;
+ */
+export const ICON_MAP = {
+  Martini,
+  Briefcase,
+  Sparkles,
+  Truck,
+  Gem,
+  Building2,
+  Cake,
+  CalendarHeart,
+  GraduationCap,
+  Baby,
+  PartyPopper,
+} as const;
+
+// Exportamos también el tipo para usarlo en TypeScript
+export type IconName = keyof typeof ICON_MAP;

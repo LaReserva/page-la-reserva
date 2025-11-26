@@ -1,7 +1,18 @@
 /** @type {import('tailwindcss').Config} */
+import typography from '@tailwindcss/typography'; // Importación corregida
+import forms from '@tailwindcss/forms';           // Importación corregida
 export default {
   content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1rem',
+        sm: '2rem',
+        lg: '4rem',
+        xl: '5rem',
+      },
+    },
     extend: {
       colors: {
         // Colores de La Reserva
@@ -78,7 +89,7 @@ export default {
     },
   },
   plugins: [
-    require('@tailwindcss/typography'),
-    require('@tailwindcss/forms'),
+    typography, // Uso de la variable importada
+    forms,      // Uso de la variable importada
   ],
 };

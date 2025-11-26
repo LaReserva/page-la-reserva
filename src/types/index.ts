@@ -1,12 +1,18 @@
 // src/types/index.ts
 
+import type { 
+  QUOTE_STATUSES, 
+  EVENT_STATUSES, 
+  EVENT_TYPES, 
+  SERVICES, 
+  PACKAGES 
+} from '@/utils/constants'; // ✅ CORRECCIÓN: Usamos el alias @/utils
+
 /**
  * LA RESERVA - TIPOS TYPESCRIPT
- * 
- * Tipos basados en el esquema de base de datos Supabase
+ * * Tipos basados en el esquema de base de datos Supabase
  * y tipos adicionales para el frontend.
- * 
- * @version 1.0
+ * * @version 1.1
  */
 
 // ============================================
@@ -42,7 +48,7 @@ export interface Quote {
   event_date: string;
   guest_count: number;
   message?: string;
-  status: 'new' | 'contacted' | 'quoted' | 'converted' | 'declined';
+  status: QuoteStatus; // ✅ MEJORA: Usamos el tipo estricto
   estimated_price?: number;
   admin_notes?: string;
   created_at: string;
@@ -65,12 +71,12 @@ export interface Event {
   venue?: string;
   venue_address?: string;
   venue_district?: string;
-  package_id?: string;
-  service_ids?: string[];
+  package_id?: PackageId; // ✅ MEJORA: Tipo estricto
+  service_ids?: ServiceId[]; // ✅ MEJORA: Tipo estricto
   total_price: number;
   deposit_paid: number;
   balance_due?: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: EventStatus; // ✅ MEJORA: Tipo estricto
   notes?: string;
   special_requests?: string;
   cocktails_selected?: string[];
@@ -246,7 +252,7 @@ export interface EventFormData {
   packageId?: string;
   totalPrice?: number;
   deposit?: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: EventStatus;
   notes?: string;
 }
 
@@ -309,9 +315,6 @@ export interface TestimonialCardProps {
 // 4. TIPOS DE RESPUESTA API
 // ============================================
 
-/**
- * Respuesta genérica de API
- */
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -319,9 +322,6 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
-/**
- * Respuesta paginada
- */
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
@@ -330,9 +330,6 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-/**
- * Error de API
- */
 export interface ApiError {
   message: string;
   code?: string;
@@ -343,9 +340,6 @@ export interface ApiError {
 // 5. TIPOS DE UTILIDAD
 // ============================================
 
-/**
- * Opciones de select/dropdown
- */
 export interface SelectOption {
   value: string;
   label: string;
@@ -353,18 +347,12 @@ export interface SelectOption {
   description?: string;
 }
 
-/**
- * Breadcrumb item
- */
 export interface BreadcrumbItem {
   label: string;
   href: string;
   active?: boolean;
 }
 
-/**
- * Metadata de página (SEO)
- */
 export interface PageMetadata {
   title: string;
   description: string;
@@ -374,9 +362,6 @@ export interface PageMetadata {
   noindex?: boolean;
 }
 
-/**
- * Filtros de búsqueda
- */
 export interface SearchFilters {
   query?: string;
   category?: string;
@@ -387,9 +372,6 @@ export interface SearchFilters {
   sortOrder?: 'asc' | 'desc';
 }
 
-/**
- * Estadísticas del dashboard
- */
 export interface DashboardStats {
   totalEvents: number;
   upcomingEvents: number;
@@ -400,74 +382,58 @@ export interface DashboardStats {
 }
 
 // ============================================
-// 6. TIPOS EXTENDIDOS (con relaciones)
+// 6. TIPOS EXTENDIDOS
 // ============================================
 
-/**
- * Evento con información del cliente
- */
 export interface EventWithClient extends Event {
   client?: Client;
 }
 
-/**
- * Cotización con información del cliente
- */
 export interface QuoteWithClient extends Quote {
   client?: Client;
 }
 
-/**
- * Imagen de evento con información del evento
- */
 export interface EventImageWithEvent extends EventImage {
   event?: Event;
 }
 
-/**
- * Post de blog con información del autor
- */
 export interface BlogPostWithAuthor extends BlogPost {
   author?: AdminUser;
 }
 
 // ============================================
-// 7. TIPOS DE CONSTANTES
+// 7. TIPOS DE CONSTANTES (MEJORADOS)
 // ============================================
 
 /**
- * Tipo para estados de cotización
+ * Tipo para estados de cotización ('new' | 'contacted' | ...)
  */
-export type QuoteStatus = keyof typeof import('./constants').QUOTE_STATUSES;
+export type QuoteStatus = keyof typeof QUOTE_STATUSES;
 
 /**
- * Tipo para estados de evento
+ * Tipo para estados de evento ('pending' | 'confirmed' | ...)
  */
-export type EventStatus = keyof typeof import('./constants').EVENT_STATUSES;
+export type EventStatus = keyof typeof EVENT_STATUSES;
 
 /**
- * Tipo para tipos de evento
+ * Tipo para tipos de evento ('boda' | 'corporativo' | ...)
  */
-export type EventType = typeof import('./constants').EVENT_TYPES[number]['value'];
+export type EventType = typeof EVENT_TYPES[number]['value'];
 
 /**
- * Tipo para servicios
+ * Tipo para IDs de servicios ('bartending-eventos' | 'mixologia-corporativa' | ...)
  */
-export type ServiceId = typeof import('./constants').SERVICES[number]['id'];
+export type ServiceId = typeof SERVICES[number]['id'];
 
 /**
- * Tipo para paquetes
+ * Tipo para IDs de paquetes ('basico' | 'completo' | 'premium')
  */
-export type PackageId = typeof import('./constants').PACKAGES[number]['id'];
+export type PackageId = typeof PACKAGES[number]['id'];
 
 // ============================================
-// 8. TIPOS DE SUPABASE (Database)
+// 8. TIPOS DE SUPABASE
 // ============================================
 
-/**
- * Tipo de base de datos completo de Supabase
- * (Generado automáticamente con: supabase gen types typescript)
- */
 export type Database = {
   public: {
     Tables: {
