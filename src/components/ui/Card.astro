@@ -1,12 +1,13 @@
 ---
 // src/components/ui/Card.astro
+import type { HTMLAttributes } from 'astro/types';
 import { cn } from '@/utils/utils';
 
-interface Props {
-  variant?: 'default' | 'bordered' | 'elevated';
+// Extendemos de HTMLAttributes<'div'> para aceptar id, onclick, style, etc.
+interface Props extends HTMLAttributes<'div'> {
+  variant?: 'default' | 'bordered' | 'elevated' | 'gold'; // Agregué variante 'gold'
   padding?: 'none' | 'sm' | 'md' | 'lg';
   hover?: boolean;
-  class?: string;
 }
 
 const {
@@ -14,14 +15,18 @@ const {
   padding = 'md',
   hover = false,
   class: className,
+  ...rest // ✅ Capturamos el resto de propiedades
 } = Astro.props;
 
 const baseClasses = 'bg-white rounded-lg overflow-hidden transition-all duration-300';
 
 const variantClasses = {
   default: 'shadow-md',
-  bordered: 'border-2 border-secondary-200',
+  // Cambié el borde a primary-500 (Dorado) si quieres que sea sutil pero de marca, 
+  // o mantenlo gris si prefieres neutro. Aquí dejo la opción 'gold' explícita:
+  bordered: 'border-2 border-secondary-200', 
   elevated: 'shadow-xl',
+  gold: 'border-2 border-primary-500', // ✅ Nueva variante según Manual de Marca
 };
 
 const paddingClasses = {
@@ -35,11 +40,12 @@ const classes = cn(
   baseClasses,
   variantClasses[variant],
   paddingClasses[padding],
-  hover && 'hover:shadow-2xl hover:-translate-y-1',
+  // Añadí hover:border-primary-500 para que al pasar el mouse se ilumine en dorado
+  hover && 'hover:shadow-2xl hover:-translate-y-1 hover:border-primary-500/30', 
   className
 );
 ---
 
-<div class={classes}>
+<div class={classes} {...rest}>
   <slot />
 </div>
