@@ -2,13 +2,16 @@
 
 /**
  * LA RESERVA - VALIDADORES CON ZOD
- * 
- * Schemas de validación para formularios usando Zod.
+ * * Schemas de validación para formularios usando Zod.
  * Proporciona validación type-safe en cliente y servidor.
+ * @version 1.1
  */
 
 import { z } from 'zod';
-import { VALIDATION, ERROR_MESSAGES } from './constants';
+import { VALIDATION, ERROR_MESSAGES } from '@/utils/constants'; // ✅ MEJORA: Alias correcto
+
+// Helper para limpiar teléfonos (elimina espacios y guiones)
+const cleanPhone = (val: string) => val.replace(/[\s-]/g, '');
 
 // ============================================
 // 1. SCHEMA: COTIZACIÓN
@@ -27,9 +30,13 @@ export const quoteSchema = z.object({
   
   phone: z
     .string()
-    .min(VALIDATION.phone.min, ERROR_MESSAGES.minLength(VALIDATION.phone.min))
-    .max(VALIDATION.phone.max, ERROR_MESSAGES.maxLength(VALIDATION.phone.max))
-    .regex(/^(\+?51)?9\d{8}$/, ERROR_MESSAGES.invalidPhone),
+    .transform(cleanPhone) // ✅ MEJORA DE UX: Limpia espacios antes de validar
+    .pipe(
+      z.string()
+        .min(VALIDATION.phone.min, ERROR_MESSAGES.minLength(VALIDATION.phone.min))
+        .max(VALIDATION.phone.max, ERROR_MESSAGES.maxLength(VALIDATION.phone.max))
+        .regex(/^(\+?51)?9\d{8}$/, ERROR_MESSAGES.invalidPhone)
+    ),
   
   eventType: z
     .string()
@@ -39,22 +46,23 @@ export const quoteSchema = z.object({
     .string()
     .min(1, ERROR_MESSAGES.required)
     .refine((date) => {
-      const eventDate = new Date(date);
+      // Ajustamos la fecha para evitar problemas de zona horaria al comparar solo días
+      const eventDate = new Date(date + 'T00:00:00'); 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       return eventDate >= today;
     }, ERROR_MESSAGES.pastDate),
   
   guestCount: z
-    .number()
+    .number({ invalid_type_error: ERROR_MESSAGES.required })
     .min(VALIDATION.guests.min, ERROR_MESSAGES.minValue(VALIDATION.guests.min))
     .max(VALIDATION.guests.max, ERROR_MESSAGES.maxValue(VALIDATION.guests.max)),
   
   message: z
     .string()
-    .min(VALIDATION.message.min, ERROR_MESSAGES.minLength(VALIDATION.message.min))
     .max(VALIDATION.message.max, ERROR_MESSAGES.maxLength(VALIDATION.message.max))
-    .optional(),
+    .optional()
+    .or(z.literal('')), // Permite string vacío
 });
 
 export type QuoteFormData = z.infer<typeof quoteSchema>;
@@ -75,7 +83,8 @@ export const contactSchema = z.object({
   
   phone: z
     .string()
-    .optional(),
+    .optional()
+    .transform((val) => (val ? cleanPhone(val) : val)), // Limpieza opcional
   
   subject: z
     .string()

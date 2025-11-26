@@ -561,3 +561,20 @@ export const ICON_MAP = {
 
 // Exportamos también el tipo para usarlo en TypeScript
 export type IconName = keyof typeof ICON_MAP;
+
+// ============================================ Forma de uso ============================================
+// import { SERVICES, ICON_MAP } from '@/utils/constants';
+
+// // En tu componente:
+// {SERVICES.map(service => {
+//   // Recuperamos el componente real usando el string
+//   const IconComponent = ICON_MAP[service.icon as keyof typeof ICON_MAP];
+  
+//   return (
+//     <div className="card">
+//       {/* Renderizamos el icono */}
+//       <IconComponent className="w-8 h-8 text-primary-500" />
+//       <h3>{service.name}</h3>
+//     </div>
+//   )
+// })}

@@ -168,6 +168,17 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
+/**
+ * Formatea un número como moneda peruana (Soles)
+ * @example formatCurrency(1500) -> "S/ 1,500.00"
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('es-PE', {
+    style: 'currency',
+    currency: 'PEN',
+  }).format(amount);
+}
+
 // ============================================
 // 5. UTILIDADES DE FECHA
 // ============================================
