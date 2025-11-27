@@ -5,23 +5,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { quoteSchema, type QuoteFormData } from '@/utils/validators';
 import { EVENT_TYPES } from '@/utils/constants';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/components/ui/Toast';
+import { useToast, ToastProvider } from '@/components/ui/Toast'; // ✅ Importamos ToastProvider
 import { cn } from '@/utils/utils';
 
-// ELIMINAMOS el import de Input porque es un archivo .astro y no funciona aquí.
-// Usaremos HTML nativo (<input>) con las clases de Tailwind.
-
-export function QuoteForm() {
+// 1. Componente Interno (Lógica del formulario)
+function QuoteFormContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showToast } = useToast();
+  const { showToast } = useToast(); // Ahora sí funcionará porque está dentro del Provider
 
-const {
+  const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm<QuoteFormData>({
-    // ✅ CAMBIO AQUÍ: Movemos 'as any' adentro para silenciar la validación del argumento ---- revisar esto luego 
     resolver: zodResolver(quoteSchema as any), 
     defaultValues: {
       guestCount: 100,
@@ -57,7 +54,7 @@ const {
     }
   };
 
-  // Estilos base para inputs (replicando tu componente Input.astro)
+  // Estilos base reutilizables
   const inputClasses = (hasError: boolean) => cn(
     'w-full px-4 py-3 border rounded-lg transition-all duration-200',
     'bg-white text-secondary-900 placeholder:text-secondary-400',
@@ -143,7 +140,6 @@ const {
               </option>
             ))}
           </select>
-          {/* Icono Chevron */}
           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-secondary-500">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
           </div>
@@ -207,7 +203,7 @@ const {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full inline-flex items-center justify-center px-6 py-3 font-semibold rounded-full transition-all duration-200 uppercase tracking-wider text-sm bg-gradient-to-r from-primary-500 to-accent-500 text-secondary-600 hover:from-primary-600 hover:to-accent-600 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full inline-flex items-center justify-center px-6 py-3 font-semibold rounded-full transition-all duration-200 uppercase tracking-wider text-sm bg-gradient-to-r from-primary-500 to-accent-500 text-secondary-900 hover:from-primary-600 hover:to-accent-600 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSubmitting ? 'Enviando...' : 'Solicitar Cotización'}
       </button>
@@ -216,5 +212,14 @@ const {
         Te contactaremos dentro de las próximas 24 horas
       </p>
     </form>
+  );
+}
+
+// 2. Componente Exportado (Wrapper con el Provider)
+export function QuoteForm() {
+  return (
+    <ToastProvider>
+      <QuoteFormContent />
+    </ToastProvider>
   );
 }

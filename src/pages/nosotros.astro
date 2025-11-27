@@ -1,58 +1,165 @@
 ---
 // src/pages/nosotros.astro
 import PageLayout from '@/layouts/PageLayout.astro';
+import { HeroServices } from '@/components/sections/HeroServices';
+import Button from '@/components/ui/Button.astro';
 import Card from '@/components/ui/Card.astro';
+import { Award, Users, Heart, Clock } from 'lucide-react'; // Iconos para valores
+
+const stats = [
+  { number: '+10', label: 'Años de Experiencia', icon: Clock },
+  { number: '+200', label: 'Eventos Realizados', icon: Award },
+  { number: '100%', label: 'Clientes Satisfechos', icon: Heart },
+  { number: '50+', label: 'Bartenders Certificados', icon: Users },
+];
+
+const values = [
+  {
+    title: 'Excelencia',
+    desc: 'No aceptamos nada menos que la perfección en cada cóctel que servimos.'
+  },
+  {
+    title: 'Personalización',
+    desc: 'Creemos que cada evento debe tener su propia identidad y sabor único.'
+  },
+  {
+    title: 'Hospitalidad',
+    desc: 'Servimos personas, no solo bebidas. La calidez es nuestro sello.'
+  }
+];
 ---
 
-<PageLayout title="Nosotros" description="Conoce al equipo de La Reserva. Expertos en mixología con más de 10 años de experiencia.">
-  <section class="section">
-    <div class="container-custom max-w-4xl">
-      <h1 class="text-center mb-8">Sobre La Reserva</h1>
-      
-      <div class="prose prose-lg mx-auto mb-16">
-        <p class="lead">
-          Somos especialistas en crear experiencias memorables a través de la mixología artesanal. 
-          Con más de 10 años de experiencia, hemos transformado cientos de eventos en Lima.
-        </p>
+<PageLayout 
+  title="Sobre Nosotros" 
+  description="Conoce al equipo detrás de La Reserva. Expertos en mixología con más de 10 años de experiencia creando momentos inolvidables en Lima."
+>
+  
+  {/* 1. HERO DE NOSOTROS */}
+  <HeroServices
+    client:load
+    title="Nuestra Historia"
+    subtitle="Más que bartenders, somos creadores de experiencias. Descubre la pasión detrás de cada copa."
+    imageDesktop="/images/about-hero-desktop.jpg"
+    imageTablet="/images/about-hero-tablet.jpg"
+    imageMobile="/images/about-hero-mobile.jpg"
+  />
+
+  {/* 2. HISTORIA Y MISIÓN */}
+  <section class="section bg-white">
+    <div class="container-custom">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         
-        <h2>Nuestra Historia</h2>
-        <p>
-          La Reserva nació de la pasión por la mixología y el deseo de elevar la experiencia de 
-          eventos en Lima. Cada cóctel que preparamos es una obra de arte, cada servicio es una 
-          experiencia única.
-        </p>
+        {/* Texto */}
+        <div class="space-y-6">
+          <span class="text-primary-600 font-bold tracking-widest uppercase text-sm">
+            Nuestra Esencia
+          </span>
+          <h2 class="text-4xl font-display font-bold text-secondary-900 leading-tight">
+            Elevando el Arte de la <br/>
+            <span class="text-primary-500">Hospitalidad en Lima</span>
+          </h2>
+          <div class="space-y-4 text-secondary-600 text-lg leading-relaxed">
+            <p>
+              La Reserva nació hace una década con una visión clara: transformar el servicio de bar en eventos de un simple "agregado" a una <strong>experiencia protagonista</strong>.
+            </p>
+            <p>
+              Entendimos que un buen cóctel tiene el poder de romper el hielo, iniciar conversaciones y crear memorias. Por eso, no solo mezclamos licores; diseñamos momentos.
+            </p>
+            <p>
+              Hoy, somos referentes en el sector de bodas y eventos corporativos de lujo, manteniendo siempre nuestra promesa: calidad premium, estética impecable y un servicio que hace sentir especial a cada invitado.
+            </p>
+          </div>
+          
+          <div class="pt-4">
+            <img src="/images/signature.png" alt="Firma Fundador" class="h-12 opacity-60" /> {/* Opcional: firma decorativa */}
+          </div>
+        </div>
 
-        <h2>Nuestra Misión</h2>
-        <p>
-          Crear experiencias únicas a través de la mixología artesanal, elevando cada evento con 
-          cócteles de autor y un servicio excepcional.
-        </p>
+        {/* Imagen / Collage */}
+        <div class="relative">
+          <div class="aspect-[4/5] rounded-lg overflow-hidden shadow-2xl">
+            <img 
+              src="/images/team-working.png" 
+              alt="Equipo La Reserva en acción" 
+              class="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+            />
+          </div>
+          {/* Cuadro decorativo flotante */}
+          <div class="absolute -bottom-10 -left-10 bg-secondary-900 text-white p-8 rounded-lg shadow-xl max-w-xs hidden md:block">
+            <p class="font-display italic text-xl leading-relaxed">
+              "La mixología es el arte de poner el alma en una copa."
+            </p>
+          </div>
+        </div>
 
-        <h2>Nuestra Visión</h2>
-        <p>
-          Ser la empresa de bartending referente en eventos exclusivos en Lima, reconocida por 
-          nuestra excelencia, innovación y atención personalizada.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
-        <Card class="text-center">
-          <div class="text-4xl font-bold text-primary-500 mb-2">+10</div>
-          <p class="text-sm">Años de Experiencia</p>
-        </Card>
-        <Card class="text-center">
-          <div class="text-4xl font-bold text-primary-500 mb-2">+200</div>
-          <p class="text-sm">Eventos Realizados</p>
-        </Card>
-        <Card class="text-center">
-          <div class="text-4xl font-bold text-primary-500 mb-2">100%</div>
-          <p class="text-sm">Clientes Satisfechos</p>
-        </Card>
-        <Card class="text-center">
-          <div class="text-4xl font-bold text-primary-500 mb-2">5★</div>
-          <p class="text-sm">Calificación Promedio</p>
-        </Card>
       </div>
     </div>
   </section>
+
+  {/* 3. ESTADÍSTICAS */}
+  <section class="py-20 bg-secondary-900 text-white relative overflow-hidden">
+    {/* Patrón de fondo */}
+    <div class="absolute inset-0 opacity-10 bg-[url('/images/pattern.png')]"></div>
+    
+    <div class="container-custom relative z-10">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        {stats.map(stat => (
+          <div class="p-4 group">
+            <div class="mb-4 flex justify-center text-primary-500 group-hover:scale-110 transition-transform duration-300">
+              <stat.icon className="w-10 h-10" />
+            </div>
+            <div class="text-4xl md:text-5xl font-bold mb-2 text-white">
+              {stat.number}
+            </div>
+            <div class="text-sm md:text-base text-secondary-300 uppercase tracking-wider">
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* 4. VALORES */}
+  <section class="section bg-secondary-50">
+    <div class="container-custom">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-3xl md:text-4xl font-display font-bold text-secondary-900 mb-6">
+          Nuestros Pilares
+        </h2>
+        <p class="text-secondary-600">
+          Lo que nos guía en cada evento que realizamos.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {values.map(val => (
+          <Card class="text-center p-8 hover:-translate-y-2 transition-transform duration-300 border-t-4 border-t-primary-500">
+            <h3 class="text-xl font-bold text-secondary-900 mb-4">{val.title}</h3>
+            <p class="text-secondary-500 leading-relaxed">
+              {val.desc}
+            </p>
+          </Card>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* 5. CTA */}
+  <section class="py-24 bg-white relative">
+    <div class="container-custom text-center">
+      <h2 class="text-3xl md:text-5xl font-display font-bold text-secondary-900 mb-8">
+        ¿Te gustaría trabajar con nosotros?
+      </h2>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <Button variant="primary" href="/cotizacion" size="lg">
+          Cotizar mi Evento
+        </Button>
+        <Button variant="outline" href="/contacto" size="lg" class="border-secondary-300 text-secondary-600 hover:border-secondary-900 hover:text-secondary-900">
+          Contactar al Equipo
+        </Button>
+      </div>
+    </div>
+  </section>
+
 </PageLayout>

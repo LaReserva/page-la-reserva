@@ -1,36 +1,156 @@
 ---
 // src/pages/portafolio.astro
 import PageLayout from '@/layouts/PageLayout.astro';
-import { supabase } from '@/lib/supabase';
+import { HeroServices } from '@/components/sections/HeroServices';
+import { PortfolioGrid } from '@/components/sections/PortfolioGrid';
+// import { supabase } from '@/lib/supabase'; // Comentado temporalmente
+import type { EventImageWithEvent } from '@/types';
 
-const { data: images } = await supabase
+// --- MODO DE PRUEBA: DATOS FALSOS (MOCK) ---
+// Cuando tengas el admin listo, descomentas la llamada a Supabase y borras esto.
+
+const mockImages: EventImageWithEvent[] = [
+  {
+    id: '1',
+    image_url: '/images/portfolio/boda1.png', // Asegúrate que esta imagen exista en public/images/portfolio/
+    caption: 'Boda en Cieneguilla',
+    order_index: 1,
+    created_at: new Date().toISOString(),
+    event: {
+      id: 'e1',
+      event_type: 'Boda', // Esto crea la categoría en el filtro
+      event_date: '2024-01-15',
+      status: 'completed',
+      // ... otros campos obligatorios del tipo Event pero que no se usan visualmente en el grid ...
+      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
+    }
+  },
+  {
+    id: '2',
+    image_url: '/images/portfolio/corp1.png',
+    caption: 'Lanzamiento de Marca',
+    order_index: 2,
+    created_at: new Date().toISOString(),
+    event: {
+      id: 'e2',
+      event_type: 'Corporativo',
+      event_date: '2024-02-20',
+      status: 'completed',
+      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
+    }
+  },
+  {
+    id: '3',
+    image_url: '/images/portfolio/coctel1.png',
+    caption: 'Cócteles de Autor',
+    order_index: 3,
+    created_at: new Date().toISOString(),
+    event: {
+      id: 'e3',
+      event_type: 'Cócteles',
+      event_date: '2024-03-10',
+      status: 'completed',
+      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
+    }
+  },
+  {
+    id: '4',
+    image_url: '/images/portfolio/boda2.png',
+    caption: 'Boda en Miraflores',
+    order_index: 4,
+    created_at: new Date().toISOString(),
+    event: {
+      id: 'e4',
+      event_type: 'Boda',
+      event_date: '2024-04-05',
+      status: 'completed',
+      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
+    }
+  },
+  {
+    id: '5',
+    image_url: '/images/portfolio/corp2.png',
+    caption: 'Evento Corporativo en San Isidro',
+    order_index: 5,
+    created_at: new Date().toISOString(),
+    event: {
+      id: 'e5',
+      event_type: 'Corporativo',
+      event_date: '2024-05-18',
+      status: 'completed',
+      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
+    }
+  },
+  {
+    id: '6',
+    image_url: '/images/portfolio/coctel2.png',
+    caption: 'Noche de Cócteles Exclusivos',
+    order_index: 6,
+    created_at: new Date().toISOString(),
+    event: {
+      id: 'e6',
+      event_type: 'Cócteles',
+      event_date: '2024-06-22',
+      status: 'completed',
+      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
+    }
+  },
+  // ... agrega más si quieres probar el grid
+];
+
+/* CÓDIGO REAL (Descomentar cuando uses Supabase)
+const { data } = await supabase
   .from('event_images')
-  .select('*, event:events(event_type, event_date, status)')
+  .select(`
+    *,
+    event:events (
+      event_type,
+      event_date,
+      status
+    )
+  `)
   .eq('events.status', 'completed')
   .order('created_at', { ascending: false });
+
+const images = (data || []) as EventImageWithEvent[];
+*/
+
+// Usamos los datos falsos por ahora
+const images = mockImages;
 ---
 
-<PageLayout title="Portafolio" description="Galería de eventos realizados por La Reserva en Lima.">
-  <section class="section">
+<PageLayout 
+  title="Portafolio"
+  description="Galería de eventos exclusivos realizados por La Reserva. Bodas, eventos corporativos y celebraciones privadas en Lima."
+>
+  
+  {/* 1. HERO */}
+  <HeroServices
+    client:load
+    title="Nuestra Galería"
+    subtitle="Una colección de momentos memorables y cócteles excepcionales creados para nuestros clientes."
+    imageDesktop="/images/portfolio-hero-desktop.jpg"
+    imageTablet="/images/portfolio-hero-tablet.jpg"
+    imageMobile="/images/portfolio-hero-mobile.jpg"
+  />
+
+  {/* 2. GRID PRINCIPAL */}
+  <section class="section bg-secondary-50 min-h-screen">
     <div class="container-custom">
-      <h1 class="text-center mb-12">Nuestro Portafolio</h1>
       
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {images?.map(img => (
-          <div class="relative aspect-square overflow-hidden rounded-lg group">
-            <img 
-              src={img.image_url} 
-              alt={img.caption || 'Evento'}
-              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span class="text-white font-semibold">
-                {img.event?.event_type}
-              </span>
-            </div>
-          </div>
-        ))}
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-3xl md:text-4xl font-display font-bold text-secondary-900 mb-4">
+          Momentos Capturados
+        </h2>
+        <p class="text-lg text-secondary-500">
+          Explora nuestros eventos recientes y encuentra inspiración para tu próxima celebración.
+        </p>
       </div>
+
+      {/* Componente React Interactivo */}
+      <PortfolioGrid client:load images={images} />
+      
     </div>
   </section>
+
 </PageLayout>

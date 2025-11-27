@@ -8,12 +8,19 @@ interface Props {
   title: string;
   description?: string;
   image?: string;
+  noindex?: boolean; // ✅ 1. Agregamos la propiedad opcional aquí
 }
 
-const { title, description, image } = Astro.props;
+const { 
+  title, 
+  description, 
+  image, 
+  noindex = false // ✅ 2. La desestructuramos con valor por defecto
+} = Astro.props;
 ---
 
-<BaseLayout title={title} description={description} image={image}>
+{/* ✅ 3. Se la pasamos al BaseLayout */}
+<BaseLayout title={title} description={description} image={image} noindex={noindex}>
   <Header />
   
   <main class="min-h-screen">

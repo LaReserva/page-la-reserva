@@ -2,21 +2,124 @@
 // src/pages/cotizacion.astro
 import PageLayout from '@/layouts/PageLayout.astro';
 import { QuoteForm } from '@/components/forms/QuoteForm';
+import { CheckCircle2, Clock, ShieldCheck, Star } from 'lucide-react';
 ---
 
-<PageLayout title="Solicitar Cotización">
-  <section class="section">
-    <div class="container-custom max-w-2xl">
-      <div class="text-center mb-12">
-        <h1 class="mb-4">Solicita tu Cotización</h1>
-        <p class="text-lg text-secondary-400">
-          Completa el formulario y te contactaremos pronto
+<PageLayout 
+  title="Solicitar Cotización" 
+  description="Cuéntanos sobre tu evento y recibe una propuesta personalizada de bartending premium en menos de 24 horas."
+>
+  
+  <section class="section bg-secondary-50 min-h-screen flex items-center py-20">
+    <div class="container-custom">
+      
+      {/* Encabezado */}
+      <div class="text-center mb-12 max-w-3xl mx-auto">
+        <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block">
+          Empecemos a Planear
+        </span>
+        <h1 class="text-4xl md:text-5xl font-display font-bold text-secondary-900 mb-4">
+          Cotiza tu Evento
+        </h1>
+        <p class="text-lg text-secondary-500">
+          Completa el formulario con los detalles de tu celebración. 
+          Te enviaremos una propuesta detallada y a tu medida.
         </p>
       </div>
 
-      <div class="card">
-        <QuoteForm client:load />
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        
+        {/* COLUMNA IZQUIERDA: Formulario (7 columnas) */}
+        <div class="lg:col-span-7">
+          <div class="bg-white rounded-2xl shadow-xl p-6 md:p-10 border-t-4 border-primary-500">
+            {/* Componente React Interactivo */}
+            <QuoteForm client:load />
+          </div>
+        </div>
+
+        {/* COLUMNA DERECHA: Información de Confianza (5 columnas) */}
+        <div class="lg:col-span-5 space-y-8 lg:sticky lg:top-32">
+          
+          {/* Bloque: Proceso */}
+          <div class="bg-secondary-900 text-white p-8 rounded-2xl shadow-lg relative overflow-hidden">
+            {/* Decoración de fondo */}
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/3 -translate-y-1/3 pointer-events-none">
+              <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
+                <circle cx="100" cy="100" r="100" fill="white"/>
+              </svg>
+            </div>
+            
+            <h3 class="text-xl font-bold mb-6 text-secondary-300 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary-500" />
+              ¿Qué sucede después?
+            </h3>
+            
+            <ul class="space-y-6 relative z-10">
+              <li class="flex gap-4">
+                <div class="w-8 h-8 rounded-full bg-primary-500 text-secondary-900 flex items-center justify-center font-bold text-sm flex-shrink-0">1</div>
+                <div>
+                  <p class="font-bold text-sm uppercase tracking-wide text-primary-400 mb-1">Revisión</p>
+                  <p class="text-secondary-300 text-sm">Analizamos tus requerimientos y disponibilidad de fecha.</p>
+                </div>
+              </li>
+              <li class="flex gap-4">
+                <div class="w-8 h-8 rounded-full bg-secondary-700 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">2</div>
+                <div>
+                  <p class="font-bold text-sm uppercase tracking-wide text-primary-400 mb-1">Propuesta</p>
+                  <p class="text-secondary-300 text-sm">Te enviamos un PDF con opciones de paquetes y precios exactos.</p>
+                </div>
+              </li>
+              <li class="flex gap-4">
+                <div class="w-8 h-8 rounded-full bg-secondary-700 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">3</div>
+                <div>
+                  <p class="font-bold text-sm uppercase tracking-wide text-primary-400 mb-1">Detalles</p>
+                  <p class="text-secondary-300 text-sm">Afinamos la selección de cócteles y personalización.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          {/* Bloque: Garantías */}
+          <div class="bg-white p-8 rounded-2xl shadow-sm border border-secondary-100">
+            <h3 class="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary-600" />
+              Garantía La Reserva
+            </h3>
+            <ul class="space-y-3">
+              <li class="flex items-center gap-3 text-secondary-600 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                <span>Bartenders certificados y uniformados</span>
+              </li>
+              <li class="flex items-center gap-3 text-secondary-600 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                <span>Insumos frescos del día</span>
+              </li>
+              <li class="flex items-center gap-3 text-secondary-600 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                <span>Puntualidad en el montaje (1.5h antes)</span>
+              </li>
+              <li class="flex items-center gap-3 text-secondary-600 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                <span>Contrato formal de servicio</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Bloque: Social Proof Pequeño */}
+          <div class="flex items-center justify-center gap-2 text-secondary-500 text-sm bg-white p-4 rounded-xl border border-secondary-100">
+            <div class="flex text-primary-500">
+              <Star className="w-4 h-4 fill-current" />
+              <Star className="w-4 h-4 fill-current" />
+              <Star className="w-4 h-4 fill-current" />
+              <Star className="w-4 h-4 fill-current" />
+              <Star className="w-4 h-4 fill-current" />
+            </div>
+            <span>+200 eventos realizados con éxito</span>
+          </div>
+
+        </div>
       </div>
     </div>
   </section>
+
 </PageLayout>

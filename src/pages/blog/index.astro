@@ -1,0 +1,69 @@
+---
+// src/pages/blog/index.astro
+import PageLayout from '@/layouts/PageLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import { PenTool, ArrowLeft } from 'lucide-react';
+---
+
+<PageLayout 
+  title="Blog" 
+  description="Artículos sobre mixología, tendencias y consejos para eventos. Próximamente."
+  noindex={true} 
+  >
+  <!-- Importante: noindex={true} No indexar en Google hasta que esté listo -->
+  
+  <section class="relative min-h-[70vh] flex items-center justify-center bg-secondary-50 overflow-hidden">
+    
+    {/* Decoración de fondo */}
+    <div class="absolute inset-0 opacity-5 pointer-events-none">
+      <div class="absolute top-0 left-0 w-64 h-64 bg-primary-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+      <div class="absolute bottom-0 right-0 w-64 h-64 bg-accent-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+    </div>
+
+    <div class="container-custom relative z-10 text-center px-4">
+      
+      {/* Icono animado */}
+      <div class="mb-8 inline-flex p-6 rounded-full bg-white shadow-xl border border-secondary-100">
+        <PenTool className="w-12 h-12 text-primary-500" />
+      </div>
+
+      <h1 class="text-4xl md:text-6xl font-display font-bold text-secondary-900 mb-6">
+        Historias en Preparación
+      </h1>
+      
+      <p class="text-lg text-secondary-500 max-w-xl mx-auto mb-10 leading-relaxed">
+        Estamos mezclando los mejores artículos sobre mixología, tendencias y consejos para tus eventos. <br/>
+        Muy pronto podrás disfrutar de nuestro contenido exclusivo.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <Button href="/" variant="outline" class="border-secondary-300 text-secondary-600 hover:border-secondary-900 hover:text-secondary-900 gap-2">
+          <ArrowLeft className="w-4 h-4" />
+          Volver al Inicio
+        </Button>
+        
+        <Button href="/contacto" variant="primary">
+          Contáctanos mientras tanto
+        </Button>
+      </div>
+
+    </div>
+  </section>
+
+</PageLayout>
+
+<style>
+  /* Animación suave para las manchas de fondo */
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+</style>
