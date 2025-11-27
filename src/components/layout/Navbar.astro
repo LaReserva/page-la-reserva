@@ -25,13 +25,17 @@ function isActive(path: string) {
 ---
 
 <nav class="hidden lg:block">
-  <ul class="flex items-center gap-8">
+  {/* CORRECCIÓN DE ESPACIADO:
+      - lg:gap-5: Reduce el espacio en laptops (1024px) para que quepa el botón.
+      - xl:gap-8: Recupera el espacio amplio en pantallas grandes.
+  */}
+  <ul class="flex items-center lg:gap-5 xl:gap-8">
     {navLinks.map(link => (
       <li>
         <a 
           href={link.href}
           class={`
-            font-medium transition-colors duration-200
+            font-medium transition-colors duration-200 lg:text-sm xl:text-base
             ${isActive(link.href) 
               ? 'text-primary-500' 
               : 'text-secondary-600 hover:text-primary-500'

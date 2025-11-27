@@ -2,76 +2,109 @@
 // src/components/layout/Header.astro
 import Navbar from './Navbar.astro';
 import MobileMenu from './MobileMenu.astro';
+import Button from '@/components/ui/Button.astro';
+import { Menu, X } from 'lucide-react'; // Importamos X para el icono de cerrar si quisieras cambiarlo dinámicamente
 
 const currentPath = Astro.url.pathname;
 ---
 
 <header 
   id="main-header"
-  class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm transition-all duration-300"
+  class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-transparent transition-all duration-300 h-20"
 >
-  <div class="container-custom">
-    <div class="flex items-center justify-between py-4">
-      <!-- Logo -->
-      <a href="/" class="flex items-center group">
+  <div class="container-custom h-full">
+    <div class="flex items-center justify-between h-full">
+      
+      {/* Logo */}
+      <a href="/" class="flex items-center group relative z-50">
         <img 
           src="/logo.svg" 
           alt="La Reserva" 
-          class="h-12 w-auto transition-transform group-hover:scale-105" 
+          class="h-10 md:h-12 w-auto transition-transform group-hover:scale-105" 
         />
       </a>
       
-      <!-- Desktop Navigation -->
-      <Navbar currentPath={currentPath} />
-      
-      <!-- CTA Button (Desktop) -->
-      <div class="hidden lg:block"> <a href="/cotizacion" class="btn btn-primary">
-        Cotizar Evento
-        </a>
+      {/* Desktop Navigation */}
+      <div class="hidden lg:block">
+        <Navbar currentPath={currentPath} />
       </div>
       
-      <!-- Mobile Menu Button -->
+      {/* CTA Button (Desktop) */}
+      <div class="hidden lg:block">
+        <Button href="/cotizacion" variant="primary" size="sm">
+          Cotizar Evento
+        </Button>
+      </div>
+      
+      {/* Mobile Menu Button */}
       <button
         id="mobile-menu-btn"
-        class="lg:hidden p-2 text-secondary-600 hover:text-primary-500 transition-colors"
+        class="lg:hidden p-2 text-secondary-600 hover:text-primary-500 transition-colors relative z-50"
         aria-label="Abrir menú"
       >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
+        <Menu className="w-8 h-8" />
       </button>
     </div>
   </div>
   
-  <!-- Mobile Menu -->
+  {/* Mobile Menu (Overlay) - Se renderiza aquí */}
   <MobileMenu currentPath={currentPath} />
 </header>
 
-<!-- Spacer para header fixed -->
-<div class="h-20"></div> <!-- Ajusta el valor según la altura del header -->
+<div class="h-20"></div>
 
-<script>
-  // Mobile menu toggle
-  const btn = document.getElementById('mobile-menu-btn');
-  const menu = document.getElementById('mobile-menu');
-  
-  btn?.addEventListener('click', () => {
-    menu?.classList.toggle('hidden');
-  });
-  
-  // Header scroll effect
-  let lastScroll = 0;
-  const header = document.getElementById('main-header');
-  
-  window.addEventListener('scroll', () => {
-    const currentScroll = window.pageYOffset;
+<script is:inline>
+  // Función de inicialización
+  function initHeader() {
+    const btn = document.getElementById('mobile-menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    const header = document.getElementById('main-header');
     
-    if (currentScroll > 100) {
-      header?.classList.add('shadow-md');
-    } else {
-      header?.classList.remove('shadow-md');
+    // Debug: Verificar si los elementos existen
+    if (!btn || !menu) {
+      console.error('Error: No se encontró el botón o el menú móvil');
+      return;
     }
-    
-    lastScroll = currentScroll;
-  });
+
+    // Toggle Menú
+    btn.addEventListener('click', () => {
+      // Toggle de la clase 'hidden'
+      menu.classList.toggle('hidden');
+      
+      // Bloquear scroll si el menú está abierto
+      if (!menu.classList.contains('hidden')) {
+        document.body.style.overflow = 'hidden';
+        console.log('Menú abierto');
+      } else {
+        document.body.style.overflow = '';
+        console.log('Menú cerrado');
+      }
+    });
+
+    // Cerrar menú al hacer click en un enlace
+    const links = menu.querySelectorAll('a');
+    links.forEach(link => {
+      link.addEventListener('click', () => {
+        menu.classList.add('hidden');
+        document.body.style.overflow = '';
+      });
+    });
+
+    // Efecto Scroll del Header
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 10) {
+        header?.classList.add('shadow-md', 'bg-white');
+        header?.classList.remove('bg-white/95');
+      } else {
+        header?.classList.remove('shadow-md', 'bg-white');
+        header?.classList.add('bg-white/95');
+      }
+    });
+  }
+
+  // Ejecutar cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', initHeader);
+  
+  // Soporte para Astro View Transitions (si lo usas en el futuro)
+  document.addEventListener('astro:page-load', initHeader);
 </script>
