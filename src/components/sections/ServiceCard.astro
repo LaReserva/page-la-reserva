@@ -1,0 +1,75 @@
+---
+// src/components/sections/ServiceCard.astro
+import Card from '@/components/ui/Card.astro';
+import { ICON_MAP, type IconName } from '@/utils/constants';
+import type { Service } from '@/types';
+import { formatCurrency } from '@/utils/formatters';
+
+interface Props {
+  service: Service;
+}
+
+const { service } = Astro.props;
+
+// 1. Recuperamos el componente del icono usando el string (ej: "Martini")
+// Si por alguna razón no existe, usamos 'Martini' por defecto para no romper la UI
+const Icon = ICON_MAP[service.icon as IconName] || ICON_MAP.Martini;
+---
+
+<Card class="h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border-t-4 border-t-primary-500">
+  
+  {/* Encabezado con Icono */}
+  <div class="mb-6 flex items-center gap-4">
+    <div class="p-3 rounded-full bg-primary-50 text-primary-600">
+      <Icon className="w-8 h-8" />
+    </div>
+    <h3 class="text-xl font-display font-bold text-secondary-900 leading-tight">
+      {service.name}
+    </h3>
+  </div>
+
+  {/* Descripción */}
+  <p class="text-secondary-500 mb-6 flex-grow">
+    {service.description}
+  </p>
+
+  {/* Lista de Características */}
+  <ul class="space-y-2 mb-8">
+    {service.features.slice(0, 4).map((feature) => (
+      <li class="flex items-start gap-2 text-sm text-secondary-600">
+        <svg 
+          class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>{feature}</span>
+      </li>
+    ))}
+  </ul>
+
+  {/* Footer con Precio y Botón (Link simulado) */}
+  <div class="mt-auto pt-6 border-t border-secondary-100 flex items-center justify-between">
+    <div>
+      <p class="text-xs text-secondary-400 uppercase tracking-wider font-semibold">Desde</p>
+      <p class="text-2xl font-bold text-primary-600">
+        {formatCurrency(service.price_from)}
+      </p>
+    </div>
+    
+    <span class="text-sm font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1 group cursor-pointer">
+      Ver detalles
+      <svg 
+        class="w-4 h-4 transition-transform group-hover:translate-x-1" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </span>
+  </div>
+
+</Card>

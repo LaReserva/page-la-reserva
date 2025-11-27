@@ -2,49 +2,60 @@
 // src/pages/index.astro
 import PageLayout from '@/layouts/PageLayout.astro';
 import { Hero } from '@/components/sections/Hero';
+import Services from '@/components/sections/Services.astro'; // Importamos la sección de Servicios
 import { TestimonialsSlider } from '@/components/sections/TestimonialsSlider';
 import { supabase } from '@/lib/supabase';
 
-const { data: testimonials } = await supabase
+// 1. Fetch de Testimonios
+const { data: testimonials, error } = await supabase
   .from('testimonials')
   .select('*')
   .eq('approved', true)
   .eq('featured', true)
   .limit(5);
+
+// Debugging: Verifica en la terminal de VS Code si llegan datos
+if (error) console.error('Error fetching testimonials:', error);
+if (!testimonials?.length) console.warn('No testimonials found or empty array');
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>La Reserva</title>
-	</head>
-	<body>
-		<PageLayout title="Inicio">
-			<Hero
-			  client:load
-			  title="Mixología Exclusiva para Momentos Únicos"
-			  subtitle="Transformamos tu celebración en una experiencia memorable con cócteles de autor y servicio excepcional"
-			  backgroundImage="/images/hero-cocktail.jpg"
-			/>
-			
-			<section class="section bg-secondary-50">
-				<div class="container-custom">
-				  <div class="text-center mb-12">
-					<h2 class="mb-4">Lo que dicen nuestros clientes</h2>
-					<p class="text-lg text-secondary-400">
-					  Experiencias reales de eventos memorables
-					</p>
-				  </div>
-			  
-				  {testimonials && testimonials.length > 0 && (
-					<TestimonialsSlider client:load testimonials={testimonials} />
-				  )}
-				</div>
-			</section>
-			<!-- Resto del contenido -->
-		</PageLayout>
-	</body>
-</html>
+<PageLayout title="Inicio">
+  
+  {/* 1. Hero Section */}
+  <Hero
+    client:load
+    title="Mixología Exclusiva"
+    subtitle="Transformamos tu evento en una experiencia memorable con cócteles de autor."
+    videoDesktop="/videos/hero-desktop.mp4" 
+    videoMobile="/videos/hero-mobile.mp4"
+    poster="/images/hero-poster.jpg" 
+  />
+
+  {/* 2. Servicios Section (Agregada para completar el flujo) */}
+  <Services />
+  
+  {/* 3. Testimonials Section */}
+  <section class="section bg-secondary-50">
+    <div class="container-custom">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-display font-bold text-secondary-900 mb-4">
+          Lo que dicen nuestros clientes
+        </h2>
+        <p class="text-lg text-secondary-500">
+          Experiencias reales de eventos memorables
+        </p>
+      </div>
+  
+      {/* Renderizado condicional seguro */}
+      {testimonials && testimonials.length > 0 ? (
+        <TestimonialsSlider client:visible testimonials={testimonials} />
+      ) : (
+        // Fallback visual si no hay testimonios (útil durante desarrollo)
+        <div class="text-center p-8 bg-white rounded-lg shadow-sm border border-secondary-100">
+          <p class="text-secondary-400">No hay testimonios destacados disponibles por el momento.</p>
+        </div>
+      )}
+    </div>
+  </section>
+
+</PageLayout>

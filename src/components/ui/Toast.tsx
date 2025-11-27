@@ -1,6 +1,7 @@
 // src/components/ui/Toast.tsx
-import { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { cn } from '@/utils/utils';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -40,8 +41,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       
-      {/* Toast Container */}
-      <div className="fixed bottom-4 right-4 z-50 space-y-2">
+      {/* Toast Container - Z-Index alto para estar sobre todo */}
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
         <AnimatePresence>
           {toasts.map((toast) => (
             <ToastItem
@@ -59,53 +60,63 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   const typeConfig = {
     success: {
-      bg: 'bg-green-50',
-      border: 'border-green-500',
-      text: 'text-green-800',
-      icon: '✓',
+      bg: 'bg-white',
+      border: 'border-l-4 border-green-500',
+      text: 'text-secondary-900',
+      iconColor: 'text-green-500',
+      icon: CheckCircle,
     },
     error: {
-      bg: 'bg-red-50',
-      border: 'border-red-500',
-      text: 'text-red-800',
-      icon: '✕',
+      bg: 'bg-white',
+      border: 'border-l-4 border-red-500',
+      text: 'text-secondary-900',
+      iconColor: 'text-red-500',
+      icon: XCircle,
     },
     warning: {
-      bg: 'bg-yellow-50',
-      border: 'border-yellow-500',
-      text: 'text-yellow-800',
-      icon: '⚠',
+      bg: 'bg-white',
+      border: 'border-l-4 border-yellow-500',
+      text: 'text-secondary-900',
+      iconColor: 'text-yellow-500',
+      icon: AlertTriangle,
     },
     info: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-500',
-      text: 'text-blue-800',
-      icon: 'ℹ',
+      bg: 'bg-white',
+      border: 'border-l-4 border-blue-500',
+      text: 'text-secondary-900',
+      iconColor: 'text-blue-500',
+      icon: Info,
     },
   };
 
   const config = typeConfig[toast.type];
+  const IconComponent = config.icon;
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 100 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 100 }}
+      layout
+      initial={{ opacity: 0, y: 50, scale: 0.3 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
       className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border-l-4 min-w-[300px]',
+        'pointer-events-auto flex items-start gap-3 p-4 rounded-lg shadow-xl min-w-[320px] max-w-md',
         config.bg,
         config.border
       )}
+      role="alert"
     >
-      <span className="text-2xl">{config.icon}</span>
-      <p className={cn('flex-1 font-medium', config.text)}>{toast.message}</p>
+      <IconComponent className={cn("w-6 h-6 flex-shrink-0", config.iconColor)} />
+      
+      <p className={cn('flex-1 font-medium text-sm mt-0.5', config.text)}>
+        {toast.message}
+      </p>
+      
       <button
         onClick={onClose}
-        className={cn('p-1 hover:opacity-70 transition-opacity', config.text)}
+        className="text-secondary-400 hover:text-secondary-600 transition-colors"
+        aria-label="Cerrar notificación"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <X className="w-4 h-4" />
       </button>
     </motion.div>
   );

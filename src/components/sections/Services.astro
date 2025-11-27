@@ -1,0 +1,72 @@
+---
+// src/components/sections/Services.astro
+import { SERVICES } from '@/utils/constants';
+import ServiceCard from './ServiceCard.astro';
+import Button from '@/components/ui/Button.astro';
+// Importamos el tipo para poder hacer el cast correctamente
+import type { Service } from '@/types';
+
+interface Props {
+  className?: string;
+}
+
+const { className } = Astro.props;
+---
+
+<section id="servicios" class:list={["relative py-20 md:py-32 bg-secondary-50 overflow-hidden", className]}>
+  
+  {/* Decoración de fondo sutil */}
+  <div class="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none">
+    <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <path d="M0 100 C 20 0 50 0 100 100 Z" fill="currentColor" />
+    </svg>
+  </div>
+
+  <div class="container mx-auto px-4 relative z-10">
+    
+    <div class="text-center max-w-3xl mx-auto mb-16 md:mb-20">
+      <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block">
+        Experiencias a Medida
+      </span>
+      <h2 class="text-4xl md:text-5xl font-display font-bold text-secondary-900 mb-6">
+        Nuestros Servicios Exclusivos
+      </h2>
+      <p class="text-lg text-secondary-600 leading-relaxed">
+        Elevamos el estándar de tu evento con mixología de autor, ingredientes premium y un servicio impecable diseñado para impresionar.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8">
+      {SERVICES.map((item) => {
+        // ✅ SOLUCIÓN: Adaptamos los datos estáticos al tipo 'Service' de la BD
+        const serviceData: Service = {
+          id: item.id,
+          name: item.name,
+          slug: item.slug,
+          description: item.description,
+          // Mapeamos priceFrom -> price_from
+          price_from: item.priceFrom,
+          // Copiamos el array para quitar el 'readonly'
+          features: [...item.features],
+          icon: item.icon,
+          // Rellenamos datos que la BD tendría pero la constante no
+          active: true,
+          order_index: 0,
+          image_url: '', // Opcional
+          long_description: '', // Opcional
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        return <ServiceCard service={serviceData} />;
+      })}
+    </div>
+
+    <div class="mt-16 text-center">
+      <Button href="/servicios" variant="outline" class="border-secondary-300 text-secondary-600 hover:border-primary-500 hover:text-primary-600">
+        Ver detalles completos
+      </Button>
+    </div>
+
+  </div>
+</section>

@@ -1,15 +1,8 @@
 // src/components/sections/TestimonialsSlider.tsx
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-interface Testimonial {
-  id: string;
-  client_name: string;
-  event_type: string;
-  rating: number;
-  comment: string;
-  image_url?: string;
-}
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react'; // Iconos Lucide
+import type { Testimonial } from '@/types'; // Importamos el tipo global
 
 interface TestimonialsSliderProps {
   testimonials: Testimonial[];
@@ -19,10 +12,11 @@ export function TestimonialsSlider({ testimonials }: TestimonialsSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
 
+  // Auto-play logic
   useEffect(() => {
     const timer = setInterval(() => {
       handleNext();
-    }, 5000);
+    }, 6000); // Aumenté a 6s para dar tiempo a leer
 
     return () => clearInterval(timer);
   }, [currentIndex]);
@@ -37,26 +31,34 @@ export function TestimonialsSlider({ testimonials }: TestimonialsSliderProps) {
     setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
+  // Evitar crash si el array llega vacío
+  if (!testimonials || testimonials.length === 0) return null;
+
   const current = testimonials[currentIndex];
 
-  const variants = {
+  const variants: Variants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
+      x: direction > 0 ? 100 : -100, // Reduje la distancia para una animación más sutil
       opacity: 0,
+      scale: 0.95,
     }),
     center: {
+      zIndex: 1,
       x: 0,
       opacity: 1,
+      scale: 1,
     },
     exit: (direction: number) => ({
-      x: direction < 0 ? 1000 : -1000,
+      zIndex: 0,
+      x: direction < 0 ? 100 : -100,
       opacity: 0,
+      scale: 0.95,
     }),
   };
 
   return (
-    <div className="relative max-w-4xl mx-auto">
-      <AnimatePresence initial={false} custom={direction}>
+    <div className="relative max-w-4xl mx-auto px-4 md:px-12">
+      <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={currentIndex}
           custom={direction}
@@ -68,71 +70,80 @@ export function TestimonialsSlider({ testimonials }: TestimonialsSliderProps) {
             x: { type: 'spring', stiffness: 300, damping: 30 },
             opacity: { duration: 0.2 },
           }}
-          className="bg-white p-8 md:p-12 rounded-lg shadow-xl"
+          className="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-secondary-100 text-center relative"
         >
+          {/* Quote Icon Decorativo */}
+          <div className="absolute top-6 left-8 text-primary-200 opacity-50">
+            <Quote size={48} />
+          </div>
+
           {/* Stars */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center gap-1 mb-6 relative z-10">
             {Array.from({ length: 5 }).map((_, i) => (
-              <svg
+              <Star
                 key={i}
-                className={`w-6 h-6 ${
-                  i < current.rating ? 'text-primary-500' : 'text-secondary-200'
+                className={`w-5 h-5 ${
+                  i < current.rating 
+                    ? 'text-primary-500 fill-primary-500' 
+                    : 'text-secondary-200'
                 }`}
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
+              />
             ))}
           </div>
 
-          {/* Quote */}
-          <blockquote className="text-xl md:text-2xl text-center text-secondary-600 mb-8 font-display italic">
+          {/* Quote Text */}
+          <blockquote className="text-xl md:text-2xl text-secondary-700 mb-8 font-display italic leading-relaxed relative z-10">
             "{current.comment}"
           </blockquote>
 
-          {/* Author */}
-          <div className="flex flex-col items-center">
-            {current.image_url && (
+          {/* Author Info */}
+          <div className="flex flex-col items-center relative z-10">
+            {current.image_url ? (
               <img
                 src={current.image_url}
                 alt={current.client_name}
-                className="w-16 h-16 rounded-full mb-4 object-cover"
+                className="w-16 h-16 rounded-full mb-4 object-cover border-2 border-primary-200 shadow-sm"
               />
+            ) : (
+              // Fallback avatar si no hay imagen
+              <div className="w-16 h-16 rounded-full mb-4 bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-xl border-2 border-primary-200">
+                {current.client_name.charAt(0)}
+              </div>
             )}
-            <p className="font-semibold text-lg text-secondary-600">
-              {current.client_name}
-            </p>
-            <p className="text-secondary-400 text-sm">
-              {current.event_type}
-            </p>
+            
+            <div className="text-center">
+              <p className="font-bold text-lg text-secondary-900">
+                {current.client_name}
+              </p>
+              <p className="text-primary-600 text-sm font-medium tracking-wide uppercase mt-1">
+                {current.event_type}
+              </p>
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation Buttons */}
-      <button
-        onClick={handlePrev}
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-3 bg-white rounded-full shadow-lg hover:bg-secondary-50 transition-colors"
-        aria-label="Testimonio anterior"
-      >
-        <svg className="w-6 h-6 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
+      {/* Navigation Buttons - Posicionados absolutamente fuera del card en desktop */}
+      <div className="hidden md:block">
+        <button
+          onClick={handlePrev}
+          className="absolute left-0 top-1/2 -translate-y-1/2 p-3 bg-white text-secondary-600 rounded-full shadow-lg hover:bg-primary-50 hover:text-primary-600 transition-all hover:scale-110 z-20 border border-secondary-100"
+          aria-label="Testimonio anterior"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
 
-      <button
-        onClick={handleNext}
-        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-3 bg-white rounded-full shadow-lg hover:bg-secondary-50 transition-colors"
-        aria-label="Siguiente testimonio"
-      >
-        <svg className="w-6 h-6 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
+        <button
+          onClick={handleNext}
+          className="absolute right-0 top-1/2 -translate-y-1/2 p-3 bg-white text-secondary-600 rounded-full shadow-lg hover:bg-primary-50 hover:text-primary-600 transition-all hover:scale-110 z-20 border border-secondary-100"
+          aria-label="Siguiente testimonio"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      </div>
 
-      {/* Dots Indicator */}
-      <div className="flex justify-center gap-2 mt-8">
+      {/* Dots Indicator - Debajo del card */}
+      <div className="flex justify-center gap-3 mt-8">
         {testimonials.map((_, index) => (
           <button
             key={index}
@@ -140,10 +151,10 @@ export function TestimonialsSlider({ testimonials }: TestimonialsSliderProps) {
               setDirection(index > currentIndex ? 1 : -1);
               setCurrentIndex(index);
             }}
-            className={`w-3 h-3 rounded-full transition-all ${
+            className={`h-2 rounded-full transition-all duration-300 ${
               index === currentIndex
                 ? 'bg-primary-500 w-8'
-                : 'bg-secondary-300 hover:bg-secondary-400'
+                : 'bg-secondary-300 w-2 hover:bg-primary-300'
             }`}
             aria-label={`Ir a testimonio ${index + 1}`}
           />
