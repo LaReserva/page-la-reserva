@@ -3,54 +3,96 @@
 import PageLayout from '@/layouts/PageLayout.astro';
 import ServiceCard from '@/components/sections/ServiceCard.astro';
 import Button from '@/components/ui/Button.astro';
+import { HeroServices } from '@/components/sections/HeroServices'; // ✅ Importamos el nuevo componente
 import { supabase } from '@/lib/supabase';
+import { MessageSquare, FileText, CheckCircle, Wine } from 'lucide-react';
+import type { Service } from '@/types';
 
-const { data: services } = await supabase
+// Fetch de datos (igual que antes)
+const { data } = await supabase
   .from('services')
   .select('*')
   .eq('active', true)
   .order('order_index');
+
+const services = (data || []) as Service[];
+
+const steps = [
+  { icon: MessageSquare, title: "1. Consulta", desc: "Cuéntanos sobre tu evento." },
+  { icon: FileText, title: "2. Propuesta", desc: "Recibe cotización en 24-48h." },
+  { icon: CheckCircle, title: "3. Detalles", desc: "Afinamos la selección." },
+  { icon: Wine, title: "4. ¡Salud!", desc: "Disfruta de tu evento." }
+];
 ---
 
 <PageLayout 
-  title="Servicios"
-  description="Descubre nuestros servicios de bartending y mixología exclusiva para eventos en Lima. Cócteles de autor y experiencia profesional."
+  title="Nuestros Servicios"
+  description="Soluciones de bartending premium para bodas y eventos en Lima."
 >
-  <!-- Hero -->
-  <section class="section bg-gradient-to-br from-secondary-600 to-secondary-700 text-white">
-    <div class="container-custom text-center">
-      <h1 class="text-5xl md:text-6xl font-display font-bold mb-6">
-        Nuestros Servicios
-      </h1>
-      <p class="text-xl max-w-3xl mx-auto">
-        Soluciones personalizadas de bartending y mixología para cada tipo de evento
-      </p>
-    </div>
-  </section>
+  
+  {/* 1. HERO ESPECÍFICO DE SERVICIOS */}
+  <HeroServices
+    client:load
+    title="Servicios Diseñados para Impresionar"
+    subtitle="Elevamos el estándar de tu evento con mixología de autor, ingredientes premium y una atención impecable."
+    imageDesktop="/images/services-hero-desktop.png"
+    imageTablet="/images/services-hero-tablet.png"
+    imageMobile="/images/services-hero-mobile.png"
+  />
 
-  <!-- Servicios Grid -->
-  <section class="section">
-    <div class="container-custom">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {services?.map(service => (
+  {/* 2. GRID DE SERVICIOS */}
+  <section class="section bg-secondary-50 relative">
+    <div class="container-custom relative z-10">
+      {/* Ajustamos el margen negativo para que encaje con el nuevo hero */}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 -mt-16">
+        {services.map((service) => (
           <ServiceCard service={service} />
         ))}
       </div>
     </div>
   </section>
 
-  <!-- CTA -->
-  <section class="section bg-primary-50">
-    <div class="container-custom text-center">
-      <h2 class="text-3xl font-display font-bold mb-4">
-        ¿Necesitas un Servicio Personalizado?
-      </h2>
-      <p class="text-lg text-secondary-400 mb-8">
-        Contáctanos para crear una propuesta a tu medida
-      </p>
-      <Button variant="primary" href="/cotizacion" size="lg">
-        Solicitar Cotización
-      </Button>
+  {/* 3. PROCESO DE TRABAJO */}
+  <section class="section bg-white">
+    <div class="container-custom">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-display font-bold text-secondary-900 mb-4">
+          Cómo Trabajamos
+        </h2>
+        <div class="w-20 h-1 bg-primary-500 mx-auto rounded-full mb-6"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {steps.map((step) => (
+          <div class="text-center group p-6 rounded-xl border border-secondary-100 hover:border-primary-200 transition-colors">
+            <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-secondary-50 flex items-center justify-center text-primary-600 group-hover:bg-primary-500 group-hover:text-white transition-all duration-300 shadow-sm">
+              <step.icon className="w-8 h-8" />
+            </div>
+            <h3 class="text-xl font-bold text-secondary-900 mb-3">{step.title}</h3>
+            <p class="text-sm text-secondary-500 leading-relaxed">
+              {step.desc}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   </section>
+
+  {/* 4. CTA FINAL */}
+  <section class="py-24 bg-secondary-900 relative overflow-hidden">
+    <div class="container-custom text-center relative z-10">
+      <h2 class="text-3xl md:text-5xl font-display font-bold text-white mb-6">
+        ¿Necesitas un Servicio Personalizado?
+      </h2>
+      <p class="text-lg text-secondary-300 mb-10 max-w-2xl mx-auto">
+        Contáctanos para crear una propuesta a la medida de tus necesidades.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <Button variant="primary" href="/cotizacion" size="lg">
+          Solicitar Cotización
+        </Button>
+      </div>
+    </div>
+  </section>
+
 </PageLayout>

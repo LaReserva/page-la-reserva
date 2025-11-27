@@ -1,0 +1,94 @@
+---
+// src/components/sections/PackageCard.astro
+import Card from '@/components/ui/Card.astro';
+import Button from '@/components/ui/Button.astro';
+import type { Package } from '@/types';
+import { formatCurrency } from '@/utils/formatters';
+import { Users, Clock, CheckCircle2, Star } from 'lucide-react';
+
+interface Props {
+  pkg: Package;
+}
+
+const { pkg } = Astro.props;
+---
+
+<Card 
+  class={`h-full flex flex-col relative transition-all duration-300 hover:-translate-y-2 ${
+    // ✅ CORRECCIÓN AQUÍ: Agregamos 'overflow-visible' para que el badge no se recorte
+    pkg.popular 
+      ? 'border-2 border-primary-500 shadow-xl scale-[1.02] z-10 overflow-visible' 
+      : 'border border-secondary-100 hover:shadow-lg'
+  }`}
+>
+  {/* Badge de Popular */}
+  {pkg.popular && (
+    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary-500 text-secondary-900 px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider flex items-center gap-1 shadow-md whitespace-nowrap z-20">
+      <Star className="w-4 h-4 fill-current" />
+      Más Popular
+    </div>
+  )}
+
+  {/* Encabezado */}
+  <div class="text-center pt-8 pb-6 border-b border-secondary-100/50">
+    <h3 class="text-2xl font-display font-bold text-secondary-900 mb-2">
+      {pkg.name}
+    </h3>
+    <p class="text-secondary-500 text-sm px-4">
+      {pkg.description}
+    </p>
+  </div>
+
+  {/* Precio */}
+  <div class="text-center py-6 bg-secondary-50/50">
+    <div class="flex items-baseline justify-center gap-1">
+      <span class="text-4xl font-bold text-primary-600">
+        {formatCurrency(pkg.price)}
+      </span>
+    </div>
+    <p class="text-xs text-secondary-400 mt-1 uppercase tracking-wide">Inversión Total</p>
+  </div>
+
+  {/* Detalles Técnicos */}
+  <div class="grid grid-cols-2 border-y border-secondary-100 divide-x divide-secondary-100 text-center">
+    <div class="p-3 flex flex-col items-center justify-center">
+      <div class="flex items-center gap-1.5 text-secondary-600 font-semibold mb-1">
+        <Users className="w-4 h-4 text-primary-500" />
+        <span>{pkg.guest_range}</span>
+      </div>
+      <span class="text-xs text-secondary-400">Invitados</span>
+    </div>
+    <div class="p-3 flex flex-col items-center justify-center">
+      <div class="flex items-center gap-1.5 text-secondary-600 font-semibold mb-1">
+        <Clock className="w-4 h-4 text-primary-500" />
+        <span>{pkg.duration} hrs</span>
+      </div>
+      <span class="text-xs text-secondary-400">Servicio</span>
+    </div>
+  </div>
+
+  {/* Lista de Features */}
+  <div class="p-6 flex-grow">
+    <ul class="space-y-4">
+      {pkg.features.map((feature) => (
+        <li class="flex items-start gap-3 text-sm text-secondary-600">
+          <CheckCircle2 className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+          <span>{feature}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  {/* Footer con CTA */}
+  <div class="p-6 pt-0 mt-auto">
+    <Button 
+      href={`/cotizacion?package=${pkg.slug}`} 
+      variant={pkg.popular ? 'primary' : 'outline'} 
+      fullWidth
+      class={pkg.popular ? 'shadow-gold' : 'border-secondary-300 text-secondary-600 hover:border-primary-500 hover:text-primary-600'}
+    >
+      Cotizar este Paquete
+    </Button>
+  </div>
+
+</Card>

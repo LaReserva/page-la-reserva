@@ -1,0 +1,122 @@
+---
+// src/pages/paquetes.astro
+import PageLayout from '@/layouts/PageLayout.astro';
+import { HeroServices } from '@/components/sections/HeroServices';
+import PackageCard from '@/components/sections/PackageCard.astro';
+import Button from '@/components/ui/Button.astro';
+import { supabase } from '@/lib/supabase';
+import { ADD_ONS } from '@/utils/constants'; // Importamos los adicionales
+import type { Package } from '@/types';
+import { formatCurrency } from '@/utils/formatters';
+import { Plus } from 'lucide-react';
+
+// Fetch de paquetes activos
+const { data } = await supabase
+  .from('packages')
+  .select('*')
+  .eq('active', true)
+  .order('order_index');
+
+const packages = (data || []) as Package[];
+---
+
+<PageLayout 
+  title="Paquetes de Eventos"
+  description="Paquetes completos de bartending para bodas, eventos corporativos y celebraciones en Lima. Todo incluido para tu tranquilidad."
+>
+  
+  {/* 1. HERO (Reutilizamos componente con configuración visual específica) */}
+  <HeroServices
+    client:load
+    title="Paquetes Todo Incluido"
+    subtitle="Diseñados para simplificar tu planificación sin sacrificar la excelencia. Elige la experiencia ideal para tus invitados."
+    imageDesktop="/images/packages-hero-desktop.png"
+    imageTablet="/images/packages-hero-tablet.png"
+    imageMobile="/images/packages-hero-mobile.jpg" 
+  />
+
+  {/* 2. GRID DE PAQUETES */}
+  <section class="section bg-secondary-50 relative">
+    <div class="container-custom relative z-10">
+      
+      {/* Intro Texto */}
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block">
+          Soluciones Completas
+        </span>
+        <h2 class="text-3xl md:text-4xl font-display font-bold text-secondary-900">
+          Encuentra tu Paquete Ideal
+        </h2>
+      </div>
+
+      {/* Grid - Ajustado para centrar si hay pocos paquetes */}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center items-start -mt-8">
+        {packages.map((pkg) => (
+          <PackageCard pkg={pkg} />
+        ))}
+      </div>
+
+    </div>
+  </section>
+
+  {/* 3. SECCIÓN DE ADICIONALES (ADD-ONS) */}
+  <section class="section bg-white border-t border-secondary-100">
+    <div class="container-custom">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-display font-bold text-secondary-900 mb-4">
+          Personaliza tu Experiencia
+        </h2>
+        <p class="text-secondary-500 max-w-2xl mx-auto">
+          Lleva tu evento al siguiente nivel agregando estos servicios adicionales a cualquiera de nuestros paquetes.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {ADD_ONS.map((addon) => (
+          <div class="p-6 rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-md transition-all group bg-white">
+            <div class="flex justify-between items-start mb-4">
+              <div class="p-2 bg-primary-50 text-primary-600 rounded-lg group-hover:bg-primary-500 group-hover:text-white transition-colors">
+                <Plus className="w-6 h-6" />
+              </div>
+              <span class="text-sm font-bold text-secondary-900 bg-secondary-50 px-2 py-1 rounded">
+                +{formatCurrency(addon.price)}
+              </span>
+            </div>
+            <h3 class="font-bold text-lg text-secondary-900 mb-2">{addon.name}</h3>
+            <p class="text-sm text-secondary-500 leading-relaxed">
+              {addon.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* 4. CTA FINAL */}
+  <section class="py-24 bg-secondary-900 relative overflow-hidden">
+    {/* Patrón de fondo opcional */}
+    <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#D4AF37 1px, transparent 1px); background-size: 32px 32px;"></div>
+    
+    <div class="container-custom text-center relative z-10">
+      <h2 class="text-3xl md:text-5xl font-display font-bold text-white mb-6">
+        ¿No encuentras lo que buscas?
+      </h2>
+      <p class="text-lg text-secondary-300 mb-10 max-w-2xl mx-auto">
+        Entendemos que cada evento es único. Podemos crear una propuesta 100% personalizada para ti.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <Button variant="primary" href="/cotizacion" size="lg">
+          Armar mi propio paquete
+        </Button>
+        <a 
+          href="https://wa.me/51999888777" 
+          target="_blank" 
+          class="inline-flex items-center justify-center px-8 py-4 font-semibold rounded-full border-2 border-white text-white hover:bg-white hover:text-secondary-900 transition-all uppercase tracking-wider"
+        >
+          Consultar por WhatsApp
+        </a>
+      </div>
+    </div>
+  </section>
+
+</PageLayout>
