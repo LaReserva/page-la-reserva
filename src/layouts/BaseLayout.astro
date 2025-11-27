@@ -1,7 +1,7 @@
 ---
-// src/layouts/BaseLayout.astro --- MODIFICAR CON DATOS REALES
+// src/layouts/BaseLayout.astro
 import '@/styles/global.css';
-import { ToastProvider } from '@/components/ui/Toast';
+// ELIMINADO: import { ToastProvider } ... (Ya no es necesario aquí)
 
 interface Props {
   title: string;
@@ -12,7 +12,8 @@ interface Props {
 
 const {
   title,
-  description = 'Servico de bartender exclusivo para eventos premium en Lima, Perú. Cócteles de autor y servicio excepcional.',
+  // CORRECCIÓN: "Servico" -> "Servicio"
+  description = 'Servicio de bartender exclusivo para eventos premium en Lima, Perú. Cócteles de autor y servicio excepcional.',
   image = '/images/og-image.jpg',
   noindex = false,
 } = Astro.props;
@@ -24,33 +25,28 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
 <!doctype html>
 <html lang="es" class="scroll-smooth">
   <head>
-    <!-- Meta básico -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     
-    <!-- SEO -->
     <title>{title} | La Reserva - Mixología Exclusiva</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL(image, siteUrl)} />
     
-    <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={canonicalURL} />
     <meta property="twitter:title" content={title} />
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content={new URL(image, siteUrl)} />
     
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -58,7 +54,6 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
       rel="stylesheet"
     />
     
-    <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -76,8 +71,7 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
     </script>
   </head>
   <body class="antialiased">
-    <ToastProvider client:load> 
-      <slot />
-    </ToastProvider>
+    {/* ELIMINADO: ToastProvider wrapper */}
+    <slot />
   </body>
 </html>
