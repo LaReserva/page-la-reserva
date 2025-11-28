@@ -40,8 +40,8 @@ export const SITE_INFO = {
 } as const;
 
 export const CONTACT_INFO = {
-  phone: '+51999888777',
-  phoneFormatted: '+51 999 888 777',
+  phone: '+51987654321',
+  phoneFormatted: '+51 987 654 321',
   email: 'lareservabartending@gmail.com',
   whatsapp: '+51999888777',
   whatsappUrl: 'https://wa.me/51999888777',
