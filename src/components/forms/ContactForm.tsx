@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { contactSchema, type ContactFormData } from '@/utils/validators';
-import { useToast, ToastProvider } from '@/components/ui/Toast'; // Importamos ToastProvider
+import { useToast, ToastProvider } from '@/components/ui/Toast';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/utils/utils';
 
-// 1. Componente Interno (Lógica del formulario)
 function ContactFormContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showToast } = useToast(); // Ahora sí funcionará porque está dentro del Provider
+  const { showToast } = useToast();
 
   const {
     register,
@@ -17,7 +17,6 @@ function ContactFormContent() {
     reset,
     formState: { errors },
   } = useForm<ContactFormData>({
-    // Usamos el 'as any' para evitar conflictos de tipado estrictos
     resolver: zodResolver(contactSchema as any),
   });
 
@@ -25,11 +24,17 @@ function ContactFormContent() {
     try {
       setIsSubmitting(true);
 
-      // Simulación de envío o llamada a API real
-      // const response = await fetch('/api/contact', ...);
-      
-      // Simulamos éxito por ahora para probar
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // ✅ CORRECCIÓN: Agregamos 'as any' al final del objeto insert
+      const { error } = await supabase.from('contact_messages' as any).insert({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        subject: data.subject,
+        message: data.message,
+        status: 'new'
+      } as any); // <--- ESTO SOLUCIONA EL ERROR ROJO
+
+      if (error) throw error;
 
       showToast('¡Mensaje enviado! Te responderemos pronto.', 'success');
       reset();
@@ -41,7 +46,7 @@ function ContactFormContent() {
     }
   };
 
-  // Estilos base reutilizables
+  // Estilos reutilizables
   const inputClasses = (hasError: boolean) => cn(
     'w-full px-4 py-3 border rounded-lg transition-all duration-200',
     'bg-white text-secondary-900 placeholder:text-secondary-400',
@@ -52,12 +57,10 @@ function ContactFormContent() {
       : 'border-secondary-200'
   );
 
-  const labelClasses = "block text-sm font-semibold text-secondary-700 mb-2";
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
-        <label htmlFor="name" className={labelClasses}>
+        <label htmlFor="name" className="block text-sm font-semibold text-secondary-700 mb-2">
           Nombre <span className="text-red-500">*</span>
         </label>
         <input
@@ -67,13 +70,11 @@ function ContactFormContent() {
           className={inputClasses(!!errors.name)}
           placeholder="Tu nombre"
         />
-        {errors.name && (
-          <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
-        )}
+        {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>}
       </div>
 
       <div>
-        <label htmlFor="email" className={labelClasses}>
+        <label htmlFor="email" className="block text-sm font-semibold text-secondary-700 mb-2">
           Email <span className="text-red-500">*</span>
         </label>
         <input
@@ -83,26 +84,24 @@ function ContactFormContent() {
           className={inputClasses(!!errors.email)}
           placeholder="tu@email.com"
         />
-        {errors.email && (
-          <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
-        )}
+        {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
       </div>
 
       <div>
-        <label htmlFor="phone" className={labelClasses}>
+        <label htmlFor="phone" className="block text-sm font-semibold text-secondary-700 mb-2">
           Teléfono (opcional)
         </label>
         <input
           {...register('phone')}
           id="phone"
           type="tel"
-          className={inputClasses(!!errors.phone)}
+          className={inputClasses(false)}
           placeholder="999 888 777"
         />
       </div>
 
       <div>
-        <label htmlFor="subject" className={labelClasses}>
+        <label htmlFor="subject" className="block text-sm font-semibold text-secondary-700 mb-2">
           Asunto <span className="text-red-500">*</span>
         </label>
         <input
@@ -112,13 +111,11 @@ function ContactFormContent() {
           className={inputClasses(!!errors.subject)}
           placeholder="¿En qué podemos ayudarte?"
         />
-        {errors.subject && (
-          <p className="text-sm text-red-500 mt-1">{errors.subject.message}</p>
-        )}
+        {errors.subject && <p className="text-sm text-red-500 mt-1">{errors.subject.message}</p>}
       </div>
 
       <div>
-        <label htmlFor="message" className={labelClasses}>
+        <label htmlFor="message" className="block text-sm font-semibold text-secondary-700 mb-2">
           Mensaje <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -128,9 +125,7 @@ function ContactFormContent() {
           className={cn(inputClasses(!!errors.message), "resize-none")}
           placeholder="Escribe tu mensaje aquí..."
         />
-        {errors.message && (
-          <p className="text-sm text-red-500 mt-1">{errors.message.message}</p>
-        )}
+        {errors.message && <p className="text-sm text-red-500 mt-1">{errors.message.message}</p>}
       </div>
 
       <button
@@ -144,8 +139,6 @@ function ContactFormContent() {
   );
 }
 
-// 2. Componente Exportado (Wrapper con el Provider)
-// Este es el que usa Astro y crea la "Isla" completa
 export function ContactForm() {
   return (
     <ToastProvider>
