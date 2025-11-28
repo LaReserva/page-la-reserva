@@ -58,6 +58,9 @@ export const quoteSchema = z.object({
     .min(VALIDATION.guests.min, ERROR_MESSAGES.minValue(VALIDATION.guests.min))
     .max(VALIDATION.guests.max, ERROR_MESSAGES.maxValue(VALIDATION.guests.max)),
   
+  // ✅ NUEVO CAMPO: Paquete de interés (Opcional)
+  interestedPackage: z.string().optional(),
+  
   message: z
     .string()
     .max(VALIDATION.message.max, ERROR_MESSAGES.maxLength(VALIDATION.message.max))

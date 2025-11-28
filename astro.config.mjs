@@ -31,6 +31,13 @@ export default defineConfig({
     optimizeDeps: {
       exclude: ['@supabase/supabase-js'],
     },
+
+    ssr: {
+      noExternal: ['react-hook-form', '@hookform/resolvers'],
+    },
+    optimizeDeps: {
+      include: ['@hookform/resolvers/zod', 'zod', 'react-hook-form'],
+    },
   },
 
   // Experimental features
