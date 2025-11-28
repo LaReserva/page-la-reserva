@@ -1,0 +1,34 @@
+---
+// src/pages/privacidad.astro
+import PageLayout from '@/layouts/PageLayout.astro';
+---
+
+<PageLayout title="Política de Privacidad" noindex={true}>
+  <section class="section bg-white">
+    <div class="container-custom max-w-4xl">
+      <h1 class="text-4xl font-display font-bold text-secondary-900 mb-8">Política de Privacidad</h1>
+      
+      <div class="prose prose-lg text-secondary-600">
+        <p>En La Reserva, respetamos su privacidad y estamos comprometidos a proteger sus datos personales conforme a la Ley de Protección de Datos Personales (Ley N° 29733) de Perú.</p>
+
+        <h3>1. Información que Recopilamos</h3>
+        <p>Recopilamos información personal que usted nos proporciona voluntariamente al solicitar una cotización o contactarnos, incluyendo: nombre, dirección de correo electrónico, número de teléfono y detalles del evento.</p>
+
+        <h3>2. Uso de la Información</h3>
+        <p>Utilizamos su información exclusivamente para:</p>
+        <ul>
+          <li>Procesar y responder a sus solicitudes de cotización.</li>
+          <li>Coordinar y ejecutar los servicios contratados.</li>
+          <li>Enviar información relevante sobre su evento.</li>
+          <li>Mejorar nuestros servicios y atención al cliente.</li>
+        </ul>
+
+        <h3>3. Protección de Datos</h3>
+        <p>Sus datos personales son almacenados de manera segura y no serán vendidos, alquilados ni compartidos con terceros con fines comerciales sin su consentimiento explícito.</p>
+
+        <h3>4. Derechos ARCO</h3>
+        <p>Usted tiene derecho a Acceder, Rectificar, Cancelar u Oponerse al tratamiento de sus datos personales. Para ejercer estos derechos, puede contactarnos en <a href="mailto:contacto@lareserva.pe" class="text-primary-600 underline">contacto@lareserva.pe</a>.</p>
+      </div>
+    </div>
+  </section>
+</PageLayout>

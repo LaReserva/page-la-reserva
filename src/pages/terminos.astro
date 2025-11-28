@@ -1,0 +1,37 @@
+---
+// src/pages/terminos.astro
+import PageLayout from '@/layouts/PageLayout.astro';
+---
+
+<PageLayout title="Términos y Condiciones" noindex={true}>
+  <section class="section bg-white">
+    <div class="container-custom max-w-4xl">
+      <h1 class="text-4xl font-display font-bold text-secondary-900 mb-8">Términos y Condiciones de Servicio</h1>
+      
+      <div class="prose prose-lg text-secondary-600">
+        <p class="lead">Última actualización: Noviembre 2025</p>
+
+        <h3>1. Reserva y Confirmación</h3>
+        <p>Para garantizar la fecha del evento, se requiere un pago anticipado del <strong>50% del monto total</strong> cotizado. La fecha no se considera reservada hasta que este pago haya sido verificado. El saldo restante (50%) deberá ser cancelado a más tardar 5 días antes de la fecha del evento.</p>
+
+        <h3>2. Políticas de Cancelación</h3>
+        <p>En caso de cancelación por parte del cliente, aplican las siguientes penalidades sobre el anticipo:</p>
+        <ul>
+          <li><strong>Más de 60 días antes:</strong> Reembolso del 100% del anticipo.</li>
+          <li><strong>30 a 60 días antes:</strong> Retención del 10% del anticipo por gastos administrativos.</li>
+          <li><strong>Menos de 30 días antes:</strong> Retención del 20% del anticipo.</li>
+          <li><strong>Menos de 15 días antes:</strong> Retención del 50% del anticipo.</li>
+        </ul>
+
+        <h3>3. Logística e Infraestructura</h3>
+        <p>El cliente es responsable de proporcionar un espacio adecuado para la instalación de la barra (mínimo 2x2 metros), así como acceso a puntos de electricidad si el servicio lo requiere. El equipo de La Reserva llegará entre 1.5 y 2 horas antes del inicio del servicio para el montaje.</p>
+
+        <h3>4. Consumo Responsable</h3>
+        <p>La Reserva promueve el consumo responsable de alcohol. Nos reservamos el derecho de no servir bebidas alcohólicas a menores de edad o a personas en evidente estado de ebriedad, sin que esto constituya incumplimiento del servicio.</p>
+
+        <h3>5. Cambios en el Servicio</h3>
+        <p>Cualquier cambio en el número de invitados o en el menú de cócteles debe ser notificado con al menos 10 días de anticipación. Aumentos en el número de invitados pueden generar costos adicionales.</p>
+      </div>
+    </div>
+  </section>
+</PageLayout>

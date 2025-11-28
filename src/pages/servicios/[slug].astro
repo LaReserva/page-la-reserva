@@ -1,0 +1,160 @@
+---
+// src/pages/servicios/[slug].astro
+import PageLayout from '@/layouts/PageLayout.astro';
+import { SERVICES, ICON_MAP, type IconName } from '@/utils/constants';
+import Button from '@/components/ui/Button.astro';
+import { CheckCircle2, ArrowLeft, Calendar, Users } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
+
+export function getStaticPaths() {
+  return SERVICES.map(service => ({
+    params: { slug: service.slug },
+    props: { service },
+  }));
+}
+
+const { service } = Astro.props;
+const Icon = ICON_MAP[service.icon as IconName] || ICON_MAP.Martini;
+
+// Datos extendidos basados en tu documentación (Manual de Servicios)
+// Esto enriquece la info básica que tenemos en constants
+const detailsMap: Record<string, any> = {
+  'bartending-eventos': {
+    longDesc: "Nuestro servicio insignia diseñado para bodas, aniversarios y celebraciones sociales. Nos encargamos de transformar tu barra en el punto focal de la fiesta con un servicio impecable y cócteles que tus invitados recordarán.",
+    idealFor: ["Bodas y Matrimonios", "Cumpleaños (30, 40, 50)", "Aniversarios", "Eventos Privados"],
+    includes: ["Bartenders certificados y uniformados", "Cristalería premium completa", "Hielo y todos los insumos", "Limpieza y gestión de residuos"],
+    image: "/images/services-hero.png" // Asegúrate de tener esta imagen o cambia la ruta
+  },
+  'mixologia-corporativa': {
+    longDesc: "Elevamos la imagen de tu marca a través de experiencias de coctelería premium. Ideal para lanzamientos, fiestas de fin de año y networking. Incluye opciones de branding personalizado en la barra y cócteles.",
+    idealFor: ["Lanzamientos de Producto", "Fiestas de Fin de Año", "Cenas de Directorio", "Eventos de Networking"],
+    includes: ["Facturación corporativa", "Cócteles con colores de marca", "Bartenders con perfil ejecutivo", "Logística puntual y discreta"],
+    image: "/images/services-hero.png"
+  },
+  'cocteles-autor': {
+    longDesc: "Una experiencia de mixología de alta costura. Creamos una carta de cócteles única diseñada exclusivamente para tu evento, basada en tus gustos, historia o temática. Incluye sesión de degustación previa.",
+    idealFor: ["Bodas Boutique", "Cenas Privadas", "Eventos de Lujo", "Clientes Exigentes"],
+    includes: ["Sesión de Tasting previa", "Diseño de menú exclusivo", "Ingredientes exóticos y premium", "Técnicas avanzadas (humo, espumas)"],
+    image: "/images/services-hero.png"
+  },
+  'barra-movil': {
+    longDesc: "La solución perfecta para locaciones que no cuentan con infraestructura. Llevamos una estructura de barra elegante y funcional a donde la necesites, equipada con todo lo necesario para operar.",
+    idealFor: ["Eventos al aire libre", "Casas de playa", "Locaciones vacías", "Complemento de otros servicios"],
+    includes: ["Estructura de barra estética", "Iluminación de barra", "Equipamiento interno completo", "Instalación y desmontaje"],
+    image: "/images/services-hero.png"
+  }
+};
+
+const details = detailsMap[service.id] || detailsMap['bartending-eventos'];
+---
+
+<PageLayout title={`${service.name} | La Reserva`} description={service.description}>
+  
+  {/* HERO SECTION */}
+  <section class="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden bg-secondary-900">
+    <div class="absolute inset-0 z-0">
+      <img src={details.image} alt={service.name} class="w-full h-full object-cover opacity-50" />
+      <div class="absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/60 to-transparent"></div>
+    </div>
+
+    <div class="relative z-10 container-custom text-center">
+      <div class="inline-flex p-4 rounded-full bg-primary-500/20 text-primary-400 mb-6 backdrop-blur-sm border border-primary-500/30">
+        <Icon className="w-8 h-8" />
+      </div>
+      <h1 class="text-4xl md:text-6xl font-display font-bold text-white mb-4">
+        {service.name}
+      </h1>
+      <p class="text-xl text-secondary-200 max-w-2xl mx-auto">
+        {service.description}
+      </p>
+    </div>
+  </section>
+
+  {/* CONTENIDO DETALLADO */}
+  <section class="section bg-white">
+    <div class="container-custom">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        
+        {/* Columna Izquierda: Información (8 cols) */}
+        <div class="lg:col-span-8 space-y-12">
+          
+          {/* Descripción Larga */}
+          <div>
+            <h2 class="text-2xl font-display font-bold text-secondary-900 mb-4">Sobre el Servicio</h2>
+            <p class="text-lg text-secondary-600 leading-relaxed">
+              {details.longDesc}
+            </p>
+          </div>
+
+          {/* Lo que incluye */}
+          <div class="bg-secondary-50 p-8 rounded-2xl border border-secondary-100">
+            <h3 class="text-xl font-bold text-secondary-900 mb-6">¿Qué incluye esta experiencia?</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Features del array original */}
+              {service.features.map(feature => (
+                <div class="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+                  <span class="text-secondary-700">{feature}</span>
+                </div>
+              ))}
+              {/* Features extra del mapa detallado */}
+              {details.includes.map((item: string) => (
+                <div class="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
+                  <span class="text-secondary-700">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Ideal Para */}
+          <div>
+            <h3 class="text-xl font-bold text-secondary-900 mb-6">Ideal para</h3>
+            <div class="flex flex-wrap gap-3">
+              {details.idealFor.map((tag: string) => (
+                <span class="px-4 py-2 bg-white border border-secondary-200 rounded-full text-secondary-600 text-sm font-medium shadow-sm">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Columna Derecha: Sidebar Sticky (4 cols) */}
+        <div class="lg:col-span-4">
+          <div class="sticky top-24 bg-white border border-secondary-200 rounded-2xl p-6 shadow-lg">
+            <div class="text-center mb-6 pb-6 border-b border-secondary-100">
+              <p class="text-sm text-secondary-500 uppercase tracking-wider mb-2">Inversión desde</p>
+              <p class="text-4xl font-bold text-primary-600">{formatCurrency(service.priceFrom)}</p>
+            </div>
+
+            <div class="space-y-4 mb-8">
+              <div class="flex items-center gap-3 text-secondary-600">
+                <Users className="w-5 h-5 text-primary-500" />
+                <span class="text-sm">Capacidad: <strong>{service.guestRange} invitados</strong></span>
+              </div>
+              <div class="flex items-center gap-3 text-secondary-600">
+                <Calendar className="w-5 h-5 text-primary-500" />
+                <span class="text-sm">Duración base: <strong>{service.duration} horas</strong></span>
+              </div>
+            </div>
+
+            <Button href="/cotizacion" variant="primary" fullWidth class="mb-4">
+              Cotizar este Servicio
+            </Button>
+            
+            <Button href="/servicios" variant="outline" fullWidth class="border-secondary-200 text-secondary-600">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Ver otros servicios
+            </Button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+</PageLayout>
