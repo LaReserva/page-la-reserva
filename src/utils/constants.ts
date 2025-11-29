@@ -43,8 +43,8 @@ export const CONTACT_INFO = {
   phone: '+51987654321',
   phoneFormatted: '+51 987 654 321',
   email: 'lareservabartending@gmail.com',
-  whatsapp: '+51999888777',
-  whatsappUrl: 'https://wa.me/51999888777',
+  whatsapp: '+51987654321',
+  whatsappUrl: 'https://wa.me/51987654321',
   address: 'Lima, Perú',
 } as const;
 
@@ -57,15 +57,15 @@ export const BUSINESS_HOURS = {
 
 export const SOCIAL_LINKS = {
   instagram: {
-    url: 'https://instagram.com/lareservabar',
+    url: 'https://www.instagram.com/la_reserva_bartending/',
     handle: '@lareservabar',
   },
   facebook: {
-    url: 'https://facebook.com/lareservabar',
+    url: 'https://www.facebook.com/profile.php?id=61582015389837',
     handle: 'La Reserva',
   },
   tiktok: {
-    url: 'https://tiktok.com/@lareserva',
+    url: 'https://www.tiktok.com/@la_reserva_bartending?is_from_webapp=1&sender_device=pc',
     handle: '@lareserva',
   },
 } as const;
