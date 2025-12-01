@@ -1,0 +1,46 @@
+---
+// src/pages/admin/index.astro
+import AdminLayout from '@/layouts/AdminLayout.astro';
+// Importamos SOLO el componente "Maestro"
+import { DashboardView } from '@/components/admin/dashboard/DashboardView';
+import { getGreeting } from '@/utils/utils';
+
+const dateOptions: Intl.DateTimeFormatOptions = { 
+  weekday: 'long', 
+  year: 'numeric', 
+  month: 'long', 
+  day: 'numeric' 
+};
+---
+
+<AdminLayout title="Dashboard">
+  
+  {/* Encabezado Estático */}
+  <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+    <div>
+      <span class="text-primary-600 font-medium text-sm tracking-wider uppercase">Panel de Control</span>
+      <h1 class="text-3xl font-display font-bold text-secondary-900 mt-1">
+        {getGreeting()}, Admin
+      </h1>
+      <p class="text-secondary-500">Resumen de actividad en tiempo real.</p>
+    </div>
+    <div class="text-sm text-secondary-400 bg-white px-4 py-2 rounded-full border border-secondary-200 shadow-sm capitalize">
+      {new Date().toLocaleDateString('es-PE', dateOptions)}
+    </div>
+  </div>
+
+  {/* Cargamos la Vista Inteligente */}
+  <DashboardView client:load />
+
+</AdminLayout>
+
+<script>
+  import { supabase } from '@/lib/supabase';
+
+  async function protectRoute() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) window.location.href = '/admin/login';
+  }
+  
+  protectRoute();
+</script>
