@@ -149,7 +149,7 @@ export interface BlogPost {
 export interface AdminUser {
   id: string;
   email: string;
-  role: 'super_admin' | 'admin';
+  role: 'super_admin' | 'sales' | 'operations';
   full_name: string;
   avatar_url?: string;
   created_at: string;
