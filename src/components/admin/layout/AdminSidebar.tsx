@@ -1,4 +1,4 @@
-// src/components/admin/AdminSidebar.tsx
+// src/components/admin/layout/AdminSidebar.tsx
 import { useEffect, useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -15,13 +15,20 @@ import { supabase } from '@/lib/supabase';
 import type { AdminUser } from '@/types';
 import { cn } from '@/utils/utils';
 
+// 1. Definimos la interfaz para los items del menú para asegurar el tipado de roles
+interface MenuItem {
+  name: string;
+  href: string;
+  icon: any;
+  roles: Array<AdminUser['role']>; // Tipado fuerte: Solo permite roles válidos
+}
+
 export function AdminSidebar() {
   const [role, setRole] = useState<AdminUser['role'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPath, setCurrentPath] = useState('');
 
   useEffect(() => {
-    // Obtener ruta actual para marcar activo
     if (typeof window !== 'undefined') {
       setCurrentPath(window.location.pathname);
     }
@@ -29,19 +36,24 @@ export function AdminSidebar() {
     async function getRole() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        
         if (user) {
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from('admin_users')
             .select('role')
             .eq('id', user.id)
-            .single();
+            .maybeSingle(); // 2. Usamos maybeSingle para evitar errores de consola si no existe
+          
+          if (error) {
+            console.error('Error loading role:', error.message);
+          }
           
           // Casting seguro
           const userData = data as { role: AdminUser['role'] } | null;
           setRole(userData?.role || null);
         }
       } catch (error) {
-        console.error('Error loading role:', error);
+        console.error('Unexpected error:', error);
       } finally {
         setLoading(false);
       }
@@ -54,8 +66,8 @@ export function AdminSidebar() {
     window.location.href = '/admin/login';
   };
 
-  // Definición del menú con permisos
-  const menuItems = [
+  // 3. Definición del menú con tipado
+  const menuItems: MenuItem[] = [
     { 
       name: 'Dashboard', 
       href: '/admin', 
@@ -100,7 +112,6 @@ export function AdminSidebar() {
     },
   ];
 
-  // Filtrar items según el rol
   const filteredItems = menuItems.filter(item => 
     role && item.roles.includes(role)
   );
@@ -110,6 +121,7 @@ export function AdminSidebar() {
     return currentPath.startsWith(href);
   };
 
+  // Estado de carga elegante
   if (loading) return (
     <aside className="w-64 bg-secondary-900 border-r border-secondary-800 hidden lg:flex flex-col h-screen sticky top-0 items-center justify-center">
       <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
@@ -124,29 +136,35 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-6 px-4">
-        <ul className="space-y-2">
-          {filteredItems.map((item) => (
-            <li key={item.href}>
-              <a 
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
-                  isActive(item.href) 
-                    ? "bg-primary-500 text-secondary-900 font-bold shadow-md" 
-                    : "text-secondary-300 hover:bg-secondary-800 hover:text-white"
-                )}
-              >
-                <item.icon 
+        {role ? (
+          <ul className="space-y-2">
+            {filteredItems.map((item) => (
+              <li key={item.href}>
+                <a 
+                  href={item.href}
                   className={cn(
-                    "w-5 h-5",
-                    isActive(item.href) ? "text-secondary-900" : "text-secondary-400 group-hover:text-white"
+                    "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
+                    isActive(item.href) 
+                      ? "bg-primary-500 text-secondary-900 font-bold shadow-md" 
+                      : "text-secondary-300 hover:bg-secondary-800 hover:text-white"
                   )}
-                />
-                <span>{item.name}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
+                >
+                  <item.icon 
+                    className={cn(
+                      "w-5 h-5",
+                      isActive(item.href) ? "text-secondary-900" : "text-secondary-400 group-hover:text-white"
+                    )}
+                  />
+                  <span>{item.name}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="p-4 text-center text-sm text-secondary-500">
+            <p>No se encontraron permisos.</p>
+          </div>
+        )}
       </nav>
 
       <div className="p-4 border-t border-secondary-800">

@@ -146,10 +146,11 @@ export interface BlogPost {
   updated_at: string;
 }
 
+export type UserRole = 'super_admin' | 'sales' | 'operations';
 export interface AdminUser {
   id: string;
   email: string;
-  role: 'super_admin' | 'sales' | 'operations';
+  role: UserRole;
   full_name: string;
   avatar_url?: string;
   created_at: string;
@@ -166,11 +167,10 @@ export interface SiteSetting {
 export interface TeamTask {
   id: string;
   content: string;
-  status: 'pending' | 'in_progress' | 'done';
-  priority: 'low' | 'normal' | 'high';
-  created_by?: string;
-  created_at: string;
-  updated_at: string;
+  status: string; // 'pending' | 'done'
+  priority: string; // 'low' | 'normal' | 'high'
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // ✅ NUEVA INTERFAZ PARA MENSAJES DE CONTACTO
@@ -230,71 +230,5 @@ export interface BlogPostWithAuthor extends BlogPost {
 // ============================================
 // DEFINICIÓN DE BASE DE DATOS SUPABASE
 // ============================================
-
-export type Database = {
-  public: {
-    Tables: {
-      clients: {
-        Row: Client;
-        Insert: Omit<Client, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Client, 'id'>>;
-      };
-      quotes: {
-        Row: Quote;
-        Insert: Omit<Quote, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Quote, 'id'>>;
-      };
-      events: {
-        Row: Event;
-        Insert: Omit<Event, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Event, 'id'>>;
-      };
-      event_images: {
-        Row: EventImage;
-        Insert: Omit<EventImage, 'id' | 'created_at'>;
-        Update: Partial<Omit<EventImage, 'id'>>;
-      };
-      services: {
-        Row: Service;
-        Insert: Omit<Service, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Service, 'id'>>;
-      };
-      packages: {
-        Row: Package;
-        Insert: Omit<Package, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Package, 'id'>>;
-      };
-      testimonials: {
-        Row: Testimonial;
-        Insert: Omit<Testimonial, 'id' | 'created_at'>;
-        Update: Partial<Omit<Testimonial, 'id'>>;
-      };
-      blog_posts: {
-        Row: BlogPost;
-        Insert: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<BlogPost, 'id'>>;
-      };
-      admin_users: {
-        Row: AdminUser;
-        Insert: Omit<AdminUser, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<AdminUser, 'id'>>;
-      };
-      site_settings: {
-        Row: SiteSetting;
-        Insert: Omit<SiteSetting, 'updated_at'>;
-        Update: Partial<SiteSetting>;
-      };
-      team_tasks: {
-        Row: TeamTask;
-        Insert: Omit<TeamTask, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<TeamTask, 'id'>>;
-      };
-      // ✅ AGREGADO: contact_messages
-      contact_messages: {
-        Row: ContactMessage;
-        Insert: Omit<ContactMessage, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<ContactMessage, 'id'>>;
-      };
-    };
-  };
-};
+// ✅ Importamos Database desde database.ts (generado automáticamente por Supabase)
+export type { Database } from './database';

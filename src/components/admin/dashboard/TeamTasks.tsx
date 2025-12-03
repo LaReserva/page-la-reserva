@@ -1,10 +1,24 @@
 // src/components/admin/dashboard/TeamTasks.tsx
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase as supabaseClient } from '@/lib/supabase'; 
 import { CheckCircle2, Circle, Plus, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/utils/utils';
-import type { TeamTask } from '@/types';
-import type { Database } from '@/types'; // <--- Importa esto también
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database, TeamTask } from '@/types';
+
+// Cast del cliente para que TypeScript reconozca todas las tablas
+const supabase = supabaseClient as SupabaseClient<Database>;
+
+// Tipos locales para las operaciones de BD
+type TeamTaskInsert = {
+  content: string;
+  status: string;
+  priority: string;
+};
+
+type TeamTaskUpdate = {
+  status: string;
+};
 
 export function TeamTasks() {
   const [tasks, setTasks] = useState<TeamTask[]>([]);
@@ -16,8 +30,9 @@ export function TeamTasks() {
   }, []);
 
   async function fetchTasks() {
+    // Ahora TypeScript ya sabe que 'team_tasks' existe gracias al cast de arriba
     const { data } = await supabase
-      .from('team_tasks') // Ahora TypeScript reconoce esto ✅
+      .from('team_tasks')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(10);
@@ -30,37 +45,26 @@ export function TeamTasks() {
     e.preventDefault();
     if (!newTask.trim()) return;
 
-    console.log("Intentando guardar tarea..."); // 🔍 Debug 1
-
-    // Usamos 'as any' temporalmente para saltar el bloqueo de TS y ver el error real de BD
-    const { data, error } = await supabase
-      .from('team_tasks' as any) 
+    const { data } = await supabase
+      .from('team_tasks')
       .insert({ 
         content: newTask, 
         status: 'pending', 
-        priority: 'normal' 
+        // TypeScript infiere que 'normal' es del tipo correcto
+        priority: 'normal'
+       
       })
       .select()
       .single();
 
-    if (error) {
-      console.error("❌ ERROR SUPABASE:", error.message, error.details, error.hint); // 🔍 Debug 2
-      alert(`Error al guardar: ${error.message}`); // Alerta visible
-    } 
-    
-    if (data) {
-      console.log("✅ Guardado exitoso:", data);
-      setTasks([data as any, ...tasks]);
-      setNewTask('');
-    } 
+    if (data) setTasks([data, ...tasks]);
+    setNewTask('');
   }
-  // CORRECCIÓN: Tipamos explícitamente el currentStatus para evitar conflictos
-  async function toggleTask(id: string, currentStatus: TeamTask['status']) {
+
+  async function toggleTask(id: string, currentStatus: string) {
+    const newStatus = currentStatus === 'pending' ? 'done' : 'pending';
     
-    // Definimos explícitamente que newStatus es de tipo TeamTask['status']
-    const newStatus: TeamTask['status'] = currentStatus === 'pending' ? 'done' : 'pending';
-    
-    // Actualización optimista
+    // Actualización visual inmediata (Optimistic UI)
     setTasks(tasks.map(t => t.id === id ? { ...t, status: newStatus } : t));
 
     await supabase
@@ -70,6 +74,7 @@ export function TeamTasks() {
   }
 
   async function deleteTask(id: string) {
+    // Actualización visual inmediata
     setTasks(tasks.filter(t => t.id !== id));
     
     await supabase
@@ -105,7 +110,6 @@ export function TeamTasks() {
             >
               <div className="flex items-center gap-3 flex-1">
                 <button 
-                  // Aquí pasamos task.status que ahora sabemos que es del tipo correcto
                   onClick={() => toggleTask(task.id, task.status)}
                   className={cn(
                     "transition-colors",

@@ -5,7 +5,6 @@ import { DollarSign, Users, MessageSquare, CalendarDays } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import type { AdminUser } from '@/types';
 
-// Aceptamos el rol como prop desde el padre
 interface Props {
   userRole: AdminUser['role'] | null;
 }
@@ -33,24 +32,28 @@ export function DashboardStats({ userRole }: Props) {
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const firstDayOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
-        // 1. Consultas Operativas (Todos las ven)
-        const { count: quotesCount } = await supabase
-          .from('quotes')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'new');
-
+        // Consultas básicas
         const { count: eventsCount } = await supabase
           .from('events')
           .select('*', { count: 'exact', head: true })
           .in('status', ['confirmed', 'completed'])
           .gte('event_date', firstDayOfYear);
 
-        const { count: clientsCount } = await supabase
-          .from('clients')
-          .select('*', { count: 'exact', head: true });
-
-        // 2. Consulta Financiera (Solo Super Admin)
+        // Consultas condicionales (ahorramos recursos si no se van a mostrar)
+        let quotesCount = 0;
+        let clientsCount = 0;
         let revenue = 0;
+
+        // Solo Ventas y Super Admin ven Cotizaciones y Clientes
+        if (userRole === 'super_admin' || userRole === 'sales') {
+          const { count: q } = await supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('status', 'new');
+          quotesCount = q || 0;
+
+          const { count: c } = await supabase.from('clients').select('*', { count: 'exact', head: true });
+          clientsCount = c || 0;
+        }
+
+        // Solo Super Admin ve Dinero
         if (userRole === 'super_admin') {
           const { data: revenueRaw } = await supabase
             .from('events')
@@ -63,10 +66,10 @@ export function DashboardStats({ userRole }: Props) {
         }
 
         setStats({
-          newQuotes: quotesCount || 0,
+          newQuotes: quotesCount,
           confirmedEventsYear: eventsCount || 0,
           monthlyRevenue: revenue,
-          activeClients: clientsCount || 0,
+          activeClients: clientsCount,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -75,10 +78,11 @@ export function DashboardStats({ userRole }: Props) {
       }
     }
 
-    if (userRole) fetchStats(); // Solo buscar si ya sabemos el rol
+    if (userRole) fetchStats();
   }, [userRole]);
 
-  // Definimos todas las tarjetas
+  // CONFIGURACIÓN DE VISIBILIDAD
+  // Aquí definimos qué roles pueden ver qué tarjeta
   const allCards = [
     {
       id: 'quotes',
@@ -87,7 +91,8 @@ export function DashboardStats({ userRole }: Props) {
       icon: MessageSquare,
       color: 'text-blue-600',
       bg: 'bg-blue-50',
-      subtext: 'Pendientes de respuesta'
+      subtext: 'Pendientes de respuesta',
+      allowedRoles: ['super_admin', 'sales', 'admin'] // Operaciones NO está aquí
     },
     {
       id: 'events',
@@ -96,7 +101,18 @@ export function DashboardStats({ userRole }: Props) {
       icon: CalendarDays,
       color: 'text-primary-600',
       bg: 'bg-primary-50',
-      subtext: 'Eventos confirmados'
+      subtext: 'Eventos confirmados',
+      allowedRoles: ['super_admin', 'sales', 'operations', 'admin'] // Todos ven esto
+    },
+    {
+      id: 'clients',
+      label: 'Cartera de Clientes',
+      value: stats.activeClients,
+      icon: Users,
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
+      subtext: 'Clientes registrados',
+      allowedRoles: ['super_admin', 'sales', 'admin'] // Operaciones NO está aquí
     },
     {
       id: 'revenue',
@@ -106,24 +122,14 @@ export function DashboardStats({ userRole }: Props) {
       color: 'text-green-600',
       bg: 'bg-green-50',
       subtext: 'Facturación bruta',
-      requiresSuperAdmin: true // Flag de seguridad
-    },
-    {
-      id: 'clients',
-      label: 'Cartera de Clientes',
-      value: stats.activeClients,
-      icon: Users,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50',
-      subtext: 'Clientes registrados'
+      allowedRoles: ['super_admin'] // Solo el dueño
     },
   ];
 
-  // Filtramos las tarjetas según el rol
-  const visibleCards = allCards.filter(card => {
-    if (card.requiresSuperAdmin && userRole !== 'super_admin') return false;
-    return true;
-  });
+  // Filtramos las tarjetas
+  const visibleCards = allCards.filter(card => 
+    userRole && card.allowedRoles.includes(userRole)
+  );
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 ${userRole === 'super_admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
