@@ -1,0 +1,32 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { ProfileView } from '@/components/admin/profile/ProfileView';
+
+const title = "Mi Perfil | La Reserva Admin";
+---
+
+<AdminLayout title={title}>
+  <div class="mb-8">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="text-secondary-500 font-bold text-xs tracking-wider uppercase bg-secondary-100 px-2 py-0.5 rounded">Cuenta</span>
+      <span class="text-secondary-400 text-xs">/ Configuración</span>
+    </div>
+    <h1 class="text-3xl font-display font-bold text-secondary-900">
+      Mi Perfil
+    </h1>
+    <p class="text-secondary-500 mt-1">
+      Administra tu información personal para la gestión de eventos.
+    </p>
+  </div>
+
+  <ProfileView client:load />
+</AdminLayout>
+
+<script>
+  import { supabase } from '@/lib/supabase';
+  async function protect() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) window.location.href = '/admin/login';
+  }
+  protect();
+</script>

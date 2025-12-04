@@ -153,6 +153,11 @@ export interface AdminUser {
   role: UserRole;
   full_name: string;
   avatar_url?: string;
+  // ✅ NUEVOS CAMPOS AGREGADOS
+  phone?: string;
+  dni?: string;
+  address?: string;
+  // -------------------------
   created_at: string;
   updated_at: string;
 }
