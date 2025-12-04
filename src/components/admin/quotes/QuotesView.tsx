@@ -245,7 +245,8 @@ export function QuotesView() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-secondary-700">
                         <Calendar className="w-4 h-4 text-secondary-400" />
-                        {new Date(quote.event_date).toLocaleDateString('es-PE', {
+                        {/* ✅ CORRECCIÓN DE FECHA EN TABLA: Agregar T00:00:00 */}
+                        {new Date(quote.event_date + 'T00:00:00').toLocaleDateString('es-PE', {
                           day: 'numeric', month: 'short', year: 'numeric'
                         })}
                       </div>
