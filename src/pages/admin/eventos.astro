@@ -1,0 +1,77 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { EventsCalendarView } from '@/components/admin/events/EventsCalendarView';
+
+const title = "Calendario de Eventos | La Reserva Admin";
+---
+
+<AdminLayout title={title}>
+  
+  {/* Encabezado de Sección */}
+  <div class="mb-8">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="text-orange-600 font-bold text-xs tracking-wider uppercase bg-orange-50 px-2 py-0.5 rounded">Operaciones</span>
+      <span class="text-secondary-400 text-xs">/ Planificación</span>
+    </div>
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div>
+        <h1 class="text-3xl font-display font-bold text-secondary-900">
+          Calendario de Eventos
+        </h1>
+        <p class="text-secondary-500 mt-1 max-w-2xl">
+          Visualiza la ocupación y planifica la logística de los próximos servicios.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* Calendario React */}
+  {/* Necesario client:only="react" porque react-big-calendar usa mucha lógica de navegador */}
+  <EventsCalendarView client:only="react" />
+
+</AdminLayout>
+
+<script>
+  import { supabase } from '@/lib/supabase';
+
+  async function protectRoute() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/admin/login';
+    }
+  }
+  
+  protectRoute();
+</script>
+
+{/* Estilos globales para personalizar el calendario (overrides) */}
+<style is:global>
+  /* Personalización básica de React Big Calendar para que coincida con el tema */
+  .rbc-calendar {
+    font-family: 'Montserrat', sans-serif;
+  }
+  .rbc-header {
+    padding: 12px 4px;
+    font-weight: 600;
+    color: #4B5563; /* secondary-600 */
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    border-bottom: 1px solid #E5E7EB !important;
+  }
+  .rbc-month-view {
+    border: none !important;
+  }
+  .rbc-day-bg {
+    border-left: 1px solid #F3F4F6 !important;
+  }
+  .rbc-off-range-bg {
+    background-color: #F9FAFB !important; /* secondary-50 */
+  }
+  .rbc-today {
+    background-color: #FEF9E7 !important; /* primary-50 */
+  }
+  .rbc-event {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+</style>
