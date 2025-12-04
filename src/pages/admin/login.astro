@@ -1,0 +1,40 @@
+---
+// src/pages/admin/login.astro
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { LoginForm } from '@/components/admin/LoginForm';
+---
+
+<BaseLayout title="Login Admin | La Reserva" noindex={true}>
+  <div class="min-h-screen flex flex-col items-center justify-center bg-secondary-50 px-4 relative overflow-hidden">
+    
+    {/* Fondo decorativo sutil */}
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute -top-24 -left-24 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-secondary-900/5 rounded-full blur-3xl"></div>
+    </div>
+
+    {/* Logo */}
+    <div class="mb-8 relative z-10">
+      <img src="/logo.svg" alt="La Reserva" class="h-16 w-auto" />
+    </div>
+
+    {/* Formulario */}
+    <div class="w-full max-w-md relative z-10">
+      <LoginForm client:load />
+    </div>
+
+  </div>
+  
+  <script>
+    import { supabase } from '@/lib/supabase';
+
+    async function checkSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        window.location.href = '/admin';
+      }
+    }
+    
+    checkSession();
+  </script>
+</BaseLayout>

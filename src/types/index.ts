@@ -1,27 +1,21 @@
 // src/types/index.ts
-
 import type { 
   QUOTE_STATUSES, 
   EVENT_STATUSES, 
   EVENT_TYPES, 
   SERVICES, 
   PACKAGES 
-} from '@/utils/constants'; // ✅ CORRECCIÓN: Usamos el alias @/utils
+} from '@/utils/constants';
 
 /**
  * LA RESERVA - TIPOS TYPESCRIPT
- * * Tipos basados en el esquema de base de datos Supabase
- * y tipos adicionales para el frontend.
- * * @version 1.1
+ * Version: 1.3 (Incluye contact_messages)
  */
 
 // ============================================
-// 1. TIPOS DE BASE DE DATOS
+// 1. TIPOS DE BASE DE DATOS (Tablas)
 // ============================================
 
-/**
- * Cliente en la base de datos
- */
 export interface Client {
   id: string;
   name: string;
@@ -35,9 +29,6 @@ export interface Client {
   updated_at: string;
 }
 
-/**
- * Cotización solicitada
- */
 export interface Quote {
   id: string;
   client_id?: string;
@@ -48,18 +39,16 @@ export interface Quote {
   event_date: string;
   guest_count: number;
   message?: string;
-  status: QuoteStatus; // ✅ MEJORA: Usamos el tipo estricto
+  status: QuoteStatus;
   estimated_price?: number;
   admin_notes?: string;
   created_at: string;
   updated_at: string;
   contacted_at?: string;
   converted_at?: string;
+  interested_package?: string;
 }
 
-/**
- * Evento confirmado
- */
 export interface Event {
   id: string;
   client_id?: string;
@@ -71,12 +60,12 @@ export interface Event {
   venue?: string;
   venue_address?: string;
   venue_district?: string;
-  package_id?: PackageId; // ✅ MEJORA: Tipo estricto
-  service_ids?: ServiceId[]; // ✅ MEJORA: Tipo estricto
+  package_id?: PackageId;
+  service_ids?: ServiceId[];
   total_price: number;
   deposit_paid: number;
   balance_due?: number;
-  status: EventStatus; // ✅ MEJORA: Tipo estricto
+  status: EventStatus;
   notes?: string;
   special_requests?: string;
   cocktails_selected?: string[];
@@ -84,11 +73,9 @@ export interface Event {
   updated_at: string;
   confirmed_at?: string;
   completed_at?: string;
+  closed_by?: string; 
 }
 
-/**
- * Imagen de evento (portafolio)
- */
 export interface EventImage {
   id: string;
   event_id?: string;
@@ -99,9 +86,6 @@ export interface EventImage {
   created_at: string;
 }
 
-/**
- * Servicio ofrecido
- */
 export interface Service {
   id: string;
   name: string;
@@ -118,9 +102,6 @@ export interface Service {
   updated_at: string;
 }
 
-/**
- * Paquete predefinido
- */
 export interface Package {
   id: string;
   name: string;
@@ -137,9 +118,6 @@ export interface Package {
   updated_at: string;
 }
 
-/**
- * Testimonio de cliente
- */
 export interface Testimonial {
   id: string;
   client_name: string;
@@ -153,9 +131,6 @@ export interface Testimonial {
   created_at: string;
 }
 
-/**
- * Post del blog
- */
 export interface BlogPost {
   id: string;
   title: string;
@@ -171,36 +146,49 @@ export interface BlogPost {
   updated_at: string;
 }
 
-/**
- * Usuario administrador
- */
+export type UserRole = 'super_admin' | 'sales' | 'operations';
 export interface AdminUser {
   id: string;
   email: string;
-  role: 'super_admin' | 'admin';
+  role: UserRole;
   full_name: string;
   avatar_url?: string;
   created_at: string;
   updated_at: string;
 }
 
-/**
- * Configuración del sitio
- */
 export interface SiteSetting {
   key: string;
-  value: any; // JSON value
+  value: any;
   description?: string;
   updated_at: string;
 }
 
+export interface TeamTask {
+  id: string;
+  content: string;
+  status: string; // 'pending' | 'done'
+  priority: string; // 'low' | 'normal' | 'high'
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+// ✅ NUEVA INTERFAZ PARA MENSAJES DE CONTACTO
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  message: string;
+  status: 'new' | 'read' | 'replied';
+  created_at: string;
+}
+
 // ============================================
-// 2. TIPOS DE FORMULARIOS
+// TIPOS AUXILIARES
 // ============================================
 
-/**
- * Datos del formulario de cotización
- */
 export interface QuoteFormData {
   name: string;
   email: string;
@@ -209,11 +197,9 @@ export interface QuoteFormData {
   eventDate: string;
   guestCount: number;
   message?: string;
+  interestedPackage?: string;
 }
 
-/**
- * Datos del formulario de contacto
- */
 export interface ContactFormData {
   name: string;
   email: string;
@@ -222,176 +208,16 @@ export interface ContactFormData {
   message: string;
 }
 
-/**
- * Datos del formulario de newsletter
- */
-export interface NewsletterFormData {
-  email: string;
-}
-
-/**
- * Datos del formulario de login admin
- */
 export interface LoginFormData {
   email: string;
   password: string;
 }
 
-/**
- * Datos del formulario de evento (admin)
- */
-export interface EventFormData {
-  clientName: string;
-  clientEmail: string;
-  clientPhone: string;
-  eventType: string;
-  eventDate: string;
-  eventTime?: string;
-  guestCount: number;
-  venue?: string;
-  packageId?: string;
-  totalPrice?: number;
-  deposit?: number;
-  status: EventStatus;
-  notes?: string;
-}
-
-// ============================================
-// 3. TIPOS DE UI/COMPONENTES
-// ============================================
-
-/**
- * Props del componente Button
- */
-export interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'outline';
-  size?: 'sm' | 'md' | 'lg';
-  fullWidth?: boolean;
-  disabled?: boolean;
-  loading?: boolean;
-  href?: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-  className?: string;
-}
-
-/**
- * Props del componente Card
- */
-export interface CardProps {
-  hover?: boolean;
-  padding?: 'none' | 'sm' | 'md' | 'lg';
-  children: React.ReactNode;
-  className?: string;
-}
-
-/**
- * Props del componente Modal
- */
-export interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title?: string;
-  children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-}
-
-/**
- * Props del componente ServiceCard
- */
-export interface ServiceCardProps {
-  service: Service;
-  showDetails?: boolean;
-}
-
-/**
- * Props del componente TestimonialCard
- */
-export interface TestimonialCardProps {
-  testimonial: Testimonial;
-}
-
-// ============================================
-// 4. TIPOS DE RESPUESTA API
-// ============================================
-
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
-
-export interface ApiError {
-  message: string;
-  code?: string;
-  details?: any;
-}
-
-// ============================================
-// 5. TIPOS DE UTILIDAD
-// ============================================
-
-export interface SelectOption {
-  value: string;
-  label: string;
-  icon?: string;
-  description?: string;
-}
-
-export interface BreadcrumbItem {
-  label: string;
-  href: string;
-  active?: boolean;
-}
-
-export interface PageMetadata {
-  title: string;
-  description: string;
-  keywords?: string[];
-  image?: string;
-  url?: string;
-  noindex?: boolean;
-}
-
-export interface SearchFilters {
-  query?: string;
-  category?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  status?: string;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-
-export interface DashboardStats {
-  totalEvents: number;
-  upcomingEvents: number;
-  pendingQuotes: number;
-  totalRevenue: number;
-  monthlyRevenue: number;
-  averageRating: number;
-}
-
-// ============================================
-// 6. TIPOS EXTENDIDOS
-// ============================================
-
-export interface EventWithClient extends Event {
-  client?: Client;
-}
-
-export interface QuoteWithClient extends Quote {
-  client?: Client;
-}
+export type QuoteStatus = keyof typeof QUOTE_STATUSES;
+export type EventStatus = keyof typeof EVENT_STATUSES;
+export type EventType = typeof EVENT_TYPES[number]['value'];
+export type ServiceId = typeof SERVICES[number]['id'];
+export type PackageId = typeof PACKAGES[number]['id'];
 
 export interface EventImageWithEvent extends EventImage {
   event?: Event;
@@ -402,91 +228,7 @@ export interface BlogPostWithAuthor extends BlogPost {
 }
 
 // ============================================
-// 7. TIPOS DE CONSTANTES (MEJORADOS)
+// DEFINICIÓN DE BASE DE DATOS SUPABASE
 // ============================================
-
-/**
- * Tipo para estados de cotización ('new' | 'contacted' | ...)
- */
-export type QuoteStatus = keyof typeof QUOTE_STATUSES;
-
-/**
- * Tipo para estados de evento ('pending' | 'confirmed' | ...)
- */
-export type EventStatus = keyof typeof EVENT_STATUSES;
-
-/**
- * Tipo para tipos de evento ('boda' | 'corporativo' | ...)
- */
-export type EventType = typeof EVENT_TYPES[number]['value'];
-
-/**
- * Tipo para IDs de servicios ('bartending-eventos' | 'mixologia-corporativa' | ...)
- */
-export type ServiceId = typeof SERVICES[number]['id'];
-
-/**
- * Tipo para IDs de paquetes ('basico' | 'completo' | 'premium')
- */
-export type PackageId = typeof PACKAGES[number]['id'];
-
-// ============================================
-// 8. TIPOS DE SUPABASE
-// ============================================
-
-export type Database = {
-  public: {
-    Tables: {
-      clients: {
-        Row: Client;
-        Insert: Omit<Client, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Client, 'id'>>;
-      };
-      quotes: {
-        Row: Quote;
-        Insert: Omit<Quote, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Quote, 'id'>>;
-      };
-      events: {
-        Row: Event;
-        Insert: Omit<Event, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Event, 'id'>>;
-      };
-      event_images: {
-        Row: EventImage;
-        Insert: Omit<EventImage, 'id' | 'created_at'>;
-        Update: Partial<Omit<EventImage, 'id'>>;
-      };
-      services: {
-        Row: Service;
-        Insert: Omit<Service, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Service, 'id'>>;
-      };
-      packages: {
-        Row: Package;
-        Insert: Omit<Package, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Package, 'id'>>;
-      };
-      testimonials: {
-        Row: Testimonial;
-        Insert: Omit<Testimonial, 'id' | 'created_at'>;
-        Update: Partial<Omit<Testimonial, 'id'>>;
-      };
-      blog_posts: {
-        Row: BlogPost;
-        Insert: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<BlogPost, 'id'>>;
-      };
-      admin_users: {
-        Row: AdminUser;
-        Insert: Omit<AdminUser, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<AdminUser, 'id'>>;
-      };
-      site_settings: {
-        Row: SiteSetting;
-        Insert: Omit<SiteSetting, 'updated_at'>;
-        Update: Partial<SiteSetting>;
-      };
-    };
-  };
-};
+// ✅ Importamos Database desde database.ts (generado automáticamente por Supabase)
+export type { Database } from './database';
