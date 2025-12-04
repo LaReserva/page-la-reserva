@@ -9,12 +9,12 @@ import {
   Users,
   ChevronDown,
   Loader2,
-  Eye // Icono para "Ver detalle"
+  Eye,
+  CalendarCheck // ✅ Icono para indicar que está en calendario
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Quote, QuoteStatus } from '@/types';
 import { cn } from '@/utils/utils';
-// ✅ Importamos el Modal
 import { QuoteDetailModal } from './QuoteDetailModal';
 
 type IconComponent = React.ComponentType<{ className?: string }>;
@@ -57,7 +57,6 @@ export function QuotesView() {
   const [filterStatus, setFilterStatus] = useState<QuoteStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // ✅ Estados para el Modal
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -82,19 +81,16 @@ export function QuotesView() {
     }
   }
 
-  // ✅ Función para abrir el modal
   const openDetailModal = (quote: Quote) => {
     setSelectedQuote(quote);
     setIsModalOpen(true);
   };
 
-  // ✅ Callback para actualizar la lista cuando se guarda el modal
   const handleQuoteUpdated = (updatedQuote: Quote) => {
     setQuotes(prev => prev.map(q => q.id === updatedQuote.id ? updatedQuote : q));
   };
 
   async function handleStatusChange(id: string, newStatus: QuoteStatus) {
-    // Evita propagación si se hace click en el select dentro de la fila
     const previousQuotes = [...quotes];
     setQuotes(prev => prev.map(q => q.id === id ? { ...q, status: newStatus } : q));
 
@@ -113,15 +109,12 @@ export function QuotesView() {
   }
 
   const handleWhatsAppAction = (e: React.MouseEvent, quote: Quote) => {
-    e.stopPropagation(); // Evita abrir el modal al hacer click en WhatsApp
-    
+    e.stopPropagation();
     const phone = quote.client_phone.replace(/\D/g, '');
     const firstName = quote.client_name.split(' ')[0];
     const eventDate = new Date(quote.event_date).toLocaleDateString('es-PE');
-    
     const message = `Hola ${firstName} 👋, te saludo de La Reserva. Recibimos tu solicitud para el evento del ${eventDate} (${quote.event_type}). ¿Tienes unos minutos para conversar?`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    
     window.open(url, '_blank', 'noopener,noreferrer');
 
     if (quote.status === 'new') {
@@ -222,7 +215,6 @@ export function QuotesView() {
                 {filteredQuotes.map((quote) => (
                   <tr 
                     key={quote.id} 
-                    // ✅ Click en la fila abre el modal
                     onClick={() => openDetailModal(quote)}
                     className="hover:bg-secondary-50/50 transition-colors group cursor-pointer"
                   >
@@ -263,28 +255,39 @@ export function QuotesView() {
                     </td>
 
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative inline-block">
-                        <select
-                          value={quote.status}
-                          onChange={(e) => handleStatusChange(quote.id, e.target.value as QuoteStatus)}
-                          className={cn(
-                            "appearance-none cursor-pointer pl-3 pr-8 py-1.5 rounded-full text-xs font-bold border ring-1 ring-inset transition-all focus:outline-none focus:ring-2 focus:ring-primary-500",
-                            STATUS_CONFIG[quote.status].color
-                          )}
-                        >
-                          {(Object.keys(STATUS_CONFIG) as QuoteStatus[]).map((s) => (
-                            <option key={s} value={s} className="bg-white text-secondary-900">
-                              {STATUS_CONFIG[s].label}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50 pointer-events-none" />
+                      <div className="relative flex items-center gap-2">
+                        {/* ✅ ICONO DE CALENDARIO SI YA ES EVENTO */}
+                        {quote.status === 'converted' && (
+                          <div 
+                            className="p-1 bg-green-100 text-green-600 rounded-full" 
+                            title="Evento creado en calendario"
+                          >
+                            <CalendarCheck className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+
+                        <div className="relative inline-block">
+                          <select
+                            value={quote.status}
+                            onChange={(e) => handleStatusChange(quote.id, e.target.value as QuoteStatus)}
+                            className={cn(
+                              "appearance-none cursor-pointer pl-3 pr-8 py-1.5 rounded-full text-xs font-bold border ring-1 ring-inset transition-all focus:outline-none focus:ring-2 focus:ring-primary-500",
+                              STATUS_CONFIG[quote.status].color
+                            )}
+                          >
+                            {(Object.keys(STATUS_CONFIG) as QuoteStatus[]).map((s) => (
+                              <option key={s} value={s} className="bg-white text-secondary-900">
+                                {STATUS_CONFIG[s].label}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50 pointer-events-none" />
+                        </div>
                       </div>
                     </td>
 
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {/* Botón Ver Detalle (visible en hover o siempre en mobile) */}
                         <button
                           onClick={(e) => { e.stopPropagation(); openDetailModal(quote); }}
                           className="p-1.5 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
@@ -310,7 +313,6 @@ export function QuotesView() {
         )}
       </div>
 
-      {/* ✅ Modal de Detalle */}
       <QuoteDetailModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
