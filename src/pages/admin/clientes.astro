@@ -1,0 +1,45 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { ClientsView } from '@/components/admin/clients/ClientsView';
+
+const title = "Directorio de Clientes | La Reserva Admin";
+---
+
+<AdminLayout title={title}>
+  
+  {/* Encabezado de la Sección */}
+  <div class="mb-8">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="text-purple-600 font-bold text-xs tracking-wider uppercase bg-purple-50 px-2 py-0.5 rounded">Operaciones</span>
+      <span class="text-secondary-400 text-xs">/ Directorio</span>
+    </div>
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div>
+        <h1 class="text-3xl font-display font-bold text-secondary-900">
+          Clientes
+        </h1>
+        <p class="text-secondary-500 mt-1 max-w-2xl">
+          Historial completo de clientes, empresas y su actividad con nosotros.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* Componente React Interactivo */}
+  <ClientsView client:load />
+
+</AdminLayout>
+
+<script>
+  import { supabase } from '@/lib/supabase';
+
+  async function protectRoute() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/admin/login';
+    }
+  }
+  
+  protectRoute();
+</script>
