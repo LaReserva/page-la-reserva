@@ -38,38 +38,37 @@ interface QuoteDetailModalProps {
 }
 
 export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDetailModalProps) {
-  // 1. ✅ TODOS LOS HOOKS AL PRINCIPIO
+  // 1. HOOKS Y ESTADOS
   
-  // Estados de datos
+  // Datos
   const [notes, setNotes] = useState('');
   const [price, setPrice] = useState<string>('');
   const [eventDate, setEventDate] = useState('');
   const [guestCount, setGuestCount] = useState<number | ''>('');
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
 
-  // Estados de UI/Lógica
+  // UI y Procesos
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [dateError, setDateError] = useState(false);
   
-  // Estado para verificar si existe evento
+  // ✅ MODALES INTERNOS
+  const [showConfirm, setShowConfirm] = useState(false); // Modal crear evento
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // ✅ Modal eliminar evento
+  
+  // Estado evento y usuario
   const [eventExists, setEventExists] = useState(false);
   const [checkingEvent, setCheckingEvent] = useState(false);
-
-  // Estado para el usuario actual (MOVIDO AQUÍ ARRIBA)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // 2. ✅ USE EFFECTS (LOGICA DE CARGA)
+  // 2. EFECTOS
 
-  // Obtener usuario actual al montar
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setCurrentUserId(data.user.id);
     });
   }, []);
 
-  // Sincronizar datos cuando cambia la cotización
   useEffect(() => {
     if (quote && isOpen) {
       const cleanNotes = (quote.admin_notes || '').split('\n[Sistema]:')[0].trim();
@@ -79,15 +78,15 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
       setGuestCount(quote.guest_count);
       setSelectedPackage(quote.interested_package || '');
       
+      // Resetear modales internos
       setShowConfirm(false);
+      setShowDeleteConfirm(false);
       setDateError(false);
       
-      // Verificar si existe evento real en la BD
       checkEventExistence(quote.id);
     }
   }, [quote, isOpen]);
 
-  // Validar fecha en tiempo real
   useEffect(() => {
     if (eventDate) {
       const today = new Date();
@@ -97,7 +96,6 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     }
   }, [eventDate]);
 
-  // Función auxiliar para verificar evento
   async function checkEventExistence(quoteId: string) {
     setCheckingEvent(true);
     const { data } = await supabase
@@ -110,10 +108,10 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     setCheckingEvent(false);
   }
 
-  // 3. ✅ CONDICIONAL DE RETORNO (DESPUÉS DE TODOS LOS HOOKS)
+  // 3. RETORNO TEMPRANO
   if (!isOpen || !quote) return null;
 
-  // 4. ✅ HANDLERS Y LÓGICA
+  // 4. HANDLERS
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -129,6 +127,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     if (!isNaN(num) && num >= 0) setGuestCount(num);
   };
 
+  // --- LÓGICA CREAR EVENTO ---
   const initiateConversion = () => {
     if (!price || parseFloat(price) <= 0) return alert("Ingresa un presupuesto estimado.");
     if (dateError) return alert("Corrige la fecha pasada.");
@@ -156,7 +155,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
         clientId = newClient.id;
       }
 
-      // 2. Crear Evento
+      // 2. Evento
       const { error: eventError } = await supabase.from('events').insert({
         client_id: clientId,
         quote_id: quote.id,
@@ -168,12 +167,12 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
         status: 'confirmed',
         deposit_paid: 0,
         notes: notes,
-        closed_by: currentUserId // Guardamos el admin
+        closed_by: currentUserId
       });
 
       if (eventError) throw eventError;
 
-      // 3. Actualizar Cotización
+      // 3. Actualizar Quote
       const originalNotes = quote.admin_notes || '';
       const notesToSave = originalNotes.includes(notes) && notes !== '' ? originalNotes : notes;
 
@@ -204,9 +203,15 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     }
   };
 
-  const handleDeleteEvent = async () => {
-    if (!confirm("¿Seguro? Esto eliminará el evento del calendario.")) return;
+  // --- LÓGICA ELIMINAR EVENTO (NUEVA) ---
+  
+  // 1. Paso previo: Mostrar modal
+  const confirmDelete = () => {
+    setShowDeleteConfirm(true);
+  };
 
+  // 2. Ejecutar eliminación
+  const executeDelete = async () => {
     try {
       setIsProcessing(true);
       
@@ -219,7 +224,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
 
       const { data: updatedQuote, error: updateError } = await supabase
         .from('quotes')
-        .update({ status: 'quoted' })
+        .update({ status: 'quoted' }) // Regresa a estado 'cotizada'
         .eq('id', quote.id)
         .select().single();
 
@@ -227,6 +232,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
 
       if (updatedQuote) onUpdate(updatedQuote as Quote);
       setEventExists(false);
+      setShowDeleteConfirm(false); // Cerrar modal de confirmación
       
     } catch (error: any) {
       alert(`Error: ${error.message}`);
@@ -235,20 +241,18 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     }
   };
 
+  // --- GUARDAR CAMBIOS ---
   const handleSave = async () => {
     try {
       setIsSaving(true);
 
-      // Validaciones básicas
       if (guestCount === '' || Number(guestCount) <= 0) {
-        alert("La cantidad de invitados es obligatoria y debe ser mayor a 0.");
-        setIsSaving(false);
-        return;
+        alert("La cantidad de invitados es obligatoria.");
+        setIsSaving(false); return;
       }
       if (!eventDate) {
         alert("La fecha del evento es obligatoria.");
-        setIsSaving(false);
-        return;
+        setIsSaving(false); return;
       }
 
       const updates = {
@@ -289,7 +293,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
 
       <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Confirm Modal */}
+        {/* --- MODAL CONFIRMAR CREACIÓN --- */}
         {showConfirm && (
           <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur flex flex-col items-center justify-center text-center p-8 animate-in fade-in">
             <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mb-4"><CalendarCheck className="w-8 h-8" /></div>
@@ -299,6 +303,40 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
               <button onClick={() => setShowConfirm(false)} className="px-6 py-3 rounded-xl font-medium text-secondary-600 hover:bg-secondary-100 transition-colors">Cancelar</button>
               <button onClick={executeConversion} disabled={isProcessing} className="px-8 py-3 rounded-xl font-bold text-white bg-primary-600 hover:bg-primary-700 shadow-lg flex items-center gap-2">
                 {isProcessing ? <><Loader2 className="w-5 h-5 animate-spin" /> ...</> : "Sí, Crear"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* --- MODAL CONFIRMAR ELIMINACIÓN (NUEVO) --- */}
+        {showDeleteConfirm && (
+          <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur flex flex-col items-center justify-center text-center p-8 animate-in fade-in">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-bold text-secondary-900 mb-2">¿Eliminar Evento?</h3>
+            <p className="text-secondary-500 max-w-md mb-2">
+              Esta acción <strong>eliminará el evento del calendario</strong> y regresará esta cotización al estado "Cotizada".
+            </p>
+            <p className="text-sm text-red-500 font-medium mb-8">Esta acción no se puede deshacer.</p>
+            
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setShowDeleteConfirm(false)} 
+                className="px-6 py-3 rounded-xl font-medium text-secondary-600 hover:bg-secondary-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={executeDelete} 
+                disabled={isProcessing} 
+                className="px-8 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg flex items-center gap-2 transition-colors"
+              >
+                {isProcessing ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Eliminando...</>
+                ) : (
+                  <><Trash2 className="w-5 h-5" /> Sí, Eliminar</>
+                )}
               </button>
             </div>
           </div>
@@ -400,10 +438,12 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
                   ) : isDeclined ? (
                     <div className="w-full py-3 px-4 bg-gray-100 text-gray-400 rounded-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-gray-200"><Ban className="w-5 h-5" /> Declinada</div>
                   ) : eventExists ? (
-                    <button onClick={handleDeleteEvent} disabled={isProcessing} className="w-full py-3 px-4 bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
-                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-5 h-5" /> Eliminar Evento</>}
+                    // ✅ BOTÓN ELIMINAR ABRE MODAL
+                    <button onClick={confirmDelete} disabled={isProcessing} className="w-full py-3 px-4 bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
+                      <Trash2 className="w-5 h-5" /> Eliminar Evento
                     </button>
                   ) : (
+                    // BOTÓN CREAR
                     <>
                       <button onClick={initiateConversion} disabled={!price || parseFloat(price) <= 0 || dateError || !guestCount} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <CalendarCheck className="w-5 h-5" /> Confirmar como Evento
@@ -434,7 +474,6 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
           
           <div className="flex gap-3">
             <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-secondary-600 hover:text-secondary-900 hover:bg-white rounded-lg transition-colors">Cerrar</button>
-            {/* Solo permitir guardar si no está bloqueado (evento no creado/declinado) para evitar inconsistencias */}
             {!isLocked && (
               <button onClick={handleSave} disabled={isSaving || dateError} className="px-6 py-2 text-sm font-bold text-white bg-secondary-900 hover:bg-secondary-800 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
                 {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</> : <><Save className="w-4 h-4" /> Guardar Cambios</>}

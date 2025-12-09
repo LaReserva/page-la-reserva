@@ -44,6 +44,7 @@ export interface Quote {
   admin_notes?: string;
   created_at: string;
   updated_at: string;
+  updated_by?: string; // ✅ Nuevo campo para rastrear quién actualizó la cotización
   contacted_at?: string;
   converted_at?: string;
   interested_package?: string;
