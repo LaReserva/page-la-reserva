@@ -1,23 +1,23 @@
 import { useState, useEffect } from 'react';
 import { 
-  Search, 
-  Users, 
-  Mail, 
-  Phone, 
-  Building, 
-  Calendar,
-  DollarSign,
-  Loader2,
-  ExternalLink
+  Search, Users, Mail, Phone, Building, Calendar,
+  Loader2, Edit, Eye, Plus // ✅ Icono Plus
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Client } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
+import { ClientDetailModal } from './ClientDetailModal';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export function ClientsView() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { isSuperAdmin } = useUserRole();
 
   useEffect(() => {
     fetchClients();
@@ -29,8 +29,6 @@ export function ClientsView() {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        // Ordenamos por fecha de creación (los más recientes primero)
-        // o podrías ordenar por total_spent para ver a los clientes VIP
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -42,13 +40,39 @@ export function ClientsView() {
     }
   }
 
-  // Filtrado
+  // ✅ Abrir modal para VER/EDITAR
+  const handleOpenClient = (client: Client) => {
+    setSelectedClient(client);
+    setIsModalOpen(true);
+  };
+
+  // ✅ Abrir modal para CREAR
+  const handleCreateClient = () => {
+    setSelectedClient(null); // Null indica creación
+    setIsModalOpen(true);
+  };
+
+  // ✅ Callback unificado para guardar (Add o Update)
+  const handleClientSaved = (savedClient: Client) => {
+    setClients(prev => {
+      const exists = prev.find(c => c.id === savedClient.id);
+      if (exists) {
+        // Actualizar existente
+        return prev.map(c => c.id === savedClient.id ? savedClient : c);
+      } else {
+        // Agregar nuevo al principio
+        return [savedClient, ...prev];
+      }
+    });
+  };
+
   const filteredClients = clients.filter(client => {
     const searchLower = searchTerm.toLowerCase();
     return (
       client.name.toLowerCase().includes(searchLower) ||
       client.email.toLowerCase().includes(searchLower) ||
-      (client.company && client.company.toLowerCase().includes(searchLower))
+      (client.company && client.company.toLowerCase().includes(searchLower)) ||
+      client.phone.includes(searchLower)
     );
   });
 
@@ -62,26 +86,39 @@ export function ClientsView() {
 
   return (
     <div className="space-y-6">
-      {/* --- Toolbar --- */}
+      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-secondary-200">
         <div className="flex items-center gap-2 text-secondary-500">
           <Users className="w-5 h-5" />
           <span className="font-medium">{clients.length} Clientes registrados</span>
         </div>
 
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, empresa..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-secondary-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-sm"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, empresa, teléfono..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-secondary-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-sm"
+            />
+          </div>
+
+          {/* ✅ Botón Crear Cliente (Solo Super Admin) */}
+          {isSuperAdmin && (
+            <button 
+              onClick={handleCreateClient}
+              className="px-4 py-2 bg-secondary-900 text-white text-sm font-bold rounded-lg shadow hover:bg-secondary-800 transition-colors flex items-center justify-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Nuevo Cliente
+            </button>
+          )}
         </div>
       </div>
 
-      {/* --- Tabla de Clientes --- */}
+      {/* Tabla (Se mantiene igual, solo cambia el evento de la fila) */}
       <div className="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
         {filteredClients.length === 0 ? (
           <div className="p-12 text-center">
@@ -105,13 +142,16 @@ export function ClientsView() {
               </thead>
               <tbody className="divide-y divide-secondary-100">
                 {filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-secondary-50/30 transition-colors group">
-                    
-                    {/* Nombre y Empresa */}
+                  <tr 
+                    key={client.id} 
+                    className="hover:bg-secondary-50/30 transition-colors group cursor-pointer"
+                    onClick={() => handleOpenClient(client)}
+                  >
+                    {/* ... (Las celdas de la tabla son iguales al código anterior) ... */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs border border-primary-200">
-                          {client.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                          {client.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
                           <div className="font-bold text-secondary-900">{client.name}</div>
@@ -125,7 +165,6 @@ export function ClientsView() {
                       </div>
                     </td>
 
-                    {/* Datos de Contacto */}
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-secondary-600">
@@ -139,7 +178,6 @@ export function ClientsView() {
                       </div>
                     </td>
 
-                    {/* Estadísticas de Eventos */}
                     <td className="px-6 py-4">
                       <div className="flex justify-center">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
@@ -153,7 +191,6 @@ export function ClientsView() {
                       </div>
                     </td>
 
-                    {/* Dinero Gastado (LTV) */}
                     <td className="px-6 py-4 text-right">
                       <div className="font-bold text-secondary-900">
                         {formatCurrency(client.total_spent)}
@@ -161,25 +198,18 @@ export function ClientsView() {
                       <div className="text-xs text-secondary-400 mt-0.5">LTV</div>
                     </td>
 
-                    {/* Acciones */}
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <a 
-                          href={`mailto:${client.email}`}
-                          className="p-1.5 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="Enviar Email"
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenClient(client);
+                          }}
+                          className="p-2 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          title={isSuperAdmin ? "Editar Cliente" : "Ver Detalles"}
                         >
-                          <Mail className="w-4 h-4" />
-                        </a>
-                        <a 
-                          href={`https://wa.me/${client.phone.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 text-secondary-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Contactar por WhatsApp"
-                        >
-                          <MessageCircleIcon className="w-4 h-4" />
-                        </a>
+                          {isSuperAdmin ? <Edit className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -189,26 +219,13 @@ export function ClientsView() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
 
-// Icono auxiliar si no existe en la importación principal
-function MessageCircleIcon({ className }: { className?: string }) {
-  return (
-    <svg 
-      className={className} 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-    </svg>
+      <ClientDetailModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        client={selectedClient}
+        onUpdate={handleClientSaved} // ✅ Usamos el handler que soporta create/update
+      />
+    </div>
   );
 }
