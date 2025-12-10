@@ -10,12 +10,17 @@ import {
   ChevronDown,
   Loader2,
   Eye,
-  CalendarCheck // ✅ Icono para indicar que está en calendario
+  CalendarCheck // ✅ Icono para indicar evento creado
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Quote, QuoteStatus } from '@/types';
 import { cn } from '@/utils/utils';
 import { QuoteDetailModal } from './QuoteDetailModal';
+
+// Definimos un tipo extendido para manejar la relación con eventos que viene de Supabase
+interface QuoteWithEvent extends Quote {
+  event?: { id: string; closed_by?: string } | { id: string; closed_by?: string }[];
+}
 
 type IconComponent = React.ComponentType<{ className?: string }>;
 
@@ -52,28 +57,52 @@ function CircleIcon({ className }: { className?: string }) {
 }
 
 export function QuotesView() {
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quotes, setQuotes] = useState<QuoteWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<QuoteStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Mapa de ID de usuario -> Nombre para mostrar quién creó el evento
+  const [adminNames, setAdminNames] = useState<Record<string, string>>({});
+
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchQuotes();
+    fetchAdmins();
   }, []);
 
+  // 1. Cargar nombres de administradores para el mapeo
+  async function fetchAdmins() {
+    const { data } = await supabase.from('admin_users').select('id, full_name');
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach(user => {
+        // Guardamos solo el primer nombre para que sea corto en la tabla
+        map[user.id] = user.full_name.split(' ')[0];
+      });
+      setAdminNames(map);
+    }
+  }
+
+  // 2. Cargar cotizaciones con la relación de eventos
   async function fetchQuotes() {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('quotes')
-        .select('*')
+        .select(`
+          *,
+          event:events!quote_id (
+            id,
+            closed_by
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setQuotes((data as Quote[]) || []);
+      setQuotes((data as unknown as QuoteWithEvent[]) || []);
     } catch (error) {
       console.error('Error fetching quotes:', error);
     } finally {
@@ -87,7 +116,8 @@ export function QuotesView() {
   };
 
   const handleQuoteUpdated = (updatedQuote: Quote) => {
-    setQuotes(prev => prev.map(q => q.id === updatedQuote.id ? updatedQuote : q));
+    // Al actualizar, recargamos todo para asegurar que la relación con el evento se actualice también
+    fetchQuotes(); 
   };
 
   async function handleStatusChange(id: string, newStatus: QuoteStatus) {
@@ -110,11 +140,14 @@ export function QuotesView() {
 
   const handleWhatsAppAction = (e: React.MouseEvent, quote: Quote) => {
     e.stopPropagation();
+    
     const phone = quote.client_phone.replace(/\D/g, '');
     const firstName = quote.client_name.split(' ')[0];
-    const eventDate = new Date(quote.event_date).toLocaleDateString('es-PE');
+    const eventDate = new Date(quote.event_date + 'T00:00:00').toLocaleDateString('es-PE');
+    
     const message = `Hola ${firstName} 👋, te saludo de La Reserva. Recibimos tu solicitud para el evento del ${eventDate} (${quote.event_type}). ¿Tienes unos minutos para conversar?`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    
     window.open(url, '_blank', 'noopener,noreferrer');
 
     if (quote.status === 'new') {
@@ -245,7 +278,7 @@ export function QuotesView() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-secondary-700">
                         <Calendar className="w-4 h-4 text-secondary-400" />
-                        {/* ✅ CORRECCIÓN DE FECHA EN TABLA: Agregar T00:00:00 */}
+                        {/* Corrección de fecha: usar T00:00:00 */}
                         {new Date(quote.event_date + 'T00:00:00').toLocaleDateString('es-PE', {
                           day: 'numeric', month: 'short', year: 'numeric'
                         })}
@@ -257,15 +290,26 @@ export function QuotesView() {
 
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="relative flex items-center gap-2">
-                        {/* ✅ ICONO DE CALENDARIO SI YA ES EVENTO */}
-                        {quote.status === 'converted' && (
-                          <div 
-                            className="p-1 bg-green-100 text-green-600 rounded-full" 
-                            title="Evento creado en calendario"
-                          >
-                            <CalendarCheck className="w-3.5 h-3.5" />
-                          </div>
-                        )}
+                        
+                        {/* ✅ INDICADOR VISUAL DE EVENTO CREADO */}
+                        {(() => {
+                          const eventData = Array.isArray(quote.event) ? quote.event[0] : quote.event;
+                          if (eventData) {
+                            const creatorName = eventData.closed_by ? adminNames[eventData.closed_by] : null;
+                            return (
+                              <div 
+                                className="flex flex-col items-center justify-center gap-0.5 px-2 py-1 bg-green-50 text-green-700 rounded-md border border-green-100 shadow-sm" 
+                                title="Evento creado en calendario"
+                              >
+                                <CalendarCheck className="w-3.5 h-3.5" />
+                                {creatorName && (
+                                  <span className="text-[9px] font-bold uppercase tracking-tight">{creatorName}</span>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
 
                         <div className="relative inline-block">
                           <select

@@ -44,6 +44,7 @@ export interface Quote {
   admin_notes?: string;
   created_at: string;
   updated_at: string;
+  updated_by?: string; // ✅ Nuevo campo para rastrear quién actualizó la cotización
   contacted_at?: string;
   converted_at?: string;
   interested_package?: string;
@@ -73,7 +74,13 @@ export interface Event {
   updated_at: string;
   confirmed_at?: string;
   completed_at?: string;
-  closed_by?: string; 
+  closed_by?: string;
+  bartender_count?: number;
+  bartender_names?: string;
+  bar_menu?: string;
+  requirements_url?: string;
+  quote_doc_url?: string;
+  other_docs_urls?: string[];
 }
 
 export interface EventImage {
@@ -153,6 +160,11 @@ export interface AdminUser {
   role: UserRole;
   full_name: string;
   avatar_url?: string;
+  // ✅ NUEVOS CAMPOS AGREGADOS
+  phone?: string;
+  dni?: string;
+  address?: string;
+  // -------------------------
   created_at: string;
   updated_at: string;
 }
