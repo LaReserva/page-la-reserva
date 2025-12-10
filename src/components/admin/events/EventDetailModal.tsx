@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
   X, Save, Calendar, MapPin, FileText, 
   Upload, Download, Trash2, Ban, CheckCircle2, 
-  Clock, Wine, Loader2, AlertCircle, AlertTriangle 
+  Clock, Wine, Loader2, AlertCircle, AlertTriangle,
+  UserCog // Icono para el creador
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Event, EventStatus } from '@/types';
@@ -25,10 +26,13 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(''); 
   const [dateError, setDateError] = useState(false);
+  
+  // ✅ Estado para el nombre del creador
+  const [creatorName, setCreatorName] = useState<string>('');
 
-  // ✅ Estados para Modales Internos
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // Para confirmar evento
-  const [showCancelModal, setShowCancelModal] = useState(false);   // Para cancelar evento
+  // Estados Modales Internos
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     if (event && isOpen) {
@@ -46,9 +50,29 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
       setDateError(false);
       setShowConfirmModal(false);
       setShowCancelModal(false);
+      
+      // ✅ Buscar nombre del creador
+      fetchCreatorName(event.closed_by);
     }
   }, [event, isOpen]);
 
+  // ✅ Función para obtener nombre del admin
+  async function fetchCreatorName(userId?: string) {
+    if (!userId) {
+      setCreatorName('Sistema / Desconocido');
+      return;
+    }
+    const { data } = await supabase
+      .from('admin_users')
+      .select('full_name')
+      .eq('id', userId)
+      .single();
+    
+    if (data) setCreatorName(data.full_name);
+    else setCreatorName('Usuario eliminado');
+  }
+
+  // Validación de fecha
   useEffect(() => {
     if (formData.event_date) {
       const today = new Date();
@@ -71,15 +95,16 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
       ? 'completed' 
       : event.status;
 
-  const formatTimeDisplay = (timeString?: string) => {
-    if (!timeString) return '';
-    const [hours, minutes] = timeString.split(':');
-    const h = parseInt(hours, 10);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return `${h12}:${minutes} ${ampm}`;
+  // Helper fecha formato largo
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('es-PE', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
   };
 
+  // --- HANDLERS (Igual que antes) ---
   const handleInputChange = (field: keyof Event, value: any) => {
     if ((field === 'bartender_count' || field === 'guest_count') && typeof value === 'number') {
       if (value < 0) return;
@@ -101,28 +126,24 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
       handleInputChange(field, publicUrl);
     } catch (error) {
       console.error('Error uploading:', error);
-      alert('Error al subir archivo'); // File upload error se mantiene simple por ahora
+      alert('Error al subir archivo');
     } finally {
       setUploading('');
     }
   };
 
-  // ✅ LOGICA DE GUARDADO MEJORADA CON MODAL
   const initiateSave = () => {
-    if (dateError) return; // Validación silenciosa visual
-    
-    // Si está pendiente y tiene datos completos, sugerir confirmación
+    if (dateError) return;
     if (formData.status === 'pending' && formData.bartender_names && formData.requirements_url) {
       setShowConfirmModal(true);
     } else {
-      executeSave(formData.status); // Guardar directo si no hay cambio de estado sugerido
+      executeSave(formData.status);
     }
   };
 
   const executeSave = async (statusToSave: EventStatus = 'pending') => {
     try {
       setLoading(true);
-      
       const updates: Partial<Event> = {
         event_date: formData.event_date || event.event_date,
         event_time: formData.event_time || '',
@@ -134,7 +155,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
         special_requests: formData.special_requests || '',
         requirements_url: formData.requirements_url || '',
         quote_doc_url: formData.quote_doc_url || '',
-        status: statusToSave // Usamos el estado pasado como argumento
+        status: statusToSave
       };
 
       const { data, error } = await supabase
@@ -151,7 +172,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
       }
       
       onUpdate(data as unknown as Event);
-      setShowConfirmModal(false); // Cerrar modal si estaba abierto
+      setShowConfirmModal(false);
       onClose();
     } catch (error: any) {
       console.error('Error saving:', error);
@@ -161,19 +182,12 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
     }
   };
 
-  // ✅ LOGICA DE CANCELACION MEJORADA CON MODAL
   const initiateCancel = () => setShowCancelModal(true);
 
   const executeCancel = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('events')
-        .update({ status: 'cancelled' })
-        .eq('id', event.id)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('events').update({ status: 'cancelled' }).eq('id', event.id).select().single();
       if (error) throw error;
       onUpdate(data as Event);
       setShowCancelModal(false);
@@ -209,7 +223,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
       
       <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
         
-        {/* --- MODAL CONFIRMACIÓN: COMPLETAR DATOS --- */}
+        {/* Modales Internos (Confirm/Cancel) ... (Igual que antes) */}
         {showConfirmModal && (
           <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur flex flex-col items-center justify-center text-center p-8 animate-in fade-in">
             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4"><CheckCircle2 className="w-8 h-8" /></div>
@@ -224,7 +238,6 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
           </div>
         )}
 
-        {/* --- MODAL CONFIRMACIÓN: CANCELAR EVENTO --- */}
         {showCancelModal && (
           <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur flex flex-col items-center justify-center text-center p-8 animate-in fade-in">
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4"><Ban className="w-8 h-8" /></div>
@@ -247,7 +260,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
               <h2 className="text-xl font-display font-bold text-secondary-900">{formData.event_type}</h2>
               <StatusBadge />
             </div>
-            <p className="text-sm text-secondary-500">ID: {event.id.slice(0,8)} • Creado el {new Date(event.created_at).toLocaleDateString()}</p>
+            <p className="text-sm text-secondary-500">ID: {event.id.slice(0,8)}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-secondary-200 rounded-full transition-colors"><X className="w-5 h-5 text-secondary-500" /></button>
         </div>
@@ -255,7 +268,9 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
             <div className="space-y-6">
+              {/* Card Datos Principales */}
               <div className="bg-white p-5 rounded-xl border border-secondary-200 shadow-sm">
                 <h3 className="text-xs font-bold text-secondary-400 uppercase tracking-wider mb-4 flex items-center gap-2"><Calendar className="w-4 h-4" /> Datos Principales</h3>
                 <div className="space-y-4">
@@ -275,11 +290,32 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
                   <div className="pt-2 border-t border-secondary-100 flex justify-between items-center"><span className="text-sm text-secondary-600">Invitados</span><span className="font-bold text-lg">{formData.guest_count}</span></div>
                 </div>
               </div>
+
+              {/* ✅ NUEVA CARD: METADATOS DE AUDITORÍA */}
+              <div className="bg-secondary-50 rounded-xl p-4 border border-secondary-100 space-y-3">
+                <div className="flex items-center gap-2 text-xs text-secondary-500">
+                  <Clock className="w-3 h-3" />
+                  <span>Creado: <span className="font-medium text-secondary-700">{formatDate(event.created_at)}</span></span>
+                </div>
+                {/* Asumimos que events tiene updated_at, si no, puedes quitar esta línea */}
+                {event.updated_at && (
+                  <div className="flex items-center gap-2 text-xs text-secondary-500">
+                    <Save className="w-3 h-3" />
+                    <span>Actualizado: <span className="font-medium text-secondary-700">{formatDate(event.updated_at)}</span></span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-xs text-secondary-500">
+                  <UserCog className="w-3 h-3" />
+                  <span>Creado por: <span className="font-medium text-secondary-700">{creatorName || 'Cargando...'}</span></span>
+                </div>
+              </div>
+
               {canEdit && displayStatus !== 'cancelled' && displayStatus !== 'completed' && (
                 <button onClick={initiateCancel} className="w-full py-3 border-2 border-red-100 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> Cancelar Evento</button>
               )}
             </div>
 
+            {/* COLUMNA 2 (Derecha) */}
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white p-5 rounded-xl border border-secondary-200 shadow-sm">
                 <h3 className="text-xs font-bold text-secondary-400 uppercase tracking-wider mb-4 flex items-center gap-2"><Wine className="w-4 h-4" /> Logística de Barra</h3>
@@ -319,7 +355,6 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
         {canEdit && displayStatus !== 'cancelled' && (
           <div className="px-6 py-4 bg-white border-t border-secondary-100 flex justify-end gap-3">
             <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-secondary-600 hover:bg-secondary-50 rounded-lg">Cancelar</button>
-            {/* ✅ Botón llama a initiateSave en lugar de handleSave directo */}
             <button onClick={initiateSave} disabled={loading} className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-lg shadow-md flex items-center gap-2">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar Cambios</button>
           </div>
         )}
