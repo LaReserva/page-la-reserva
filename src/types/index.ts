@@ -21,6 +21,12 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
+  // ✅ Nuevos campos
+  second_phone?: string;
+  document_id?: string;
+  address?: string;
+  instagram?: string;
+  // ----------------
   company?: string;
   notes?: string;
   total_events: number;

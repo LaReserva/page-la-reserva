@@ -1,5 +1,3 @@
-// src/components/admin/events/EventsCalendarView.tsx
-
 import { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, type View, type ToolbarProps } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -10,9 +8,9 @@ import type { Event, EventStatus } from '@/types';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { EventDetailModal } from './EventDetailModal';
 import { CreateManualEventModal } from './CreateManualEventModal';
-// ✅ Importar el hook de roles
 import { useUserRole } from '@/hooks/useUserRole'; 
 
+// ... (Configuración de locales y tipos internos se mantienen igual)
 const locales = { 'es': es };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
@@ -39,7 +37,7 @@ const STATUS_TRANSLATIONS: Record<EventStatus, string> = {
   cancelled: 'Cancelado',
 };
 
-// ✅ EXTRACCIÓN DEL COMPONENTE TOOLBAR (Soluciona el error de tipo ComponentType)
+// ✅ Componente Toolbar extraído (Se mantiene igual)
 const CustomToolbar = (props: ToolbarProps) => {
   return (
     <div className="rbc-toolbar mb-4 flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -62,7 +60,12 @@ const CustomToolbar = (props: ToolbarProps) => {
   );
 };
 
-export function EventsCalendarView() {
+// ✅ DEFINICIÓN DE PROPS: Agregamos showHeader opcional
+interface EventsCalendarViewProps {
+  showHeader?: boolean;
+}
+
+export function EventsCalendarView({ showHeader = true }: EventsCalendarViewProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('month');
@@ -71,7 +74,6 @@ export function EventsCalendarView() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Hook de rol para ocultar botón si es Operations
   const { role } = useUserRole();
   const isOperations = role === 'operations';
 
@@ -140,32 +142,36 @@ export function EventsCalendarView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-secondary-200 shadow-sm">
-        <div className="flex flex-wrap gap-4">
-          <span className="text-sm font-medium text-secondary-500 flex items-center gap-2">
-            <Filter className="w-4 h-4" /> Estados:
-          </span>
-          {Object.entries(STATUS_COLORS).map(([status, color]) => (
-            <div key={status} className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }}></span>
-              <span className="text-xs text-secondary-600 capitalize">
-                {STATUS_TRANSLATIONS[status as EventStatus]}
-              </span>
-            </div>
-          ))}
+      
+      {/* ✅ RENDERIZADO CONDICIONAL DEL HEADER (LEYENDA Y BOTÓN) */}
+      {showHeader && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-secondary-200 shadow-sm">
+          <div className="flex flex-wrap gap-4">
+            <span className="text-sm font-medium text-secondary-500 flex items-center gap-2">
+              <Filter className="w-4 h-4" /> Estados:
+            </span>
+            {Object.entries(STATUS_COLORS).map(([status, color]) => (
+              <div key={status} className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }}></span>
+                <span className="text-xs text-secondary-600 capitalize">
+                  {STATUS_TRANSLATIONS[status as EventStatus]}
+                </span>
+              </div>
+            ))}
+          </div>
+          
+          {!isOperations && (
+            <button 
+              onClick={() => setIsCreateOpen(true)}
+              className="px-4 py-2 bg-secondary-900 text-white text-sm font-bold rounded-lg shadow hover:bg-secondary-800 transition-colors flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" /> Nuevo Evento Manual
+            </button>
+          )}
         </div>
-        
-        {/* Ocultar botón si es Operations */}
-        {!isOperations && (
-          <button 
-            onClick={() => setIsCreateOpen(true)}
-            className="px-4 py-2 bg-secondary-900 text-white text-sm font-bold rounded-lg shadow hover:bg-secondary-800 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Nuevo Evento Manual
-          </button>
-        )}
-      </div>
+      )}
 
+      {/* Calendario */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-secondary-200 h-[700px]">
         <Calendar
           localizer={localizer}
@@ -179,10 +185,7 @@ export function EventsCalendarView() {
           onView={(newView: View) => setView(newView)}
           view={view}
           onSelectEvent={handleSelectEvent}
-          // ✅ Aquí pasamos el componente CustomToolbar extraído
-          components={{
-            toolbar: CustomToolbar
-          }}
+          components={{ toolbar: CustomToolbar }}
         />
       </div>
 

@@ -90,7 +90,7 @@ export function TeamTasks() {
         <p className="text-sm text-secondary-500">Notas y pendientes compartidos</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-3 min-h-[300px] max-h-[400px]">
+      <div className="flex-1 overflow-y-auto p-6 space-y-3 min-h-[300px] max-h-[600px]">
         {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
