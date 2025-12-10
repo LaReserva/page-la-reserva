@@ -74,7 +74,13 @@ export interface Event {
   updated_at: string;
   confirmed_at?: string;
   completed_at?: string;
-  closed_by?: string; 
+  closed_by?: string;
+  bartender_count?: number;
+  bartender_names?: string;
+  bar_menu?: string;
+  requirements_url?: string;
+  quote_doc_url?: string;
+  other_docs_urls?: string[];
 }
 
 export interface EventImage {

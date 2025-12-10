@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Ban,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  UserCog
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Quote } from '@/types';
@@ -37,6 +38,7 @@ interface QuoteDetailModalProps {
   onUpdate: (updatedQuote: Quote) => void;
 }
 
+// ✅ ASEGÚRATE QUE ESTA LÍNEA DIGA 'export function'
 export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDetailModalProps) {
   // 1. HOOKS Y ESTADOS
   
@@ -52,14 +54,15 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
   const [isProcessing, setIsProcessing] = useState(false);
   const [dateError, setDateError] = useState(false);
   
-  // ✅ MODALES INTERNOS
-  const [showConfirm, setShowConfirm] = useState(false); // Modal crear evento
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // ✅ Modal eliminar evento
+  // Modales internos
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Estado evento y usuario
   const [eventExists, setEventExists] = useState(false);
   const [checkingEvent, setCheckingEvent] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [updaterName, setUpdaterName] = useState<string>('');
 
   // 2. EFECTOS
 
@@ -78,12 +81,13 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
       setGuestCount(quote.guest_count);
       setSelectedPackage(quote.interested_package || '');
       
-      // Resetear modales internos
+      // Resetear estados internos
       setShowConfirm(false);
       setShowDeleteConfirm(false);
       setDateError(false);
       
       checkEventExistence(quote.id);
+      fetchUpdaterName(quote.updated_by);
     }
   }, [quote, isOpen]);
 
@@ -96,14 +100,24 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     }
   }, [eventDate]);
 
+  // Helpers
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('es-PE', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
+  };
+
+  async function fetchUpdaterName(userId?: string) {
+    if (!userId) { setUpdaterName(''); return; }
+    const { data } = await supabase.from('admin_users').select('full_name').eq('id', userId).single();
+    if (data) setUpdaterName(data.full_name);
+  }
+
   async function checkEventExistence(quoteId: string) {
     setCheckingEvent(true);
-    const { data } = await supabase
-      .from('events')
-      .select('id')
-      .eq('quote_id', quoteId)
-      .maybeSingle();
-    
+    const { data } = await supabase.from('events').select('id').eq('quote_id', quoteId).maybeSingle();
     setEventExists(!!data);
     setCheckingEvent(false);
   }
@@ -127,7 +141,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     if (!isNaN(num) && num >= 0) setGuestCount(num);
   };
 
-  // --- LÓGICA CREAR EVENTO ---
+  // Lógica CREAR Evento
   const initiateConversion = () => {
     if (!price || parseFloat(price) <= 0) return alert("Ingresa un presupuesto estimado.");
     if (dateError) return alert("Corrige la fecha pasada.");
@@ -139,7 +153,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     try {
       setIsProcessing(true);
 
-      // 1. Cliente
+      // Cliente
       let clientId = null;
       const { data: existingClient } = await supabase.from('clients').select('id').eq('email', quote.client_email).maybeSingle();
 
@@ -148,14 +162,12 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
       } else {
         const { data: newClient, error: clientError } = await supabase
           .from('clients')
-          .insert({
-            name: quote.client_name, email: quote.client_email, phone: quote.client_phone, total_events: 1, total_spent: 0 
-          }).select().single();
+          .insert({ name: quote.client_name, email: quote.client_email, phone: quote.client_phone, total_events: 1, total_spent: 0 }).select().single();
         if (clientError) throw clientError;
         clientId = newClient.id;
       }
 
-      // 2. Evento
+      // Evento (Nace como PENDING)
       const { error: eventError } = await supabase.from('events').insert({
         client_id: clientId,
         quote_id: quote.id,
@@ -164,7 +176,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
         event_time: '12:00:00', 
         guest_count: Number(guestCount),
         total_price: parseFloat(price),
-        status: 'confirmed',
+        status: 'pending', // ✅ ESTADO INICIAL CORRECTO
         deposit_paid: 0,
         notes: notes,
         closed_by: currentUserId
@@ -172,7 +184,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
 
       if (eventError) throw eventError;
 
-      // 3. Actualizar Quote
+      // Actualizar Quote
       const originalNotes = quote.admin_notes || '';
       const notesToSave = originalNotes.includes(notes) && notes !== '' ? originalNotes : notes;
 
@@ -184,7 +196,8 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
           event_date: eventDate,
           guest_count: Number(guestCount),
           interested_package: selectedPackage,
-          admin_notes: notesToSave + `\n[Sistema]: Convertido a evento el ${new Date().toLocaleDateString()}.`
+          admin_notes: notesToSave + `\n[Sistema]: Convertido a evento el ${new Date().toLocaleDateString()}.`,
+          updated_by: currentUserId
         })
         .eq('id', quote.id)
         .select().single();
@@ -203,28 +216,18 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     }
   };
 
-  // --- LÓGICA ELIMINAR EVENTO (NUEVA) ---
-  
-  // 1. Paso previo: Mostrar modal
-  const confirmDelete = () => {
-    setShowDeleteConfirm(true);
-  };
+  // Lógica ELIMINAR Evento
+  const confirmDelete = () => setShowDeleteConfirm(true);
 
-  // 2. Ejecutar eliminación
   const executeDelete = async () => {
     try {
       setIsProcessing(true);
-      
-      const { error: deleteError } = await supabase
-        .from('events')
-        .delete()
-        .eq('quote_id', quote.id);
-
+      const { error: deleteError } = await supabase.from('events').delete().eq('quote_id', quote.id);
       if (deleteError) throw deleteError;
 
       const { data: updatedQuote, error: updateError } = await supabase
         .from('quotes')
-        .update({ status: 'quoted' }) // Regresa a estado 'cotizada'
+        .update({ status: 'quoted', updated_by: currentUserId })
         .eq('id', quote.id)
         .select().single();
 
@@ -232,7 +235,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
 
       if (updatedQuote) onUpdate(updatedQuote as Quote);
       setEventExists(false);
-      setShowDeleteConfirm(false); // Cerrar modal de confirmación
+      setShowDeleteConfirm(false);
       
     } catch (error: any) {
       alert(`Error: ${error.message}`);
@@ -241,43 +244,31 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     }
   };
 
-  // --- GUARDAR CAMBIOS ---
+  // Guardar Cambios
   const handleSave = async () => {
     try {
       setIsSaving(true);
-
-      if (guestCount === '' || Number(guestCount) <= 0) {
-        alert("La cantidad de invitados es obligatoria.");
-        setIsSaving(false); return;
-      }
-      if (!eventDate) {
-        alert("La fecha del evento es obligatoria.");
-        setIsSaving(false); return;
-      }
+      if (guestCount === '' || Number(guestCount) <= 0) { alert("Invitados obligatorio."); setIsSaving(false); return; }
+      if (!eventDate) { alert("Fecha obligatoria."); setIsSaving(false); return; }
 
       const updates = {
         admin_notes: notes,
         estimated_price: price ? parseFloat(price) : null,
         event_date: eventDate,
         guest_count: Number(guestCount),
-        interested_package: selectedPackage || null
+        interested_package: selectedPackage || null,
+        updated_by: currentUserId
       };
 
       const { data, error } = await supabase
         .from('quotes')
         .update(updates)
         .eq('id', quote.id)
-        .select()
-        .single();
+        .select().single();
 
       if (error) throw error;
-
-      if (data) {
-        onUpdate(data as Quote);
-        onClose();
-      }
+      if (data) { onUpdate(data as Quote); onClose(); }
     } catch (error) {
-      console.error('Error updating quote:', error);
       alert('Error al guardar cambios');
     } finally {
       setIsSaving(false);
@@ -293,7 +284,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
 
       <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
         
-        {/* --- MODAL CONFIRMAR CREACIÓN --- */}
+        {/* Modal Confirmar Creación */}
         {showConfirm && (
           <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur flex flex-col items-center justify-center text-center p-8 animate-in fade-in">
             <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mb-4"><CalendarCheck className="w-8 h-8" /></div>
@@ -308,35 +299,17 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
           </div>
         )}
 
-        {/* --- MODAL CONFIRMAR ELIMINACIÓN (NUEVO) --- */}
+        {/* Modal Confirmar Eliminación */}
         {showDeleteConfirm && (
           <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur flex flex-col items-center justify-center text-center p-8 animate-in fade-in">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
-              <AlertTriangle className="w-8 h-8" />
-            </div>
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4"><AlertTriangle className="w-8 h-8" /></div>
             <h3 className="text-2xl font-bold text-secondary-900 mb-2">¿Eliminar Evento?</h3>
-            <p className="text-secondary-500 max-w-md mb-2">
-              Esta acción <strong>eliminará el evento del calendario</strong> y regresará esta cotización al estado "Cotizada".
-            </p>
+            <p className="text-secondary-500 max-w-md mb-2">Esta acción <strong>eliminará el evento del calendario</strong> y regresará esta cotización al estado "Cotizada".</p>
             <p className="text-sm text-red-500 font-medium mb-8">Esta acción no se puede deshacer.</p>
-            
             <div className="flex gap-4">
-              <button 
-                onClick={() => setShowDeleteConfirm(false)} 
-                className="px-6 py-3 rounded-xl font-medium text-secondary-600 hover:bg-secondary-100 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={executeDelete} 
-                disabled={isProcessing} 
-                className="px-8 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg flex items-center gap-2 transition-colors"
-              >
-                {isProcessing ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Eliminando...</>
-                ) : (
-                  <><Trash2 className="w-5 h-5" /> Sí, Eliminar</>
-                )}
+              <button onClick={() => setShowDeleteConfirm(false)} className="px-6 py-3 rounded-xl font-medium text-secondary-600 hover:bg-secondary-100 transition-colors">Cancelar</button>
+              <button onClick={executeDelete} disabled={isProcessing} className="px-8 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg flex items-center gap-2 transition-colors">
+                {isProcessing ? <><Loader2 className="w-5 h-5 animate-spin" /> Eliminando...</> : <><Trash2 className="w-5 h-5" /> Sí, Eliminar</>}
               </button>
             </div>
           </div>
@@ -348,9 +321,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
             <h2 className="text-xl font-display font-bold text-secondary-900">Detalles de Cotización</h2>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-secondary-500 font-mono bg-secondary-200 px-1.5 py-0.5 rounded">{quote.id.slice(0, 8)}</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold border bg-white border-secondary-200 text-secondary-600`}>
-                {quote.status.toUpperCase()}
-              </span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold border bg-white border-secondary-200 text-secondary-600`}>{quote.status.toUpperCase()}</span>
             </div>
           </div>
           <button onClick={onClose}><X className="w-5 h-5 text-secondary-400 hover:text-secondary-600" /></button>
@@ -360,7 +331,6 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
-              {/* Cliente */}
               <section>
                 <h3 className="text-xs font-bold text-secondary-400 uppercase tracking-wider mb-3 flex items-center gap-2"><User className="w-4 h-4 text-primary-500" /> Información del Cliente</h3>
                 <div className="bg-secondary-50 p-4 rounded-xl border border-secondary-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -370,21 +340,13 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
                 </div>
               </section>
 
-              {/* Evento Editable */}
               <section>
                 <h3 className="text-xs font-bold text-secondary-400 uppercase tracking-wider mb-3 flex items-center gap-2"><Calendar className="w-4 h-4 text-primary-500" /> Detalles del Evento {isLocked && <span className="text-xs normal-case ml-2 text-secondary-400">(Lectura)</span>}</h3>
                 <div className="bg-secondary-50 p-4 rounded-xl border border-secondary-100 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-secondary-400 block mb-1 font-medium">Fecha</label>
-                      <input 
-                        type="date" 
-                        value={eventDate}
-                        min={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => setEventDate(e.target.value)}
-                        disabled={isLocked}
-                        className={cn("w-full p-2.5 rounded-lg border focus:ring-2 focus:ring-primary-500 font-medium", dateError ? "border-red-300 bg-red-50" : "border-secondary-200", isLocked && "bg-secondary-100 opacity-70 cursor-not-allowed")}
-                      />
+                      <input type="date" value={eventDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => setEventDate(e.target.value)} disabled={isLocked} className={cn("w-full p-2.5 rounded-lg border focus:ring-2 focus:ring-primary-500 font-medium", dateError ? "border-red-300 bg-red-50" : "border-secondary-200", isLocked && "bg-secondary-100 opacity-70 cursor-not-allowed")} />
                       {dateError && !isLocked && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Fecha pasada</p>}
                     </div>
                     <div>
@@ -410,7 +372,6 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
               </section>
             </div>
 
-            {/* Derecha: Acciones */}
             <div className="space-y-6">
               <div className="bg-white rounded-xl border-2 border-secondary-100 p-5 space-y-6 shadow-sm">
                 <div>
@@ -438,12 +399,10 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
                   ) : isDeclined ? (
                     <div className="w-full py-3 px-4 bg-gray-100 text-gray-400 rounded-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-gray-200"><Ban className="w-5 h-5" /> Declinada</div>
                   ) : eventExists ? (
-                    // ✅ BOTÓN ELIMINAR ABRE MODAL
                     <button onClick={confirmDelete} disabled={isProcessing} className="w-full py-3 px-4 bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
-                      <Trash2 className="w-5 h-5" /> Eliminar Evento
+                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-5 h-5" /> Eliminar Evento</>}
                     </button>
                   ) : (
-                    // BOTÓN CREAR
                     <>
                       <button onClick={initiateConversion} disabled={!price || parseFloat(price) <= 0 || dateError || !guestCount} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <CalendarCheck className="w-5 h-5" /> Confirmar como Evento
@@ -455,23 +414,20 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
               </div>
 
               <div className="bg-secondary-50 rounded-lg p-4 text-xs text-secondary-400 space-y-2 border border-secondary-100">
-                <div className="flex items-center gap-2"><Clock className="w-3 h-3" /><span>Creado: {new Date(quote.created_at).toLocaleString()}</span></div>
-                {quote.updated_at && <div className="flex items-center gap-2"><Save className="w-3 h-3" /><span>Actualizado: {new Date(quote.updated_at).toLocaleString()}</span></div>}
+                <div className="flex items-center gap-2"><Clock className="w-3 h-3" /><span>Creado: {formatDate(quote.created_at)}</span></div>
+                {quote.updated_at && (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 text-secondary-500 font-medium"><Save className="w-3 h-3" /><span>Actualizado: {formatDate(quote.updated_at)}</span></div>
+                    {updaterName && <div className="flex items-center gap-2 pl-5 text-secondary-400"><UserCog className="w-3 h-3" /><span>Por: {updaterName}</span></div>}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 bg-secondary-50 border-t border-secondary-100 flex justify-between items-center gap-3">
-          {eventExists ? (
-            <div className="flex items-center gap-2 text-green-700 text-sm font-medium bg-green-100 px-3 py-1.5 rounded-lg">
-              <CalendarCheck className="w-4 h-4" /> <span>Evento activo en calendario</span>
-            </div>
-          ) : (
-            <div></div>
-          )}
-          
+          {eventExists ? <div className="flex items-center gap-2 text-green-700 text-sm font-medium bg-green-100 px-3 py-1.5 rounded-lg"><CalendarCheck className="w-4 h-4" /> <span>Evento activo en calendario</span></div> : <div></div>}
           <div className="flex gap-3">
             <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-secondary-600 hover:text-secondary-900 hover:bg-white rounded-lg transition-colors">Cerrar</button>
             {!isLocked && (
