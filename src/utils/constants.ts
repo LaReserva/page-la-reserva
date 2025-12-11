@@ -167,7 +167,6 @@ export const SERVICES = [
     features: [
       'Bartenders profesionales certificados',
       'Barra completa equipada',
-      'Cristalería premium',
       'Ingredientes frescos y garnish',
       'Setup y decoración de barra',
       'Servicio durante todo el evento',
