@@ -145,6 +145,7 @@ export type Database = {
           image_url: string
           order_index: number | null
           thumbnail_url: string | null
+          is_public: boolean // ✅ Agregado (asumimos NOT NULL por el default true)
         }
         Insert: {
           caption?: string | null
@@ -154,6 +155,7 @@ export type Database = {
           image_url: string
           order_index?: number | null
           thumbnail_url?: string | null
+          is_public?: boolean // ✅ Agregado (Opcional en insert porque tiene default)
         }
         Update: {
           caption?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           image_url?: string
           order_index?: number | null
           thumbnail_url?: string | null
+          is_public?: boolean // ✅ Agregado (Opcional en update)
         }
         Relationships: [
           {

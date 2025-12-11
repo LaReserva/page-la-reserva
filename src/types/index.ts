@@ -96,6 +96,7 @@ export interface EventImage {
   thumbnail_url?: string;
   caption?: string;
   order_index: number;
+  is_public: boolean;
   created_at: string;
 }
 

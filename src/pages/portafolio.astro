@@ -1,122 +1,32 @@
 ---
-// src/pages/portafolio.astro
 import PageLayout from '@/layouts/PageLayout.astro';
 import { HeroServices } from '@/components/sections/HeroServices';
 import { PortfolioGrid } from '@/components/sections/PortfolioGrid';
-// import { supabase } from '@/lib/supabase'; // Comentado temporalmente
+import { supabase } from '@/lib/supabase';
 import type { EventImageWithEvent } from '@/types';
 
-// --- MODO DE PRUEBA: DATOS FALSOS (MOCK) ---
-// Cuando tengas el admin listo, descomentas la llamada a Supabase y borras esto.
+// --- CARGA DE DATOS REALES (Server Side) ---
 
-const mockImages: EventImageWithEvent[] = [
-  {
-    id: '1',
-    image_url: '/images/portfolio/boda1.png', // Asegúrate que esta imagen exista en public/images/portfolio/
-    caption: 'Boda en Cieneguilla',
-    order_index: 1,
-    created_at: new Date().toISOString(),
-    event: {
-      id: 'e1',
-      event_type: 'Boda', // Esto crea la categoría en el filtro
-      event_date: '2024-01-15',
-      status: 'completed',
-      // ... otros campos obligatorios del tipo Event pero que no se usan visualmente en el grid ...
-      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
-    }
-  },
-  {
-    id: '2',
-    image_url: '/images/portfolio/corp1.png',
-    caption: 'Lanzamiento de Marca',
-    order_index: 2,
-    created_at: new Date().toISOString(),
-    event: {
-      id: 'e2',
-      event_type: 'Corporativo',
-      event_date: '2024-02-20',
-      status: 'completed',
-      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
-    }
-  },
-  {
-    id: '3',
-    image_url: '/images/portfolio/coctel1.png',
-    caption: 'Cócteles de Autor',
-    order_index: 3,
-    created_at: new Date().toISOString(),
-    event: {
-      id: 'e3',
-      event_type: 'Cócteles',
-      event_date: '2024-03-10',
-      status: 'completed',
-      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
-    }
-  },
-  {
-    id: '4',
-    image_url: '/images/portfolio/boda2.png',
-    caption: 'Boda en Miraflores',
-    order_index: 4,
-    created_at: new Date().toISOString(),
-    event: {
-      id: 'e4',
-      event_type: 'Boda',
-      event_date: '2024-04-05',
-      status: 'completed',
-      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
-    }
-  },
-  {
-    id: '5',
-    image_url: '/images/portfolio/corp2.png',
-    caption: 'Evento Corporativo en San Isidro',
-    order_index: 5,
-    created_at: new Date().toISOString(),
-    event: {
-      id: 'e5',
-      event_type: 'Corporativo',
-      event_date: '2024-05-18',
-      status: 'completed',
-      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
-    }
-  },
-  {
-    id: '6',
-    image_url: '/images/portfolio/coctel2.png',
-    caption: 'Noche de Cócteles Exclusivos',
-    order_index: 6,
-    created_at: new Date().toISOString(),
-    event: {
-      id: 'e6',
-      event_type: 'Cócteles',
-      event_date: '2024-06-22',
-      status: 'completed',
-      client_id: '', quote_id: '', guest_count: 0, total_price: 0, deposit_paid: 0, created_at: '', updated_at: ''
-    }
-  },
-  // ... agrega más si quieres probar el grid
-];
-
-/* CÓDIGO REAL (Descomentar cuando uses Supabase)
-const { data } = await supabase
+const { data, error } = await supabase
   .from('event_images')
   .select(`
     *,
     event:events (
+      id,
       event_type,
       event_date,
       status
     )
   `)
-  .eq('events.status', 'completed')
-  .order('created_at', { ascending: false });
+  .eq('is_public', true) // ✅ 1. Solo mostramos las que marcaste como visibles en Admin
+  .order('created_at', { ascending: false }); // ✅ 2. Las más recientes primero
 
+if (error) {
+  console.error("Error crítico cargando portafolio:", error);
+}
+
+// Transformamos los datos (si data es null, usamos array vacío)
 const images = (data || []) as EventImageWithEvent[];
-*/
-
-// Usamos los datos falsos por ahora
-const images = mockImages;
 ---
 
 <PageLayout 
@@ -147,7 +57,10 @@ const images = mockImages;
         </p>
       </div>
 
-      {/* Componente React Interactivo */}
+      {/* El componente React recibe 'images' con datos reales.
+          - Si la foto tiene evento vinculado, aparecerá en su categoría (ej: 'Boda').
+          - Si NO tiene evento vinculado, PortfolioGrid la clasificará automáticamente como 'Otros'.
+      */}
       <PortfolioGrid client:load images={images} />
       
     </div>
