@@ -270,6 +270,44 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          id: string
+          description: string
+          amount: number
+          category: 'insumos' | 'personal' | 'marketing' | 'otros'
+          date: string
+          event_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          description: string
+          amount: number
+          category: 'insumos' | 'personal' | 'marketing' | 'otros'
+          date?: string
+          event_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          description?: string
+          amount?: number
+          category?: 'insumos' | 'personal' | 'marketing' | 'otros'
+          date?: string
+          event_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          }
+        ]
+      },
       packages: {
         Row: {
           active: boolean | null

@@ -1,0 +1,10 @@
+---
+import Layout from '@/layouts/AdminLayout.astro';
+import FinanceView from '@/components/admin/FinanceView';
+
+// Aquí podrías agregar verificación de rol de servidor si usas cookies
+---
+
+<Layout title="Finanzas | La Reserva">
+  <FinanceView client:load />
+</Layout>
