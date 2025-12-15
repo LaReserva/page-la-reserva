@@ -177,6 +177,63 @@ export type Database = {
           },
         ]
       }
+      event_payments: {
+        Row: {
+          id: string
+          event_id: string
+          quote_id: string | null
+          amount: number
+          payment_date: string
+          payment_method: string | null
+          is_deposit: boolean | null
+          proof_url: string | null
+          notes: string | null
+          recorded_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          quote_id?: string | null
+          amount: number
+          payment_date?: string
+          payment_method?: string | null
+          is_deposit?: boolean | null
+          proof_url?: string | null
+          notes?: string | null
+          recorded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          quote_id?: string | null
+          amount?: number
+          payment_date?: string
+          payment_method?: string | null
+          is_deposit?: boolean | null
+          proof_url?: string | null
+          notes?: string | null
+          recorded_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          }
+        ]
+      },
       events: {
         Row: {
           balance_due: number | null

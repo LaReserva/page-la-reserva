@@ -86,8 +86,24 @@ export interface Event {
   quote_doc_url?: string;
   other_docs_urls?: string[];
 }
+export interface Payment {
+  id: string;
+  event_id: string;
+  quote_id?: string;
+  amount: number;
+  payment_date: string;
+  payment_method?: string;
+  is_deposit: boolean;
+  proof_url?: string;
+  notes?: string;
+  recorded_by?: string;
+  created_at: string;
+}
 
-// ✅ NUEVA INTERFAZ: GASTOS
+export interface PaymentWithEvent extends Payment {
+  event?: Event;
+}
+
 export interface Expense {
   id: string;
   description: string;

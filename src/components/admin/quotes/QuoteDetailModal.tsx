@@ -149,11 +149,15 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     setShowConfirm(true);
   };
 
-  const executeConversion = async () => {
+const executeConversion = async () => {
     try {
       setIsProcessing(true);
 
-      // Cliente
+      // VALIDACIÓN CRÍTICA: Definir el monto del adelanto
+      const totalPrice = parseFloat(price);
+      const depositAmount = totalPrice / 2; // 50% de adelanto
+      
+      // 1. Manejo de Cliente
       let clientId = null;
       const { data: existingClient } = await supabase.from('clients').select('id').eq('email', quote.client_email).maybeSingle();
 
@@ -162,29 +166,56 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
       } else {
         const { data: newClient, error: clientError } = await supabase
           .from('clients')
-          .insert({ name: quote.client_name, email: quote.client_email, phone: quote.client_phone, total_events: 1, total_spent: 0 }).select().single();
+          // Añadimos total_spent con el valor del depósito
+          .insert({ 
+              name: quote.client_name, 
+              email: quote.client_email, 
+              phone: quote.client_phone, 
+              total_events: 1, 
+              total_spent: depositAmount 
+          })
+          .select().single();
         if (clientError) throw clientError;
         clientId = newClient.id;
       }
 
-      // Evento (Nace como PENDING)
-      const { error: eventError } = await supabase.from('events').insert({
+      // 2. Creación del Evento (Importante: deposit_paid = 0, el tracking es por la tabla payments)
+      const { data: eventData, error: eventError } = await supabase.from('events').insert({
         client_id: clientId,
         quote_id: quote.id,
         event_type: quote.event_type,
         event_date: eventDate,
         event_time: '12:00:00', 
         guest_count: Number(guestCount),
-        total_price: parseFloat(price),
-        status: 'pending', // ✅ ESTADO INICIAL CORRECTO
-        deposit_paid: 0,
+        total_price: totalPrice,
+        status: 'pending', // Evento creado, a la espera del resto del pago
+        deposit_paid: depositAmount, // Opcional: Podríamos mantenerlo, pero la verdad es redundante ahora. Lo pongo para que no falle si lo usas en otra parte.
         notes: notes,
         closed_by: currentUserId
-      });
+      }).select().single(); // Importante: necesitamos el ID del evento creado
 
       if (eventError) throw eventError;
+      if (!eventData) throw new Error("No se pudo obtener el ID del evento creado.");
 
-      // Actualizar Quote
+      const eventId = eventData.id;
+
+      // 🚀 3. REGISTRO DEL PRIMER PAGO (DEPOSIT - 50%)
+      const { error: paymentError } = await supabase.from('event_payments' as any).insert({
+        event_id: eventId,
+        quote_id: quote.id,
+        amount: depositAmount,
+        payment_date: new Date().toISOString().split('T')[0], // La fecha de hoy
+        is_deposit: true, // Marcamos que es el adelanto
+        payment_method: 'transferencia_inicial', // Puedes cambiar esto por un modal si quieres
+        recorded_by: currentUserId
+      });
+
+      if (paymentError) {
+          console.error("Error al registrar el pago inicial:", paymentError);
+          // Opcional: puedes borrar el evento si falla el pago, pero generalmente solo se registra el error.
+      }
+
+      // 4. Actualizar Quote (a converted)
       const originalNotes = quote.admin_notes || '';
       const notesToSave = originalNotes.includes(notes) && notes !== '' ? originalNotes : notes;
 
@@ -192,11 +223,11 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
         .from('quotes')
         .update({ 
           status: 'converted',
-          estimated_price: parseFloat(price),
+          estimated_price: totalPrice,
           event_date: eventDate,
           guest_count: Number(guestCount),
           interested_package: selectedPackage,
-          admin_notes: notesToSave + `\n[Sistema]: Convertido a evento el ${new Date().toLocaleDateString()}.`,
+          admin_notes: notesToSave + `\n[Sistema]: Convertido a evento y registrado adelanto (${formatCurrency(depositAmount)}) el ${new Date().toLocaleDateString()}.`,
           updated_by: currentUserId
         })
         .eq('id', quote.id)
@@ -208,13 +239,15 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
       setEventExists(true);
       setShowConfirm(false);
       
+      alert(`¡Evento y Adelanto (${formatCurrency(depositAmount)}) registrado con éxito!`);
+      
     } catch (error: any) {
       console.error(error);
-      alert(`Error: ${error.message}`);
+      alert(`Error al convertir: ${error.message}`);
     } finally {
       setIsProcessing(false);
     }
-  };
+};
 
   // Lógica ELIMINAR Evento
   const confirmDelete = () => setShowDeleteConfirm(true);
