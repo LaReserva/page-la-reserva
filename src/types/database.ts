@@ -145,6 +145,7 @@ export type Database = {
           image_url: string
           order_index: number | null
           thumbnail_url: string | null
+          is_public: boolean // ✅ Agregado (asumimos NOT NULL por el default true)
         }
         Insert: {
           caption?: string | null
@@ -154,6 +155,7 @@ export type Database = {
           image_url: string
           order_index?: number | null
           thumbnail_url?: string | null
+          is_public?: boolean // ✅ Agregado (Opcional en insert porque tiene default)
         }
         Update: {
           caption?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           image_url?: string
           order_index?: number | null
           thumbnail_url?: string | null
+          is_public?: boolean // ✅ Agregado (Opcional en update)
         }
         Relationships: [
           {
@@ -174,6 +177,63 @@ export type Database = {
           },
         ]
       }
+      event_payments: {
+        Row: {
+          id: string
+          event_id: string
+          quote_id: string | null
+          amount: number
+          payment_date: string
+          payment_method: string | null
+          is_deposit: boolean | null
+          proof_url: string | null
+          notes: string | null
+          recorded_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          quote_id?: string | null
+          amount: number
+          payment_date?: string
+          payment_method?: string | null
+          is_deposit?: boolean | null
+          proof_url?: string | null
+          notes?: string | null
+          recorded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          quote_id?: string | null
+          amount?: number
+          payment_date?: string
+          payment_method?: string | null
+          is_deposit?: boolean | null
+          proof_url?: string | null
+          notes?: string | null
+          recorded_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          }
+        ]
+      },
       events: {
         Row: {
           balance_due: number | null
@@ -267,6 +327,44 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          id: string
+          description: string
+          amount: number
+          category: 'insumos' | 'personal' | 'marketing' | 'otros'
+          date: string
+          event_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          description: string
+          amount: number
+          category: 'insumos' | 'personal' | 'marketing' | 'otros'
+          date?: string
+          event_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          description?: string
+          amount?: number
+          category?: 'insumos' | 'personal' | 'marketing' | 'otros'
+          date?: string
+          event_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          }
+        ]
+      },
       packages: {
         Row: {
           active: boolean | null

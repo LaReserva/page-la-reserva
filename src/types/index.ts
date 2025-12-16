@@ -9,7 +9,7 @@ import type {
 
 /**
  * LA RESERVA - TIPOS TYPESCRIPT
- * Version: 1.3 (Incluye contact_messages)
+ * Version: 1.4 (Incluye Módulo de Finanzas)
  */
 
 // ============================================
@@ -21,12 +21,10 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
-  // ✅ Nuevos campos
   second_phone?: string;
   document_id?: string;
   address?: string;
   instagram?: string;
-  // ----------------
   company?: string;
   notes?: string;
   total_events: number;
@@ -50,7 +48,7 @@ export interface Quote {
   admin_notes?: string;
   created_at: string;
   updated_at: string;
-  updated_by?: string; // ✅ Nuevo campo para rastrear quién actualizó la cotización
+  updated_by?: string;
   contacted_at?: string;
   converted_at?: string;
   interested_package?: string;
@@ -88,6 +86,33 @@ export interface Event {
   quote_doc_url?: string;
   other_docs_urls?: string[];
 }
+export interface Payment {
+  id: string;
+  event_id: string;
+  quote_id?: string;
+  amount: number;
+  payment_date: string;
+  payment_method?: string;
+  is_deposit: boolean;
+  proof_url?: string;
+  notes?: string;
+  recorded_by?: string;
+  created_at: string;
+}
+
+export interface PaymentWithEvent extends Payment {
+  event?: Event;
+}
+
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: 'insumos' | 'personal' | 'marketing' | 'otros';
+  date: string;
+  event_id?: string | null; // Relación opcional con un evento
+  created_at: string;
+}
 
 export interface EventImage {
   id: string;
@@ -96,6 +121,7 @@ export interface EventImage {
   thumbnail_url?: string;
   caption?: string;
   order_index: number;
+  is_public: boolean;
   created_at: string;
 }
 
@@ -166,11 +192,9 @@ export interface AdminUser {
   role: UserRole;
   full_name: string;
   avatar_url?: string;
-  // ✅ NUEVOS CAMPOS AGREGADOS
   phone?: string;
   dni?: string;
   address?: string;
-  // -------------------------
   created_at: string;
   updated_at: string;
 }
@@ -185,13 +209,12 @@ export interface SiteSetting {
 export interface TeamTask {
   id: string;
   content: string;
-  status: string; // 'pending' | 'done'
-  priority: string; // 'low' | 'normal' | 'high'
+  status: string;
+  priority: string;
   created_at: string | null;
   updated_at: string | null;
 }
 
-// ✅ NUEVA INTERFAZ PARA MENSAJES DE CONTACTO
 export interface ContactMessage {
   id: string;
   name: string;
@@ -245,8 +268,23 @@ export interface BlogPostWithAuthor extends BlogPost {
   author?: AdminUser;
 }
 
+// ✅ NUEVOS TIPOS AUXILIARES PARA FINANZAS
+
+// Unifica eventos (ingresos) y gastos en una sola lista para la tabla
+export type FinanceItem =
+  | { type: 'income'; data: Event }
+  | { type: 'expense'; data: Expense };
+
+// Para tipar los cálculos de las tarjetas KPI
+export interface FinanceSummary {
+  totalIncome: number;    // Proyectado (Precio total eventos)
+  totalCollected: number; // Real (Depósitos pagados)
+  totalPending: number;   // Por cobrar
+  totalExpenses: number;  // Gastos
+  netProfit: number;      // Utilidad (Cobrado - Gastos)
+}
+
 // ============================================
 // DEFINICIÓN DE BASE DE DATOS SUPABASE
 // ============================================
-// ✅ Importamos Database desde database.ts (generado automáticamente por Supabase)
 export type { Database } from './database';

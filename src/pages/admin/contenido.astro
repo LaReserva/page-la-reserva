@@ -1,0 +1,22 @@
+---
+import Layout from '@/layouts/AdminLayout.astro';
+import PortfolioView from '@/components/admin/portfolio/PortfolioView';
+
+// Metadatos de la página
+const title = "Gestor de Portafolio | La Reserva";
+---
+
+<Layout title={title}>
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
+      Portafolio
+    </h1>
+    <p class="mt-2 text-gray-600 text-lg">
+      Gestiona las fotos que aparecen en tu web pública. 
+    </p>
+  </div>
+
+  <div class="bg-white/50 min-h-[500px] rounded-xl">
+    <PortfolioView client:load />
+  </div>
+</Layout>

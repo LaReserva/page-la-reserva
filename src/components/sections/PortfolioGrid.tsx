@@ -11,16 +11,25 @@ interface PortfolioGridProps {
 export function PortfolioGrid({ images }: PortfolioGridProps) {
   const [activeFilter, setActiveFilter] = useState('Todos');
 
-  // 1. Extraer categorías únicas de las imágenes disponibles
+  // 1. Categorías (Esto estaba bien, pero lo repasamos por seguridad)
   const categories = useMemo(() => {
     const cats = new Set(images.map(img => img.event?.event_type || 'Otros'));
-    return ['Todos', ...Array.from(cats)];
+    // Ordenamos para que 'Otros' siempre quede al final si prefieres
+    const uniqueCats = Array.from(cats).sort((a, b) => a === 'Otros' ? 1 : b === 'Otros' ? -1 : a.localeCompare(b));
+    return ['Todos', ...uniqueCats];
   }, [images]);
 
-  // 2. Filtrar imágenes
+  // 2. Filtrar imágenes (AQUÍ ESTÁ LA CORRECCIÓN)
   const filteredImages = useMemo(() => {
     if (activeFilter === 'Todos') return images;
-    return images.filter(img => img.event?.event_type === activeFilter);
+
+    return images.filter(img => {
+      // Calculamos el tipo real de la imagen. Si no tiene, es 'Otros'.
+      const imageType = img.event?.event_type || 'Otros';
+      
+      // Comparamos ese tipo calculado con el filtro activo
+      return imageType === activeFilter;
+    });
   }, [images, activeFilter]);
 
   return (
