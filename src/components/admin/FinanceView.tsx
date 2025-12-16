@@ -155,18 +155,19 @@ export default function FinanceView() {
     try {
       const table = type === 'income' ? 'event_payments' : 'expenses';
       
-      const payload: any = {
+      // Construimos el objeto base limpio
+      let payload: any = {
         amount: parseFloat(formData.amount),
-        date: formData.date,
-        // event_id puede ser null o UUID
         event_id: formData.event_id === '' ? null : formData.event_id,
       };
 
+      // Asignamos campos específicos según la tabla
       if (type === 'income') {
         payload.payment_date = formData.date; // event_payments usa payment_date
-        payload.payment_method = formData.category; // Reusamos el campo category del form para metodo
+        payload.payment_method = formData.category; 
         payload.notes = formData.description;
       } else {
+        payload.date = formData.date; // expenses usa date
         payload.description = formData.description;
         payload.category = formData.category;
       }
@@ -174,14 +175,19 @@ export default function FinanceView() {
       const { error } = await supabase.from(table as any).insert([payload]);
 
       if (error) throw error;
+      
       await fetchData();
       setIsExpenseModalOpen(false);
       setIsIncomeModalOpen(false);
       // Reset form
       setFormData({ description: '', amount: '', category: 'insumos', date: format(new Date(), 'yyyy-MM-dd'), event_id: '' });
-    } catch (error) {
-      console.error(error);
-      alert('Error al guardar movimiento');
+      
+      // Feedback visual simple (opcional, ya que se cierra el modal)
+      // alert('Movimiento guardado'); 
+      
+    } catch (error: any) {
+      console.error('Error detallado:', error.message); // Ver consola para detalles
+      alert(`Error al guardar: ${error.message}`);
     }
   };
 
