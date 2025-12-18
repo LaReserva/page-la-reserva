@@ -105,7 +105,7 @@ export function AdminSidebar() {
       roles: ['super_admin', 'operations'] 
     },
     { 
-      name: 'Configuración', 
+      name: 'Configuracion', 
       href: '/admin/configuracion', 
       icon: Settings,
       roles: ['super_admin'] 

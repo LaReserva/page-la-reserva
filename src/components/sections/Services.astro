@@ -1,9 +1,8 @@
 ---
 // src/components/sections/Services.astro
-import { SERVICES } from '@/utils/constants';
 import ServiceCard from './ServiceCard.astro';
 import Button from '@/components/ui/Button.astro';
-// Importamos el tipo para poder hacer el cast correctamente
+import { supabase } from '@/lib/supabase'; // ✅ Importamos Supabase
 import type { Service } from '@/types';
 
 interface Props {
@@ -11,6 +10,16 @@ interface Props {
 }
 
 const { className } = Astro.props;
+
+// 1. Fetch de Servicios desde la BD
+const { data: servicesData } = await supabase
+  .from('services')
+  .select('*')
+  .eq('active', true)
+  .order('order_index');
+
+// 2. Casteo de tipos
+const services = (servicesData || []) as unknown as Service[];
 ---
 
 <section id="servicios" class:list={["relative py-20 md:py-32 bg-secondary-50 overflow-hidden", className]}>
@@ -36,30 +45,12 @@ const { className } = Astro.props;
       </p>
     </div>
 
+    {/* Grid de Servicios */}
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8">
-      {SERVICES.map((item) => {
-        // ✅ SOLUCIÓN: Adaptamos los datos estáticos al tipo 'Service' de la BD
-        const serviceData: Service = {
-          id: item.id,
-          name: item.name,
-          slug: item.slug,
-          description: item.description,
-          // Mapeamos priceFrom -> price_from
-          price_from: item.priceFrom,
-          // Copiamos el array para quitar el 'readonly'
-          features: [...item.features],
-          icon: item.icon,
-          // Rellenamos datos que la BD tendría pero la constante no
-          active: true,
-          order_index: 0,
-          image_url: '', // Opcional
-          long_description: '', // Opcional
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        return <ServiceCard service={serviceData} />;
-      })}
+      {services.map((service) => (
+        // ✅ Ahora pasamos el objeto directo, ya que viene de la BD con el formato correcto
+        <ServiceCard service={service} />
+      ))}
     </div>
 
     <div class="mt-16 text-center">
