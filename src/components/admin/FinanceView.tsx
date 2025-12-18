@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Event, Expense, Payment } from '@/types/index';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths, addMonths, startOfDay, endOfDay, eachDayOfInterval, getDate } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths, addMonths, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   DollarSign, TrendingUp, TrendingDown, Wallet, Download, Plus, X,
-  Calendar as CalendarIcon, ArrowUpRight, ArrowDownLeft, Loader2, Minus, Filter, Search
+  Calendar as CalendarIcon, ArrowUpRight, ArrowDownLeft, Loader2, Minus, Search, RefreshCw
 } from 'lucide-react';
 
-// Tipo auxiliar
 type FinanceTransaction = 
   | { type: 'income'; date: string; amount: number; description: string; category: string; id: string; reference?: string; clientId?: string }
   | { type: 'expense'; date: string; amount: number; description: string; category: string; id: string; reference?: string; clientId?: string };
@@ -16,17 +15,16 @@ type FinanceTransaction =
 export default function FinanceView() {
   const [loading, setLoading] = useState(true);
   
-  // Datos crudos
   const [events, setEvents] = useState<Event[]>([]);
   const [activeEvents, setActiveEvents] = useState<{id: string, client: {name: string, id: string}}[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   
   // Filtros
-  const [currentDate, setCurrentDate] = useState(new Date()); // Para vista mensual por defecto
-  const [filterStartDate, setFilterStartDate] = useState(''); // Filtro manual inicio
-  const [filterEndDate, setFilterEndDate] = useState('');     // Filtro manual fin
-  const [filterClient, setFilterClient] = useState('');       // Filtro por cliente (ID)
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterClient, setFilterClient] = useState('');
 
   // Modales
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -40,15 +38,19 @@ export default function FinanceView() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Eventos
+      // 1. Eventos: Traemos sus pagos también para calcular el "Por Cobrar" real por evento
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('id, total_price, status, event_date, quote_id, client:clients(id, name)')
-        .neq('status', 'cancelled');
+        .select(`
+            id, total_price, status, event_date, quote_id, 
+            client:clients(id, name),
+            event_payments(amount) 
+        `)
+        .neq('status', 'cancelled'); // Ignoramos cancelados para la proyección
 
       if (eventsError) throw eventsError;
 
-      // 2. Pagos
+      // 2. Pagos (Flujo de Caja)
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('event_payments' as any) 
         .select('*, event:events(id, client:clients(id, name))');
@@ -63,11 +65,8 @@ export default function FinanceView() {
       if (expensesError) throw expensesError;
 
       const allEvents = (eventsData as unknown as Event[]) || [];
-      
       setEvents(allEvents);
-      // Lista única de eventos/clientes para el select del filtro y del modal
       setActiveEvents(allEvents.map((e: any) => ({ id: e.id, client: e.client })) || []); 
-      
       setPayments(paymentsData || []);
       setExpenses(expensesData || []);
 
@@ -80,10 +79,38 @@ export default function FinanceView() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- LÓGICA CENTRAL DE FILTRADO Y CÁLCULOS ---
+  // --- LÓGICA DE EXPORTAR CSV ---
+  const handleExportCSV = () => {
+    if (transactions.length === 0) return alert("No hay datos para exportar");
+
+    const headers = ['Fecha', 'Tipo', 'Descripción', 'Referencia', 'Categoría', 'Monto Entrada', 'Monto Salida'];
+    const rows = transactions.map(t => {
+        const isIncome = t.type === 'income';
+        return [
+            t.date,
+            isIncome ? 'Ingreso' : 'Egreso',
+            `"${t.description.replace(/"/g, '""')}"`, // Escapar comillas
+            `"${t.reference?.replace(/"/g, '""') || ''}"`,
+            t.category,
+            isIncome ? t.amount.toFixed(2) : '0.00',
+            !isIncome ? t.amount.toFixed(2) : '0.00'
+        ].join(',');
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `finanzas_la_reserva_${format(new Date(), 'yyyyMMdd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // --- LÓGICA CENTRAL DE CÁLCULOS ---
   const { kpi, chartData, transactions, dateRangeLabel } = useMemo(() => {
     
-    // 1. Determinar Rango de Fechas (Filtro manual vs Mes actual)
+    // 1. Rango de Fechas
     let start, end;
     if (filterStartDate && filterEndDate) {
       start = startOfDay(parseISO(filterStartDate));
@@ -93,40 +120,50 @@ export default function FinanceView() {
       end = endOfMonth(currentDate);
     }
 
-    // 2. Filtrar Arrays Base por Fecha
+    // 2. Filtrado de Arrays Base
     let filteredPayments = payments.filter(p => isWithinInterval(parseISO(p.payment_date), { start, end }));
     let filteredExpenses = expenses.filter(e => isWithinInterval(parseISO(e.date), { start, end }));
+    // Filtramos eventos que ocurren en este mes (para saber qué cobrar AHORA)
     let filteredEvents = events.filter(e => isWithinInterval(parseISO(e.event_date), { start, end }));
 
-    // 3. Filtrar por Cliente (Si hay selección)
+    // 3. Filtro de Cliente
     if (filterClient) {
-        // Filtramos pagos vinculados a ese evento/cliente
         filteredPayments = filteredPayments.filter((p: any) => p.event?.client?.id === filterClient);
-        // Filtramos gastos vinculados
         filteredExpenses = filteredExpenses.filter((e: any) => e.event?.client?.id === filterClient);
-        // Filtramos proyección
         filteredEvents = filteredEvents.filter((e: any) => (e as any).client?.id === filterClient);
     }
 
-    // --- CÁLCULOS KPI ---
+    // --- CÁLCULOS KPI (Corregidos) ---
+    
+    // A. Devoluciones y Gastos
     const refunds = filteredExpenses.filter(e => e.category === 'devolucion');
     const refundAmount = refunds.reduce((sum, e) => sum + (e.amount || 0), 0);
-
     const operationalExpensesList = filteredExpenses.filter(e => e.category !== 'devolucion');
     const totalOperationalExpenses = operationalExpensesList.reduce((sum, e) => sum + (e.amount || 0), 0);
 
+    // B. Ingresos
     const grossIncome = filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const netRealIncome = grossIncome - refundAmount;
+    const netRealIncome = grossIncome - refundAmount; // ✅ Ingreso Real descuenta devoluciones
 
-    // Solo sumamos proyección de eventos confirmados/completados dentro del filtro
-    const totalProjectedIncome = filteredEvents
-        .filter(e => ['confirmed', 'completed', 'pending'].includes(e.status))
-        .reduce((sum, e) => sum + (e.total_price || 0), 0);
+    // C. Proyección
+    // Solo sumamos eventos activos (no cancelados). Cancelados ya fueron filtrados en fetchData.
+    const totalProjectedIncome = filteredEvents.reduce((sum, e) => sum + (e.total_price || 0), 0);
     
+    // D. Utilidad
     const netProfit = netRealIncome - totalOperationalExpenses;
-    const pendingCollection = totalProjectedIncome - netRealIncome; 
+    
+    // E. POR COBRAR (Lógica Corregida)
+    // En lugar de restar flujos mensuales, sumamos la deuda individual de cada evento activo en el periodo.
+    const pendingCollection = filteredEvents.reduce((acc, event: any) => {
+        // Sumamos todos los pagos históricos de este evento (traídos en el join event_payments)
+        const totalPaidForEvent = event.event_payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+        // Calculamos saldo
+        const balance = (event.total_price || 0) - totalPaidForEvent;
+        // Si el saldo es negativo (error de data) o 0, no sumamos.
+        return acc + (balance > 0 ? balance : 0);
+    }, 0);
 
-    // --- TABLA UNIFICADA ---
+    // --- TABLA ---
     const incomeItems: FinanceTransaction[] = filteredPayments.map(p => ({
         type: 'income',
         id: p.id,
@@ -153,31 +190,17 @@ export default function FinanceView() {
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
-    // --- DATOS DEL GRÁFICO ---
-    // Generamos un array de días basado en el intervalo seleccionado
+    // --- GRÁFICO ---
     const intervalDays = eachDayOfInterval({ start, end });
-    
     const chart = intervalDays.map(date => {
         const dayStr = format(date, 'yyyy-MM-dd');
-        const dayLabel = format(date, 'd'); // Solo el número del día
+        const dayLabel = format(date, 'd');
 
-        // Sumar ingresos del día
-        const dayRawIncome = filteredPayments
-            .filter(p => p.payment_date === dayStr)
-            .reduce((s, p) => s + p.amount, 0);
+        const dayRawIncome = filteredPayments.filter(p => p.payment_date === dayStr).reduce((s, p) => s + p.amount, 0);
+        const dayRefunds = filteredExpenses.filter(e => e.category === 'devolucion' && e.date === dayStr).reduce((s, e) => s + e.amount, 0);
+        const dayIncome = Math.max(0, dayRawIncome - dayRefunds); // Restamos devolución al día para ver el neto
         
-        // Sumar devoluciones del día
-        const dayRefunds = filteredExpenses
-            .filter(e => e.category === 'devolucion' && e.date === dayStr)
-            .reduce((s, e) => s + e.amount, 0);
-        
-        const dayIncome = Math.max(0, dayRawIncome - dayRefunds);
-        
-        // Sumar gastos operativos del día
-        const dayExpense = filteredExpenses
-            .filter(e => e.category !== 'devolucion' && e.date === dayStr)
-            .reduce((s, e) => s + e.amount, 0);
-
+        const dayExpense = filteredExpenses.filter(e => e.category !== 'devolucion' && e.date === dayStr).reduce((s, e) => s + e.amount, 0);
         return { date: dayStr, label: dayLabel, income: dayIncome, expense: dayExpense };
     });
 
@@ -193,7 +216,7 @@ export default function FinanceView() {
     };
   }, [events, expenses, payments, currentDate, filterStartDate, filterEndDate, filterClient]);
 
-  // --- HANDLER: GUARDAR CON LÓGICA DE AUMENTO DE PRECIO ---
+  // --- HANDLERS ---
   const handleSaveTransaction = async (e: React.FormEvent, type: 'income' | 'expense') => {
     e.preventDefault();
     if (!formData.amount || !formData.description) return;
@@ -217,54 +240,35 @@ export default function FinanceView() {
         payload.category = formData.category;
       }
 
-      // 1. Guardar la transacción
       const { error } = await supabase.from(table as any).insert([payload]);
       if (error) throw error;
 
-      // 2. LÓGICA DE NEGOCIO: Si es ingreso y tiene evento, AUMENTAR precio del evento
+      // Upselling logic (Solo si es ingreso y tiene evento)
       if (type === 'income' && formData.event_id) {
-         // Buscar precio actual
-         const { data: eventData, error: fetchError } = await supabase
-            .from('events')
-            .select('total_price, quote_id')
-            .eq('id', formData.event_id)
-            .single();
-         
-         if (!fetchError && eventData) {
+         const { data: eventData } = await supabase.from('events').select('total_price, quote_id').eq('id', formData.event_id).single();
+         if (eventData) {
              const newTotal = (eventData.total_price || 0) + amountVal;
-             
-             // Actualizar Evento
              await supabase.from('events').update({ total_price: newTotal }).eq('id', formData.event_id);
-             
-             // Actualizar Cotización (si existe) para mantener sincronía
-             if (eventData.quote_id) {
-                 await supabase.from('quotes').update({ estimated_price: newTotal }).eq('id', eventData.quote_id);
-             }
+             if (eventData.quote_id) await supabase.from('quotes').update({ estimated_price: newTotal }).eq('id', eventData.quote_id);
          }
       }
       
       await fetchData();
-      setIsExpenseModalOpen(false);
-      setIsIncomeModalOpen(false);
+      setIsExpenseModalOpen(false); setIsIncomeModalOpen(false);
       setFormData({ description: '', amount: '', category: 'insumos', date: format(new Date(), 'yyyy-MM-dd'), event_id: '' });
       
     } catch (error: any) {
-      console.error(error);
       alert(`Error al guardar: ${error.message}`);
     }
   };
 
   const openModal = (type: 'income' | 'expense') => {
     setFormData({ description: '', amount: '', category: type === 'income' ? 'transferencia' : 'insumos', date: format(new Date(), 'yyyy-MM-dd'), event_id: '' });
-    if (type === 'income') setIsIncomeModalOpen(true);
-    else setIsExpenseModalOpen(true);
+    if (type === 'income') setIsIncomeModalOpen(true); else setIsExpenseModalOpen(true);
   };
 
   const clearFilters = () => {
-      setFilterStartDate('');
-      setFilterEndDate('');
-      setFilterClient('');
-      setCurrentDate(new Date());
+      setFilterStartDate(''); setFilterEndDate(''); setFilterClient(''); setCurrentDate(new Date());
   };
 
   const formatMoney = (amount: number) => new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(amount);
@@ -277,11 +281,9 @@ export default function FinanceView() {
       {/* Header & Controles */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900">Finanzas</h1>
-                <p className="text-sm text-gray-500">Flujo de caja y control</p>
-            </div>
+            <div><h1 className="text-2xl font-bold text-gray-900">Finanzas</h1><p className="text-sm text-gray-500">Flujo de caja y control</p></div>
             <div className="flex gap-2">
+                <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-all"><Download size={16} /> Exportar</button>
                 <button onClick={() => openModal('income')} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm"><Plus size={16} /> Ingreso</button>
                 <button onClick={() => openModal('expense')} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm"><Minus size={16} /> Gasto</button>
             </div>
@@ -290,7 +292,7 @@ export default function FinanceView() {
         {/* BARRA DE FILTROS */}
         <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col md:flex-row gap-4 items-end md:items-center justify-between">
             <div className="flex flex-col md:flex-row gap-4 w-full">
-                {/* Selector Mes (Solo funciona si no hay fechas manuales) */}
+                {/* Selector Mes */}
                 <div className={`flex items-center gap-2 bg-gray-50 p-1 rounded-lg border ${filterStartDate ? 'opacity-50 pointer-events-none' : ''}`}>
                     <button onClick={() => setCurrentDate(subMonths(currentDate, 1))} className="p-2 hover:bg-gray-200 rounded">{'<'}</button>
                     <div className="flex items-center gap-2 px-2 font-medium min-w-[140px] justify-center text-sm">
@@ -305,11 +307,11 @@ export default function FinanceView() {
                 <div className="flex gap-2 items-center">
                     <div className="flex flex-col">
                         <span className="text-[10px] uppercase font-bold text-gray-400">Desde</span>
-                        <input type="date" className="border rounded-lg px-2 py-1 text-sm" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} />
+                        <input type="date" className="border rounded-lg px-2 py-1 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} />
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] uppercase font-bold text-gray-400">Hasta</span>
-                        <input type="date" className="border rounded-lg px-2 py-1 text-sm" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} />
+                        <input type="date" className="border rounded-lg px-2 py-1 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} />
                     </div>
                 </div>
 
@@ -318,13 +320,8 @@ export default function FinanceView() {
                     <span className="text-[10px] uppercase font-bold text-gray-400">Filtrar por Cliente</span>
                     <div className="relative">
                         <Search className="absolute left-2 top-1.5 w-4 h-4 text-gray-400" />
-                        <select 
-                            className="border rounded-lg pl-8 pr-2 py-1.5 text-sm w-full appearance-none bg-white"
-                            value={filterClient}
-                            onChange={(e) => setFilterClient(e.target.value)}
-                        >
+                        <select className="border rounded-lg pl-8 pr-2 py-1.5 text-sm w-full appearance-none bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterClient} onChange={(e) => setFilterClient(e.target.value)}>
                             <option value="">Todos los Clientes</option>
-                            {/* Obtenemos lista única de clientes de los eventos activos */}
                             {Array.from(new Map(activeEvents.map(item => [item.client.id, item.client])).values()).map((client: any) => (
                                 <option key={client.id} value={client.id}>{client.name}</option>
                             ))}
@@ -333,9 +330,14 @@ export default function FinanceView() {
                 </div>
             </div>
 
+            {/* BOTÓN LIMPIAR FILTROS MEJORADO */}
             {(filterStartDate || filterClient) && (
-                <button onClick={clearFilters} className="text-xs text-red-500 font-medium hover:underline flex items-center gap-1">
-                    <X size={12} /> Limpiar Filtros
+                <button 
+                    onClick={clearFilters} 
+                    className="group flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all text-xs font-bold shadow-sm"
+                >
+                    <RefreshCw size={12} className="group-hover:rotate-180 transition-transform duration-500" />
+                    Limpiar Filtros
                 </button>
             )}
         </div>
@@ -344,7 +346,7 @@ export default function FinanceView() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Ingreso Real (Neto)" value={kpi.netRealIncome} icon={DollarSign} color="bg-green-100 text-green-700" subText={kpi.refundAmount > 0 ? `-${formatMoney(kpi.refundAmount)} dev.` : "Limpio en caja"} />
-        <KpiCard title="Proyectado" value={kpi.totalProjectedIncome} icon={TrendingUp} color="bg-blue-100 text-blue-700" subText="Eventos en filtro" />
+        <KpiCard title="Proyectado" value={kpi.totalProjectedIncome} icon={TrendingUp} color="bg-blue-100 text-blue-700" subText="Eventos activos del periodo" />
         <KpiCard title="Gastos Operativos" value={kpi.totalOperationalExpenses} icon={TrendingDown} color="bg-red-100 text-red-700" subText="Sin devoluciones" />
         <KpiCard title="Utilidad Neta" value={kpi.netProfit} icon={Wallet} color={kpi.netProfit >= 0 ? "bg-indigo-100 text-indigo-700" : "bg-orange-100 text-orange-700"} isBold subText="Real - Gastos" />
       </div>
@@ -352,32 +354,18 @@ export default function FinanceView() {
       {/* Gráfico y Balance */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white p-6 rounded-xl border shadow-sm flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-             <h3 className="text-lg font-bold text-gray-800">Flujo Diario</h3>
-             <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded text-gray-600">{dateRangeLabel}</span>
-          </div>
-          
+          <div className="flex justify-between items-center mb-6"><h3 className="text-lg font-bold text-gray-800">Flujo Diario</h3><span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded text-gray-600">{dateRangeLabel}</span></div>
           <div className="flex-1 flex items-end gap-1 h-64 pb-6 relative">
               {chartData.map((d, i) => {
                   const max = Math.max(...chartData.map(x => Math.max(x.income, x.expense))) || 1;
-                  // Mostrar etiqueta cada 3 o 5 días para no saturar si es un rango largo
                   const showLabel = chartData.length > 20 ? i % 3 === 0 : true; 
-                  
                   return (
                       <div key={d.date} className="flex-1 flex flex-col justify-end gap-0.5 group relative h-full">
                           <div className="w-full flex gap-[1px] items-end justify-center h-full">
                              {d.income > 0 && <div style={{ height: `${(d.income / max) * 100}%` }} className="bg-green-400 opacity-80 w-full min-h-[4px] rounded-t-sm"></div>}
                              {d.expense > 0 && <div style={{ height: `${(d.expense / max) * 100}%` }} className="bg-red-400 opacity-80 w-full min-h-[4px] rounded-t-sm"></div>}
                           </div>
-                          
-                          {/* EJE X: DÍAS */}
-                          {showLabel && (
-                              <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[9px] text-gray-400 font-mono">
-                                  {d.label}
-                              </span>
-                          )}
-
-                          {/* Tooltip */}
+                          {showLabel && <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[9px] text-gray-400 font-mono">{d.label}</span>}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col bg-gray-800 text-white text-[10px] p-2 rounded z-10 whitespace-nowrap shadow-lg">
                              <span className="font-bold border-b border-gray-600 pb-1 mb-1">{format(parseISO(d.date), 'dd MMM yyyy', {locale: es})}</span>
                              <span className="text-green-300">In: {formatMoney(d.income)}</span>
