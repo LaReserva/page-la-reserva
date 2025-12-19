@@ -5,19 +5,23 @@ import { HeroServices } from '@/components/sections/HeroServices';
 import PackageCard from '@/components/sections/PackageCard.astro';
 import Button from '@/components/ui/Button.astro';
 import { supabase } from '@/lib/supabase';
-import { ADD_ONS } from '@/utils/constants'; // Importamos los adicionales
+import { getGlobalSettings } from '@/lib/data'; // ✅ Importamos el fetcher
+import { ADD_ONS } from '@/utils/constants'; 
 import type { Package } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import { Plus } from 'lucide-react';
 
-// Fetch de paquetes activos
-const { data } = await supabase
+// 1. Fetch de Paquetes (Desde Base de Datos)
+const { data: packagesData } = await supabase
   .from('packages')
   .select('*')
   .eq('active', true)
   .order('order_index');
 
-const packages = (data || []) as Package[];
+const packages = (packagesData || []) as unknown as Package[];
+
+// 2. Fetch de Configuración Global (Teléfonos, Redes, etc.)
+const settings = await getGlobalSettings();
 ---
 
 <PageLayout 
@@ -25,7 +29,7 @@ const packages = (data || []) as Package[];
   description="Paquetes completos de bartending para bodas, eventos corporativos y celebraciones en Lima. Todo incluido para tu tranquilidad."
 >
   
-  {/* 1. HERO (Reutilizamos componente con configuración visual específica) */}
+  {/* 1. HERO */}
   <HeroServices
     client:load
     title="Paquetes Todo Incluido"
@@ -39,7 +43,6 @@ const packages = (data || []) as Package[];
   <section class="section bg-secondary-50 relative">
     <div class="container-custom relative z-10">
       
-      {/* Intro Texto */}
       <div class="text-center max-w-3xl mx-auto mb-16">
         <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block">
           Soluciones Completas
@@ -49,7 +52,6 @@ const packages = (data || []) as Package[];
         </h2>
       </div>
 
-      {/* Grid - Ajustado para centrar si hay pocos paquetes */}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center items-start -mt-8">
         {packages.map((pkg) => (
           <PackageCard pkg={pkg} />
@@ -60,6 +62,7 @@ const packages = (data || []) as Package[];
   </section>
 
   {/* 3. SECCIÓN DE ADICIONALES (ADD-ONS) */}
+  {/* NOTA: ADD_ONS sigue viniendo de constants.ts porque no creamos tabla para ello aun */}
   <section class="section bg-white border-t border-secondary-100">
     <div class="container-custom">
       <div class="text-center mb-12">
@@ -92,9 +95,8 @@ const packages = (data || []) as Package[];
     </div>
   </section>
 
-  {/* 4. CTA FINAL */}
+  {/* 4. CTA FINAL (Con enlace dinámico) */}
   <section class="py-24 bg-secondary-900 relative overflow-hidden">
-    {/* Patrón de fondo opcional */}
     <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#D4AF37 1px, transparent 1px); background-size: 32px 32px;"></div>
     
     <div class="container-custom text-center relative z-10">
@@ -109,10 +111,12 @@ const packages = (data || []) as Package[];
           Armar mi propio paquete
         </Button>
         <a 
-          href="https://wa.me/51999888777" 
+          href={settings.whatsapp_url} 
           target="_blank" 
+          rel="noopener noreferrer"
           class="inline-flex items-center justify-center px-8 py-4 font-semibold rounded-full border-2 border-white text-white hover:bg-white hover:text-secondary-900 transition-all uppercase tracking-wider"
         >
+          {/* ✅ Opcional: Mostrar el número también o dejar el texto */}
           Consultar por WhatsApp
         </a>
       </div>

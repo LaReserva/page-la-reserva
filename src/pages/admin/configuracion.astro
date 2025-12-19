@@ -1,0 +1,19 @@
+---
+// src/pages/admin/configuracion.astro
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import SettingsManager from '@/components/admin/SettingsManager';
+
+const pageTitle = "Configuración General";
+---
+
+<AdminLayout title={pageTitle}>
+  <div class="space-y-6">
+    <div class="flex flex-col gap-2">
+      <h1 class="text-2xl font-bold text-gray-900">{pageTitle}</h1>
+      <p class="text-gray-500">Administra las variables globales, precios de paquetes y servicios.</p>
+    </div>
+
+    {/* Renderizamos el componente. La carga de datos y seguridad se harán internamente */}
+    <SettingsManager client:only="react" />
+  </div>
+</AdminLayout>

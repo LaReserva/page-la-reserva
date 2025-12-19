@@ -12,6 +12,7 @@ interface HeroProps {
   videoMobile?: string;
   poster?: string;
   backgroundImage?: string;
+  whatsappUrl?: string; // ✅ NUEVO: Agregamos esta propiedad opcional
 }
 
 export function Hero({
@@ -23,11 +24,20 @@ export function Hero({
   videoMobile = '/videos/hero-mobile.mp4',
   poster = '/images/hero-bg.jpg',
   backgroundImage,
+  whatsappUrl, // ✅ NUEVO: La recibimos aquí
 }: HeroProps) {
   
   const bgImage = poster || backgroundImage || '/images/hero-bg.jpg';
 
   const handleWhatsApp = () => {
+    // ✅ LÓGICA ACTUALIZADA:
+    // Si recibimos la URL desde la BD (props), la usamos.
+    if (whatsappUrl) {
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // Si no, usamos el fallback (comportamiento anterior)
     const message = '¡Hola! Me gustaría obtener más información sobre sus servicios de bartending.';
     window.open(getWhatsAppUrl(message), '_blank', 'noopener,noreferrer');
   };
@@ -50,7 +60,6 @@ export function Hero({
   };
 
   return (
-    // ✅ CORRECCIÓN AQUÍ: Restamos 5rem (80px) que corresponden a la altura del Header
     <section className="relative h-[calc(100dvh-5rem)] w-full flex items-center justify-center overflow-hidden bg-secondary-900">
       
       {/* 1. CAPA DE VIDEO (Fondo) */}
@@ -96,13 +105,6 @@ export function Hero({
           animate="visible"
           className="max-w-4xl mx-auto"
         >
-          {/* Badge */}
-          {/* <motion.div variants={itemVariants} className="mb-4 md:mb-6 flex justify-center">
-            <span className="px-4 py-1.5 rounded-full border border-white/30 text-white text-xs md:text-sm font-medium tracking-widest uppercase bg-white/10 backdrop-blur-sm">
-              Mixología Exclusiva
-            </span>
-          </motion.div> */}
-
           {/* Título */}
           <motion.h1 
             variants={itemVariants}

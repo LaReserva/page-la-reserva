@@ -2,26 +2,33 @@
 // src/pages/index.astro
 import PageLayout from '@/layouts/PageLayout.astro';
 import { Hero } from '@/components/sections/Hero';
-import Services from '@/components/sections/Services.astro'; // Importamos la sección de Servicios
+import Services from '@/components/sections/Services.astro';//revisar luego
 import { TestimonialsSlider } from '@/components/sections/TestimonialsSlider';
 import { supabase } from '@/lib/supabase';
+import { getGlobalSettings } from '@/lib/data'; // ✅ Importamos el fetcher global
+import type { Testimonial } from '@/types'; // ✅ Importamos el tipo correcto
 
-// 1. Fetch de Testimonios
-const { data: testimonials, error } = await supabase
+// 1. Fetch de Configuración Global (Para usar el WhatsApp actualizado en el Hero si es necesario)
+const settings = await getGlobalSettings();
+
+// 2. Fetch de Testimonios
+const { data: testimonialsData, error } = await supabase
   .from('testimonials')
   .select('*')
   .eq('approved', true)
   .eq('featured', true)
   .limit(5);
 
-// Debugging: Verifica en la terminal de VS Code si llegan datos
 if (error) console.error('Error fetching testimonials:', error);
-if (!testimonials?.length) console.warn('No testimonials found or empty array');
+
+// Casteamos los datos al tipo correcto
+const testimonials = (testimonialsData || []) as unknown as Testimonial[];
 ---
 
 <PageLayout title="Inicio">
   
   {/* 1. Hero Section */}
+  {/* Pasamos la url de whatsapp como prop por si el Hero tiene botón de acción */}
   <Hero
     client:load
     title="Mixología Exclusiva"
@@ -29,9 +36,11 @@ if (!testimonials?.length) console.warn('No testimonials found or empty array');
     videoDesktop="/videos/hero-desktop.mp4" 
     videoMobile="/videos/hero-mobile.mp4"
     poster="/images/hero-poster.png" 
+    whatsappUrl={settings.whatsapp_url} 
   />
 
-  {/* 2. Servicios Section (Agregada para completar el flujo) */}
+  {/* 2. Servicios Section */}
+  {/* Nota: Este componente (Services.astro) deberá ser editado individualmente luego para leer de la BD */}
   <Services />
   
   {/* 3. Testimonials Section */}
@@ -46,11 +55,10 @@ if (!testimonials?.length) console.warn('No testimonials found or empty array');
         </p>
       </div>
   
-      {/* Renderizado condicional seguro */}
+      {/* Renderizado condicional */}
       {testimonials && testimonials.length > 0 ? (
         <TestimonialsSlider client:visible testimonials={testimonials} />
       ) : (
-        // Fallback visual si no hay testimonios (útil durante desarrollo)
         <div class="text-center p-8 bg-white rounded-lg shadow-sm border border-secondary-100">
           <p class="text-secondary-400">No hay testimonios destacados disponibles por el momento.</p>
         </div>

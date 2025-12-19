@@ -1,51 +1,57 @@
 ---
 // src/pages/servicios/[slug].astro
 import PageLayout from '@/layouts/PageLayout.astro';
-import { SERVICES, ICON_MAP, type IconName } from '@/utils/constants';
+import { supabase } from '@/lib/supabase'; // ✅ Usamos Supabase
+import { ICON_MAP, type IconName } from '@/utils/constants'; // Solo iconos
 import Button from '@/components/ui/Button.astro';
 import { CheckCircle2, ArrowLeft, Calendar, Users } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
+import type { Service } from '@/types';
 
-export function getStaticPaths() {
-  return SERVICES.map(service => ({
+// 1. GENERACIÓN DE RUTAS DINÁMICAS DESDE SUPABASE
+export async function getStaticPaths() {
+  const { data: services } = await supabase
+    .from('services')
+    .select('*')
+    .eq('active', true);
+
+  return (services || []).map((service) => ({
     params: { slug: service.slug },
-    props: { service },
+    props: { service: service as unknown as Service },
   }));
 }
 
+// 2. RECUPERAR DATOS DEL SERVICIO
 const { service } = Astro.props;
+
+// Recuperar Icono dinámico
 const Icon = ICON_MAP[service.icon as IconName] || ICON_MAP.Martini;
 
-// Datos extendidos basados en tu documentación (Manual de Servicios)
-// Esto enriquece la info básica que tenemos en constants
-const detailsMap: Record<string, any> = {
+// 3. MAPA DE RESPALDO (FALLBACK)
+// Usamos esto solo si la BD tiene campos vacíos (mientras terminas de llenar el admin)
+const fallbackDetails: Record<string, any> = {
   'bartending-eventos': {
     longDesc: "Nuestro servicio insignia diseñado para bodas, aniversarios y celebraciones sociales. Nos encargamos de transformar tu barra en el punto focal de la fiesta con un servicio impecable y cócteles que tus invitados recordarán.",
     idealFor: ["Bodas y Matrimonios", "Cumpleaños (30, 40, 50)", "Aniversarios", "Eventos Privados"],
     includes: ["Cristalería premium completa", "Hielo y todos los insumos", "Limpieza y gestión de residuos"],
-    image: "/images/services-hero.png" // Asegúrate de tener esta imagen o cambia la ruta
+    image: "/images/services-hero.png" 
   },
-  'mixologia-corporativa': {
-    longDesc: "Elevamos la imagen de tu marca a través de experiencias de coctelería premium. Ideal para lanzamientos, fiestas de fin de año y networking. Incluye opciones de branding personalizado en la barra y cócteles.",
-    idealFor: ["Lanzamientos de Producto", "Fiestas de Fin de Año", "Cenas de Directorio", "Eventos de Networking"],
-    includes: ["Facturación corporativa", "Cócteles con colores de marca", "Bartenders con perfil ejecutivo", "Logística puntual y discreta"],
-    image: "/images/services-hero.png"
-  },
-  'cocteles-autor': {
-    longDesc: "Una experiencia de mixología de alta costura. Creamos una carta de cócteles única diseñada exclusivamente para tu evento, basada en tus gustos, historia o temática. Incluye sesión de degustación previa.",
-    idealFor: ["Bodas Boutique", "Cenas Privadas", "Eventos de Lujo", "Clientes Exigentes"],
-    includes: ["Sesión de Tasting previa", "Diseño de menú exclusivo", "Ingredientes exóticos y premium", "Técnicas avanzadas (humo, espumas)"],
-    image: "/images/services-hero.png"
-  },
-  'barra-movil': {
-    longDesc: "La solución perfecta para locaciones que no cuentan con infraestructura. Llevamos una estructura de barra elegante y funcional a donde la necesites, equipada con todo lo necesario para operar.",
-    idealFor: ["Eventos al aire libre", "Casas de playa", "Locaciones vacías", "Complemento de otros servicios"],
-    includes: ["Estructura de barra estética", "Iluminación de barra", "Equipamiento interno completo", "Instalación y desmontaje"],
-    image: "/images/services-hero.png"
-  }
+  // ... puedes dejar el resto del mapa aquí si quieres mantener compatibilidad histórica
 };
 
-const details = detailsMap[service.id] || detailsMap['bartending-eventos'];
+// 4. LÓGICA DE DATOS FINALES (BD > Fallback)
+// Si la BD tiene 'long_description', úsala. Si no, busca en el mapa.
+const fallbackItem = fallbackDetails[service.slug] || fallbackDetails['bartending-eventos'];
+
+const longDescription = service.long_description || fallbackItem?.longDesc || service.description;
+const heroImage = service.image_url || fallbackItem?.image || "/images/services-hero.png";
+
+// Para arrays como 'idealFor' o 'includes' adicionales, 
+// como no están en tu tabla actual de services (solo features),
+// usaremos los del fallback o dejaremos arrays vacíos por defecto.
+// *Nota: Sería ideal agregar columnas 'ideal_for' (text[]) a tu tabla en el futuro.
+const idealFor = fallbackItem?.idealFor || []; 
+const extraIncludes = fallbackItem?.includes || [];
 ---
 
 <PageLayout title={`${service.name} | La Reserva`} description={service.description}>
@@ -53,7 +59,7 @@ const details = detailsMap[service.id] || detailsMap['bartending-eventos'];
   {/* HERO SECTION */}
   <section class="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden bg-secondary-900">
     <div class="absolute inset-0 z-0">
-      <img src={details.image} alt={service.name} class="w-full h-full object-cover opacity-50" />
+      <img src={heroImage} alt={service.name} class="w-full h-full object-cover opacity-50" />
       <div class="absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/60 to-transparent"></div>
     </div>
 
@@ -82,8 +88,8 @@ const details = detailsMap[service.id] || detailsMap['bartending-eventos'];
           {/* Descripción Larga */}
           <div>
             <h2 class="text-2xl font-display font-bold text-secondary-900 mb-4">Sobre el Servicio</h2>
-            <p class="text-lg text-secondary-600 leading-relaxed">
-              {details.longDesc}
+            <p class="text-lg text-secondary-600 leading-relaxed whitespace-pre-line">
+              {longDescription}
             </p>
           </div>
 
@@ -91,15 +97,17 @@ const details = detailsMap[service.id] || detailsMap['bartending-eventos'];
           <div class="bg-secondary-50 p-8 rounded-2xl border border-secondary-100">
             <h3 class="text-xl font-bold text-secondary-900 mb-6">¿Qué incluye esta experiencia?</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Features del array original */}
-              {service.features.map(feature => (
+              
+              {/* Features desde la BD (tabla services -> columna features) */}
+              {service.features && service.features.map(feature => (
                 <div class="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
                   <span class="text-secondary-700">{feature}</span>
                 </div>
               ))}
-              {/* Features extra del mapa detallado */}
-              {details.includes.map((item: string) => (
+
+              {/* Features extra (Fallback) */}
+              {extraIncludes.map((item: string) => (
                 <div class="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
                   <span class="text-secondary-700">{item}</span>
@@ -108,17 +116,19 @@ const details = detailsMap[service.id] || detailsMap['bartending-eventos'];
             </div>
           </div>
 
-          {/* Ideal Para */}
-          <div>
-            <h3 class="text-xl font-bold text-secondary-900 mb-6">Ideal para</h3>
-            <div class="flex flex-wrap gap-3">
-              {details.idealFor.map((tag: string) => (
-                <span class="px-4 py-2 bg-white border border-secondary-200 rounded-full text-secondary-600 text-sm font-medium shadow-sm">
-                  {tag}
-                </span>
-              ))}
+          {/* Ideal Para (Solo se muestra si hay datos) */}
+          {idealFor.length > 0 && (
+            <div>
+              <h3 class="text-xl font-bold text-secondary-900 mb-6">Ideal para</h3>
+              <div class="flex flex-wrap gap-3">
+                {idealFor.map((tag: string) => (
+                  <span class="px-4 py-2 bg-white border border-secondary-200 rounded-full text-secondary-600 text-sm font-medium shadow-sm">
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
 
@@ -127,17 +137,18 @@ const details = detailsMap[service.id] || detailsMap['bartending-eventos'];
           <div class="sticky top-24 bg-white border border-secondary-200 rounded-2xl p-6 shadow-lg">
             <div class="text-center mb-6 pb-6 border-b border-secondary-100">
               <p class="text-sm text-secondary-500 uppercase tracking-wider mb-2">Inversión desde</p>
-              <p class="text-4xl font-bold text-primary-600">{formatCurrency(service.priceFrom)}</p>
+              <p class="text-4xl font-bold text-primary-600">{formatCurrency(service.price_from)}</p>
             </div>
 
             <div class="space-y-4 mb-8">
+              {/* ✅ AHORA SÍ USAMOS LOS DATOS DE LA BD */}
               <div class="flex items-center gap-3 text-secondary-600">
                 <Users className="w-5 h-5 text-primary-500" />
-                <span class="text-sm">Capacidad: <strong>{service.guestRange} invitados</strong></span>
+                <span class="text-sm">Capacidad: <strong>{service.guest_range || 'Consultar'} invitados</strong></span>
               </div>
               <div class="flex items-center gap-3 text-secondary-600">
                 <Calendar className="w-5 h-5 text-primary-500" />
-                <span class="text-sm">Duración base: <strong>{service.duration} horas</strong></span>
+                <span class="text-sm">Duración base: <strong>{service.duration || 4} horas</strong></span>
               </div>
             </div>
 
@@ -151,7 +162,6 @@ const details = detailsMap[service.id] || detailsMap['bartending-eventos'];
             </Button>
           </div>
         </div>
-
       </div>
 
     </div>

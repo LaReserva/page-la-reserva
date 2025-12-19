@@ -3,12 +3,18 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { quoteSchema, type QuoteFormData } from '@/utils/validators';
-import { EVENT_TYPES, PACKAGES } from '@/utils/constants';
+import { EVENT_TYPES } from '@/utils/constants';
 import { supabase } from '@/lib/supabase';
 import { useToast, ToastProvider } from '@/components/ui/Toast';
 import { cn } from '@/utils/utils';
+import type { Package, Service } from '@/types';
 
-function QuoteFormContent() {
+interface QuoteFormProps {
+  packages: Package[];
+  services: Service[];
+}
+
+function QuoteFormContent({ packages, services }: QuoteFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
 
@@ -17,49 +23,38 @@ function QuoteFormContent() {
     handleSubmit,
     reset,
     setValue,
-    watch, // Agregamos watch para depurar si cambia el valor
     formState: { errors },
   } = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema as any),
     defaultValues: {
-      guestCount: 100,
+      // ✅ CAMBIO 1: Quitamos el 100 y usamos undefined para que inicie vacío
+      guestCount: undefined, 
       message: '',
       interestedPackage: '',
     },
   });
 
-  // ✅ EFECTO MEJORADO: Leer URL y forzar selección
   useEffect(() => {
-    // 1. Leemos los parámetros
     const params = new URLSearchParams(window.location.search);
     const packageSlug = params.get('package');
 
-    // console.log("📦 URL Package param:", packageSlug); // Debug 1
-
-    if (packageSlug) {
-      // 2. Verificamos que el paquete exista en nuestra lista para evitar errores
-      const isValidPackage = PACKAGES.some(p => p.slug === packageSlug);
+    if (packageSlug && packages.length > 0) {
+      const isValidPackage = packages.some(p => p.slug === packageSlug);
       
       if (isValidPackage) {
-        // console.log("✅ Paquete válido encontrado. Seleccionando:", packageSlug); // Debug 2
-        
-        // 3. Forzamos la actualización del valor
         setValue('interestedPackage', packageSlug, { 
           shouldValidate: true, 
           shouldDirty: true,
           shouldTouch: true 
         });
-      } else {
-        console.warn("⚠️ El paquete de la URL no existe en la lista de constantes:", packageSlug);
       }
     }
-  }, [setValue]);
+  }, [setValue, packages]);
 
   const onSubmit = async (data: QuoteFormData) => {
     try {
       setIsSubmitting(true);
-      console.log("📝 Enviando datos:", data); // Debug envío
-
+      
       const { error } = await supabase.from('quotes').insert({
         client_name: data.name,
         client_email: data.email,
@@ -69,7 +64,7 @@ function QuoteFormContent() {
         guest_count: Number(data.guestCount),
         message: data.message || null,
         status: 'new',
-        interested_package: data.interestedPackage || null, // Asegúrate que tu BD tenga esta columna
+        interested_package: data.interestedPackage || null,
       } as any);
 
       if (error) throw error;
@@ -85,7 +80,6 @@ function QuoteFormContent() {
     }
   };
 
-  // Estilos base
   const inputClasses = (hasError: boolean) => cn(
     'w-full px-4 py-3 border rounded-lg transition-all duration-200',
     'bg-white text-secondary-900 placeholder:text-secondary-400',
@@ -101,7 +95,6 @@ function QuoteFormContent() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       
-      {/* Datos Personales */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="name" className={labelClasses}>Nombre completo <span className="text-red-500">*</span></label>
@@ -121,7 +114,6 @@ function QuoteFormContent() {
         {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
       </div>
 
-      {/* Detalles del Evento */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="relative">
           <label htmlFor="eventType" className={labelClasses}>Tipo de evento <span className="text-red-500">*</span></label>
@@ -149,11 +141,19 @@ function QuoteFormContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="guestCount" className={labelClasses}>Número de invitados <span className="text-red-500">*</span></label>
-          <input {...register('guestCount', { valueAsNumber: true })} id="guestCount" type="number" min={25} max={500} className={inputClasses(!!errors.guestCount)} />
+          {/* ✅ CAMBIO 2: Agregamos placeholder="100" y mantenemos valueAsNumber */}
+          <input 
+            {...register('guestCount', { valueAsNumber: true })} 
+            id="guestCount" 
+            type="number" 
+            min={25} 
+            max={500} 
+            className={inputClasses(!!errors.guestCount)} 
+            placeholder="100" 
+          />
           {errors.guestCount && <p className="text-sm text-red-500 mt-1">{errors.guestCount.message}</p>}
         </div>
 
-        {/* Paquete de Interés */}
         <div className="relative">
           <label htmlFor="interestedPackage" className={labelClasses}>Paquete de interés (Opcional)</label>
           <div className="relative">
@@ -163,7 +163,7 @@ function QuoteFormContent() {
               className={cn(inputClasses(false), "appearance-none")}
             >
               <option value="">Estoy indeciso / Personalizado</option>
-              {PACKAGES.map((pkg) => (
+              {packages.map((pkg) => (
                 <option key={pkg.slug} value={pkg.slug}>
                   {pkg.name} (S/ {pkg.price})
                 </option>
@@ -188,10 +188,10 @@ function QuoteFormContent() {
   );
 }
 
-export function QuoteForm() {
+export function QuoteForm(props: QuoteFormProps) {
   return (
     <ToastProvider>
-      <QuoteFormContent />
+      <QuoteFormContent {...props} />
     </ToastProvider>
   );
 }
