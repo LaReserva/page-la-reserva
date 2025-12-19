@@ -41,13 +41,8 @@ export const SITE_INFO = {
 
 export const CONTACT_INFO = {
   phone: '+51989245091',
-<<<<<<< HEAD
-  phoneFormatted: '+51 989 245 091',
-  email: 'lareservabartending@gmail.com',
-=======
   phoneFormatted: '+51 989 845 091',
   email: 'lareservabartending@gmail.com',//Por modificar
->>>>>>> admin
   whatsapp: '+51989245091',
   whatsappUrl: 'https://wa.me/51989245091',
   address: 'Lima, Perú',
