@@ -7,11 +7,17 @@ import {
   Mail, 
   MapPin, 
   Clock,
-  Zap // ✅ Nuevo import
+  Zap 
 } from 'lucide-react';
-import { CONTACT_INFO, SOCIAL_LINKS, BUSINESS_HOURS, SITE_INFO } from '@/utils/constants';
+// Importamos solo lo necesario de constants (para SITE_INFO que suele ser fijo, o links internos)
+import { SITE_INFO } from '@/utils/constants';
+// ✅ Importamos el fetcher dinámico
+import { getGlobalSettings } from '@/lib/data';
 
 const currentYear = new Date().getFullYear();
+
+// ✅ Obtenemos configuración dinámica
+const settings = await getGlobalSettings();
 
 const quickLinks = [
   { name: 'Servicios', url: '/servicios' },
@@ -41,69 +47,57 @@ const legalLinks = [
           {SITE_INFO.description}
         </p>
         
-        {/* Redes Sociales con SVG Inline */}
+        {/* Redes Sociales Dinámicas */}
         <div class="flex gap-4">
-          <a 
-            href={SOCIAL_LINKS.instagram.url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="p-2.5 bg-secondary-800 rounded-full hover:bg-primary-500 hover:text-secondary-900 transition-all duration-300 group"
-            aria-label="Síguenos en Instagram"
-          >
-            <svg 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              stroke-width="2" 
-              stroke-linecap="round" 
-              stroke-linejoin="round" 
-              class="w-5 h-5 text-white group-hover:text-secondary-900"
-            >
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-            </svg>
-          </a>
           
-          <a 
-            href={SOCIAL_LINKS.facebook.url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="p-2.5 bg-secondary-800 rounded-full hover:bg-primary-500 hover:text-secondary-900 transition-all duration-300 group"
-            aria-label="Síguenos en Facebook"
-          >
-            <svg 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              stroke-width="2" 
-              stroke-linecap="round" 
-              stroke-linejoin="round" 
-              class="w-5 h-5 text-white group-hover:text-secondary-900"
+          {/* Instagram */}
+          {settings.social_instagram && (
+            <a 
+              href={settings.social_instagram} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="p-2.5 bg-secondary-800 rounded-full hover:bg-primary-500 hover:text-secondary-900 transition-all duration-300 group"
+              aria-label="Síguenos en Instagram"
             >
-              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-            </svg>
-          </a>
+              <Instagram className="w-5 h-5 text-white group-hover:text-secondary-900" />
+            </a>
+          )}
+          
+          {/* Facebook */}
+          {settings.social_facebook && (
+            <a 
+              href={settings.social_facebook} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="p-2.5 bg-secondary-800 rounded-full hover:bg-primary-500 hover:text-secondary-900 transition-all duration-300 group"
+              aria-label="Síguenos en Facebook"
+            >
+              <Facebook className="w-5 h-5 text-white group-hover:text-secondary-900" />
+            </a>
+          )}
 
-          <a 
-            href={SOCIAL_LINKS.tiktok.url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="p-2.5 bg-secondary-800 rounded-full hover:bg-primary-500 hover:text-secondary-900 transition-all duration-300 group"
-            aria-label="Síguenos en TikTok"
-          >
-            <svg 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              stroke-width="2" 
-              stroke-linecap="round" 
-              stroke-linejoin="round" 
-              class="w-5 h-5 text-white group-hover:text-secondary-900"
+          {/* TikTok - Usamos el icono SVG manual o importado si tienes uno especifico */}
+          {settings.social_tiktok && (
+            <a 
+              href={settings.social_tiktok} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="p-2.5 bg-secondary-800 rounded-full hover:bg-primary-500 hover:text-secondary-900 transition-all duration-300 group"
+              aria-label="Síguenos en TikTok"
             >
-              <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
-            </svg>
-          </a>
+               <svg 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  stroke-width="2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                  class="w-5 h-5 text-white group-hover:text-secondary-900"
+                >
+                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+                </svg>
+            </a>
+          )}
         </div>
       </div>
 
@@ -125,25 +119,25 @@ const legalLinks = [
         </ul>
       </div>
 
-      {/* Columna 3: Contacto */}
+      {/* Columna 3: Contacto Dinámico */}
       <div>
         <h4 class="text-lg font-display font-bold mb-6 text-primary-500">Contacto</h4>
         <ul class="space-y-4">
           <li>
-            <a href={`tel:${CONTACT_INFO.phone}`} class="flex items-start gap-3 group">
+            <a href={`tel:${settings.contact_phone.replace(/\D/g, '')}`} class="flex items-start gap-3 group">
               <Phone className="w-5 h-5 text-primary-500 mt-0.5 group-hover:text-primary-400 flex-shrink-0" />
               <div>
                 <span class="block text-xs text-secondary-400 uppercase tracking-wider">Llámanos</span>
-                <span class="text-secondary-200 group-hover:text-white transition-colors">{CONTACT_INFO.phoneFormatted}</span>
+                <span class="text-secondary-200 group-hover:text-white transition-colors">{settings.contact_phone}</span>
               </div>
             </a>
           </li>
           <li>
-            <a href={`mailto:${CONTACT_INFO.email}`} class="flex items-start gap-3 group">
+            <a href={`mailto:${settings.contact_email}`} class="flex items-start gap-3 group">
               <Mail className="w-5 h-5 text-primary-500 mt-0.5 group-hover:text-primary-400 flex-shrink-0" />
               <div>
                 <span class="block text-xs text-secondary-400 uppercase tracking-wider">Escríbenos</span>
-                <span class="text-secondary-200 group-hover:text-white transition-colors break-words">{CONTACT_INFO.email}</span>
+                <span class="text-secondary-200 group-hover:text-white transition-colors break-words">{settings.contact_email}</span>
               </div>
             </a>
           </li>
@@ -151,29 +145,28 @@ const legalLinks = [
             <MapPin className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
             <div>
               <span class="block text-xs text-secondary-400 uppercase tracking-wider">Ubicación</span>
-              <span class="text-secondary-200">{CONTACT_INFO.address}</span>
+              <span class="text-secondary-200">{settings.address}</span>
             </div>
           </li>
         </ul>
       </div>
 
-      {/* Columna 4: Horarios */}
+      {/* Columna 4: Horarios Dinámicos */}
       <div>
         <h4 class="text-lg font-display font-bold mb-6 text-primary-500">Horarios</h4>
         <div class="flex items-start gap-3 mb-4">
           <Clock className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
           <ul class="space-y-2 text-sm text-secondary-300">
-            <li>{BUSINESS_HOURS.weekdays}</li>
-            <li>{BUSINESS_HOURS.saturday}</li>
-            <li class="text-secondary-500">{BUSINESS_HOURS.sunday}</li>
+            <li>Lunes - Viernes: {settings.hours_weekdays}</li>
+            <li>sabados: {settings.hours_saturday}</li>
+            <li class="text-secondary-500">Domingo: {settings.hours_sunday}</li>
           </ul>
         </div>
         
-        {/* CORRECCIÓN: Usamos Zap de Lucide y flexbox para alinear */}
         <div class="mt-6 p-4 bg-secondary-800/50 rounded-lg border border-secondary-700 flex items-center justify-center gap-2">
           <Zap className="w-4 h-4 text-primary-500" />
           <p class="text-xs text-secondary-400 uppercase tracking-wide font-semibold">
-            {BUSINESS_HOURS.responseTime}
+            {settings.response_time}
           </p>
         </div>
       </div>

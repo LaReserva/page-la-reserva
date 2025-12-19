@@ -139,6 +139,8 @@ export interface Service {
   order_index: number;
   created_at: string;
   updated_at: string;
+  duration?: number; 
+  guest_range?: string;
 }
 
 export interface Package {

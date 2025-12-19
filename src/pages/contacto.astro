@@ -1,10 +1,12 @@
 ---
 // src/pages/contacto.astro
 import PageLayout from '@/layouts/PageLayout.astro';
-import { ContactForm } from '@/components/forms/ContactForm'; // Asegúrate de que ContactForm.tsx tenga 'export function'
+import { ContactForm } from '@/components/forms/ContactForm'; 
 import Card from '@/components/ui/Card.astro';
-import { CONTACT_INFO, BUSINESS_HOURS } from '@/utils/constants';
-import { Phone, Mail, MapPin, Clock, Zap } from 'lucide-react'; // Usamos Lucide
+import { getGlobalSettings } from '@/lib/data'; 
+import { Phone, Mail, MapPin, Clock, Zap } from 'lucide-react';
+
+const settings = await getGlobalSettings();
 ---
 
 <PageLayout 
@@ -29,7 +31,6 @@ import { Phone, Mail, MapPin, Clock, Zap } from 'lucide-react'; // Usamos Lucide
           <h2 class="text-2xl font-display font-bold mb-6 text-secondary-900">
             Envíanos un Mensaje
           </h2>
-          {/* Importante: client:load para que funcione la interactividad */}
           <ContactForm client:load />
         </Card>
 
@@ -47,8 +48,11 @@ import { Phone, Mail, MapPin, Clock, Zap } from 'lucide-react'; // Usamos Lucide
                 </div>
                 <div>
                   <p class="font-bold text-secondary-900 text-sm uppercase tracking-wide mb-1">Teléfono / WhatsApp</p>
-                  <a href={`tel:${CONTACT_INFO.phone}`} class="text-lg text-secondary-600 hover:text-primary-600 transition-colors">
-                    {CONTACT_INFO.phoneFormatted}
+                  <a 
+                    href={`tel:${settings.contact_phone.replace(/\D/g, '')}`} 
+                    class="text-lg text-secondary-600 hover:text-primary-600 transition-colors"
+                  >
+                    {settings.contact_phone}
                   </a>
                 </div>
               </li>
@@ -59,8 +63,8 @@ import { Phone, Mail, MapPin, Clock, Zap } from 'lucide-react'; // Usamos Lucide
                 </div>
                 <div>
                   <p class="font-bold text-secondary-900 text-sm uppercase tracking-wide mb-1">Email</p>
-                  <a href={`mailto:${CONTACT_INFO.email}`} class="text-lg text-secondary-600 hover:text-primary-600 transition-colors">
-                    {CONTACT_INFO.email}
+                  <a href={`mailto:${settings.contact_email}`} class="text-lg text-secondary-600 hover:text-primary-600 transition-colors">
+                    {settings.contact_email}
                   </a>
                 </div>
               </li>
@@ -71,14 +75,14 @@ import { Phone, Mail, MapPin, Clock, Zap } from 'lucide-react'; // Usamos Lucide
                 </div>
                 <div>
                   <p class="font-bold text-secondary-900 text-sm uppercase tracking-wide mb-1">Ubicación</p>
-                  <p class="text-lg text-secondary-600">{CONTACT_INFO.address}</p>
+                  <p class="text-lg text-secondary-600">{settings.address}</p>
                 </div>
               </li>
 
             </ul>
           </Card>
 
-          {/* Horarios */}
+          {/* ✅ Horarios DINÁMICOS */}
           <Card>
             <div class="flex items-center gap-3 mb-4">
               <Clock className="w-6 h-6 text-primary-500" />
@@ -87,24 +91,24 @@ import { Phone, Mail, MapPin, Clock, Zap } from 'lucide-react'; // Usamos Lucide
             <ul class="space-y-3 text-secondary-600 ml-9">
               <li class="flex justify-between border-b border-secondary-100 pb-2">
                 <span>Lunes - Viernes</span>
-                <span class="font-medium">9:00 AM - 5:00 PM</span>
+                <span class="font-medium">{settings.hours_weekdays}</span>
               </li>
               <li class="flex justify-between border-b border-secondary-100 pb-2">
                 <span>Sábado</span>
-                <span class="font-medium">9:00 AM - 1:00 PM</span>
+                <span class="font-medium">{settings.hours_saturday}</span>
               </li>
               <li class="flex justify-between text-secondary-400">
                 <span>Domingo</span>
-                <span>Cerrado</span>
+                <span>{settings.hours_sunday}</span>
               </li>
             </ul>
           </Card>
 
-          {/* Tiempo de Respuesta */}
+          {/* Tiempo de Respuesta Dinámico */}
           <Card class="bg-primary-50 border-2 border-primary-500/30">
             <div class="flex items-center justify-center gap-2 text-primary-800 font-semibold">
               <Zap className="w-5 h-5 fill-primary-500 text-primary-600" />
-              <p>{BUSINESS_HOURS.responseTime}</p>
+              <p>{settings.response_time}</p>
             </div>
           </Card>
 

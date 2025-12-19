@@ -3,6 +3,26 @@
 import PageLayout from '@/layouts/PageLayout.astro';
 import { QuoteForm } from '@/components/forms/QuoteForm';
 import { CheckCircle2, Clock, ShieldCheck, Star } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import type { Package, Service } from '@/types';
+
+// 1. Fetch de Paquetes Activos
+const { data: packagesData } = await supabase
+  .from('packages')
+  // ✅ CORRECCIÓN CRÍTICA: Agregamos 'slug' aquí para que el formulario pueda comparar
+  .select('id, name, price, slug') 
+  .eq('active', true)
+  .order('order_index');
+
+// 2. Fetch de Servicios Activos
+const { data: servicesData } = await supabase
+  .from('services')
+  .select('id, name')
+  .eq('active', true)
+  .order('order_index');
+
+const packages = (packagesData || []) as unknown as Package[];
+const services = (servicesData || []) as unknown as Service[];
 ---
 
 <PageLayout 
@@ -29,20 +49,23 @@ import { CheckCircle2, Clock, ShieldCheck, Star } from 'lucide-react';
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         
-        {/* COLUMNA IZQUIERDA: Formulario (7 columnas) */}
+        {/* COLUMNA IZQUIERDA: Formulario */}
         <div class="lg:col-span-7">
           <div class="bg-white rounded-2xl shadow-xl p-6 md:p-10 border-t-4 border-primary-500">
-            {/* Componente React Interactivo */}
-            <QuoteForm client:load />
+            {/* Pasamos los datos completos (ahora con slug) */}
+            <QuoteForm 
+              client:load 
+              packages={packages} 
+              services={services}
+            />
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: Información de Confianza (5 columnas) */}
+        {/* COLUMNA DERECHA: Información de Confianza */}
         <div class="lg:col-span-5 space-y-8 lg:sticky lg:top-32">
           
           {/* Bloque: Proceso */}
           <div class="bg-secondary-900 text-white p-8 rounded-2xl shadow-lg relative overflow-hidden">
-            {/* Decoración de fondo */}
             <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/3 -translate-y-1/3 pointer-events-none">
               <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
                 <circle cx="100" cy="100" r="100" fill="white"/>
@@ -105,7 +128,7 @@ import { CheckCircle2, Clock, ShieldCheck, Star } from 'lucide-react';
             </ul>
           </div>
 
-          {/* Bloque: Social Proof Pequeño */}
+          {/* Bloque: Social Proof */}
           <div class="flex items-center justify-center gap-2 text-secondary-500 text-sm bg-white p-4 rounded-xl border border-secondary-100">
             <div class="flex text-primary-500">
               <Star className="w-4 h-4 fill-current" />
@@ -114,7 +137,7 @@ import { CheckCircle2, Clock, ShieldCheck, Star } from 'lucide-react';
               <Star className="w-4 h-4 fill-current" />
               <Star className="w-4 h-4 fill-current" />
             </div>
-            <span>+200 eventos realizados con éxito</span>
+            <span>+100 eventos realizados con éxito</span>
           </div>
 
         </div>
