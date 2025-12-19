@@ -88,18 +88,38 @@ export function EventsCalendarView({ showHeader = true }: EventsCalendarViewProp
       if (error) throw error;
 
       if (data) {
+        // Obtenemos "Hoy" a las 00:00:00 para comparar solo fechas puras
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const formattedEvents: CalendarEvent[] = data.map((evt: any) => {
-          const dateStr = evt.event_date;
+          const dateStr = evt.event_date; // YYYY-MM-DD
           const timeStr = evt.event_time || '12:00:00';
+          
+          // Construimos fechas
           const start = new Date(`${dateStr}T${timeStr}`);
           const end = new Date(start.getTime() + (5 * 60 * 60 * 1000));
+          
+          // Crear objeto fecha del evento a medianoche para comparar con 'today'
+          // Usamos la cadena YYYY-MM-DD para evitar problemas de zona horaria con las horas
+          const eventDateObj = new Date(`${dateStr}T00:00:00`);
+
+          // ✅ LÓGICA DE ESTADO DINÁMICO
+          // Si el estado es 'confirmed' Y la fecha del evento es estrictamente MENOR que hoy
+          // entonces visualmente es 'completed'.
+          // (Si es igual a hoy, eventDateObj < today será falso, así que se mantiene verde).
+          let displayStatus = evt.status;
+          
+          if (displayStatus === 'confirmed' && eventDateObj < today) {
+            displayStatus = 'completed';
+          }
 
           return {
             id: evt.id,
             title: `${evt.event_type} - ${evt.client?.name || 'Cliente'}`,
             start,
             end,
-            status: evt.status,
+            status: displayStatus as EventStatus, // Forzamos el tipo visual
             resource: evt,
           };
         });

@@ -20,6 +20,8 @@ import { supabase } from '@/lib/supabase';
 import type { Quote } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import { cn } from '@/utils/utils';
+// ✅ 1. IMPORTAR EL HOOK DE ROLES
+import { useUserRole } from '@/hooks/useUserRole'; 
 
 // Lista de paquetes para el select
 const AVAILABLE_PACKAGES = [
@@ -38,8 +40,10 @@ interface QuoteDetailModalProps {
   onUpdate: (updatedQuote: Quote) => void;
 }
 
-// ✅ ASEGÚRATE QUE ESTA LÍNEA DIGA 'export function'
 export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDetailModalProps) {
+  // ✅ 2. OBTENER SI ES SUPER ADMIN
+  const { isSuperAdmin } = useUserRole();
+
   // 1. HOOKS Y ESTADOS
   
   // Datos
@@ -149,7 +153,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
     setShowConfirm(true);
   };
 
-const executeConversion = async () => {
+  const executeConversion = async () => {
     try {
       setIsProcessing(true);
 
@@ -166,7 +170,6 @@ const executeConversion = async () => {
       } else {
         const { data: newClient, error: clientError } = await supabase
           .from('clients')
-          // Añadimos total_spent con el valor del depósito
           .insert({ 
               name: quote.client_name, 
               email: quote.client_email, 
@@ -179,7 +182,7 @@ const executeConversion = async () => {
         clientId = newClient.id;
       }
 
-      // 2. Creación del Evento (Importante: deposit_paid = 0, el tracking es por la tabla payments)
+      // 2. Creación del Evento
       const { data: eventData, error: eventError } = await supabase.from('events').insert({
         client_id: clientId,
         quote_id: quote.id,
@@ -188,34 +191,31 @@ const executeConversion = async () => {
         event_time: '12:00:00', 
         guest_count: Number(guestCount),
         total_price: totalPrice,
-        status: 'pending', // Evento creado, a la espera del resto del pago
-        deposit_paid: depositAmount, // Opcional: Podríamos mantenerlo, pero la verdad es redundante ahora. Lo pongo para que no falle si lo usas en otra parte.
+        status: 'pending',
+        deposit_paid: depositAmount,
         notes: notes,
         closed_by: currentUserId
-      }).select().single(); // Importante: necesitamos el ID del evento creado
+      }).select().single();
 
       if (eventError) throw eventError;
       if (!eventData) throw new Error("No se pudo obtener el ID del evento creado.");
 
       const eventId = eventData.id;
 
-      // 🚀 3. REGISTRO DEL PRIMER PAGO (DEPOSIT - 50%)
+      // 3. REGISTRO DEL PRIMER PAGO
       const { error: paymentError } = await supabase.from('event_payments' as any).insert({
         event_id: eventId,
         quote_id: quote.id,
         amount: depositAmount,
-        payment_date: new Date().toISOString().split('T')[0], // La fecha de hoy
-        is_deposit: true, // Marcamos que es el adelanto
-        payment_method: 'transferencia_inicial', // Puedes cambiar esto por un modal si quieres
+        payment_date: new Date().toISOString().split('T')[0],
+        is_deposit: true,
+        payment_method: 'transferencia_inicial',
         recorded_by: currentUserId
       });
 
-      if (paymentError) {
-          console.error("Error al registrar el pago inicial:", paymentError);
-          // Opcional: puedes borrar el evento si falla el pago, pero generalmente solo se registra el error.
-      }
+      if (paymentError) console.error("Error al registrar el pago inicial:", paymentError);
 
-      // 4. Actualizar Quote (a converted)
+      // 4. Actualizar Quote
       const originalNotes = quote.admin_notes || '';
       const notesToSave = originalNotes.includes(notes) && notes !== '' ? originalNotes : notes;
 
@@ -247,7 +247,7 @@ const executeConversion = async () => {
     } finally {
       setIsProcessing(false);
     }
-};
+  };
 
   // Lógica ELIMINAR Evento
   const confirmDelete = () => setShowDeleteConfirm(true);
@@ -432,9 +432,17 @@ const executeConversion = async () => {
                   ) : isDeclined ? (
                     <div className="w-full py-3 px-4 bg-gray-100 text-gray-400 rounded-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-gray-200"><Ban className="w-5 h-5" /> Declinada</div>
                   ) : eventExists ? (
-                    <button onClick={confirmDelete} disabled={isProcessing} className="w-full py-3 px-4 bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
-                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-5 h-5" /> Eliminar Evento</>}
-                    </button>
+                    // ✅ 3. LÓGICA DE SEGURIDAD PARA BOTÓN ELIMINAR
+                    isSuperAdmin ? (
+                      <button onClick={confirmDelete} disabled={isProcessing} className="w-full py-3 px-4 bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
+                        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-5 h-5" /> Eliminar Evento</>}
+                      </button>
+                    ) : (
+                      // MENSAJE VISUAL PARA USUARIOS QUE NO SON ADMIN
+                      <div className="w-full py-3 px-4 bg-green-50 text-green-700 border border-green-200 rounded-lg font-bold flex items-center justify-center gap-2 cursor-default">
+                         <CalendarCheck className="w-5 h-5" /> Evento Confirmado
+                      </div>
+                    )
                   ) : (
                     <>
                       <button onClick={initiateConversion} disabled={!price || parseFloat(price) <= 0 || dateError || !guestCount} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
