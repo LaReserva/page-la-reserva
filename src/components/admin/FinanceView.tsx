@@ -1,3 +1,4 @@
+// src/components/admin/FinanceView.tsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Event, Expense, Payment } from '@/types/index';

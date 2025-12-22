@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { DollarSign, Users, MessageSquare, CalendarDays } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import type { AdminUser } from '@/types';
+import { endOfMonth } from 'date-fns'; // Recomendado para cerrar el rango del mes
 
 interface Props {
   userRole: AdminUser['role'] | null;
@@ -29,22 +30,24 @@ export function DashboardStats({ userRole }: Props) {
     async function fetchStats() {
       try {
         const now = new Date();
+        // Definimos el rango del mes actual
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const lastDayOfMonth = endOfMonth(now).toISOString(); // O usa una fecha futura lejana si prefieres
         const firstDayOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
-        // Consultas básicas
+        // 1. Eventos Confirmados (Se mantiene igual, visualiza volumen de trabajo)
         const { count: eventsCount } = await supabase
           .from('events')
           .select('*', { count: 'exact', head: true })
           .in('status', ['confirmed', 'completed'])
           .gte('event_date', firstDayOfYear);
 
-        // Consultas condicionales (ahorramos recursos si no se van a mostrar)
+        // Variables temporales
         let quotesCount = 0;
         let clientsCount = 0;
-        let revenue = 0;
+        let realRevenue = 0;
 
-        // Solo Ventas y Super Admin ven Cotizaciones y Clientes
+        // 2. Consultas para Ventas y Super Admin
         if (userRole === 'super_admin' || userRole === 'sales') {
           const { count: q } = await supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('status', 'new');
           quotesCount = q || 0;
@@ -53,22 +56,23 @@ export function DashboardStats({ userRole }: Props) {
           clientsCount = c || 0;
         }
 
-        // Solo Super Admin ve Dinero
+        // 3. Consulta de INGRESOS REALES (Solo Super Admin)
+        // CAMBIO: Ahora miramos 'event_payments' en lugar de 'events'
         if (userRole === 'super_admin') {
-          const { data: revenueRaw } = await supabase
-            .from('events')
-            .select('total_price')
-            .in('status', ['confirmed', 'completed'])
-            .gte('event_date', firstDayOfMonth);
+          const { data: paymentsRaw } = await supabase
+            .from('event_payments')
+            .select('amount')
+            .gte('payment_date', firstDayOfMonth)
+            .lte('payment_date', lastDayOfMonth);
           
-          const revenueData = revenueRaw as { total_price: number }[] | null;
-          revenue = revenueData?.reduce((acc, curr) => acc + (curr.total_price || 0), 0) || 0;
+          // Sumamos lo realmente cobrado en este mes (depósitos + saldos)
+          realRevenue = paymentsRaw?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
         }
 
         setStats({
           newQuotes: quotesCount,
           confirmedEventsYear: eventsCount || 0,
-          monthlyRevenue: revenue,
+          monthlyRevenue: realRevenue,
           activeClients: clientsCount,
         });
       } catch (error) {
@@ -82,7 +86,6 @@ export function DashboardStats({ userRole }: Props) {
   }, [userRole]);
 
   // CONFIGURACIÓN DE VISIBILIDAD
-  // Aquí definimos qué roles pueden ver qué tarjeta
   const allCards = [
     {
       id: 'quotes',
@@ -92,7 +95,7 @@ export function DashboardStats({ userRole }: Props) {
       color: 'text-blue-600',
       bg: 'bg-blue-50',
       subtext: 'Pendientes de respuesta',
-      allowedRoles: ['super_admin', 'sales', 'admin'] // Operaciones NO está aquí
+      allowedRoles: ['super_admin', 'sales', 'admin']
     },
     {
       id: 'events',
@@ -102,7 +105,7 @@ export function DashboardStats({ userRole }: Props) {
       color: 'text-primary-600',
       bg: 'bg-primary-50',
       subtext: 'Eventos confirmados',
-      allowedRoles: ['super_admin', 'sales', 'operations', 'admin'] // Todos ven esto
+      allowedRoles: ['super_admin', 'sales', 'operations', 'admin']
     },
     {
       id: 'clients',
@@ -112,17 +115,17 @@ export function DashboardStats({ userRole }: Props) {
       color: 'text-purple-600',
       bg: 'bg-purple-50',
       subtext: 'Clientes registrados',
-      allowedRoles: ['super_admin', 'sales', 'admin'] // Operaciones NO está aquí
+      allowedRoles: ['super_admin', 'sales', 'admin']
     },
     {
       id: 'revenue',
-      label: 'Ingresos (Mes)',
+      label: 'Ingresos Reales (Mes)', // Etiqueta actualizada
       value: formatCurrency(stats.monthlyRevenue),
       icon: DollarSign,
       color: 'text-green-600',
       bg: 'bg-green-50',
-      subtext: 'Facturación bruta',
-      allowedRoles: ['super_admin'] // Solo el dueño
+      subtext: 'Cobrado en caja (Cash Flow)', // Subtexto actualizado para claridad
+      allowedRoles: ['super_admin']
     },
   ];
 
