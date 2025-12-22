@@ -1,21 +1,70 @@
+// src/components/admin/clients/ClientsView.tsx
 import { useState, useEffect } from 'react';
 import { 
   Search, Users, Mail, Phone, Building, Calendar,
-  Loader2, Edit, Eye, Plus // ✅ Icono Plus
+  Loader2, Edit, Eye, Plus, CalendarPlus, CheckCircle, XCircle, MessageCircle 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Client } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import { ClientDetailModal } from './ClientDetailModal';
 import { useUserRole } from '@/hooks/useUserRole';
+import { CreateManualEventModal } from '../events/CreateManualEventModal';
+
+// --- TIPO EXTENDIDO PARA EL CÁLCULO FINANCIERO ---
+// Necesitamos que el cliente incluya sus eventos y relaciones financieras
+interface ClientWithFinancials extends Client {
+  events: {
+    id: string;
+    event_payments: { amount: number }[];
+    expenses: { amount: number; category: string }[];
+  }[];
+}
+
+// --- COMPONENTE INTERNO: MODAL DE FEEDBACK ---
+interface FeedbackModalProps {
+  isOpen: boolean;
+  type: 'success' | 'error';
+  title: string;
+  message: string;
+  onClose: () => void;
+}
+
+function FeedbackModal({ isOpen, type, title, message, onClose }: FeedbackModalProps) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-secondary-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 animate-in fade-in zoom-in-95 text-center border border-secondary-100">
+        <div className={`mx-auto flex items-center justify-center h-14 w-14 rounded-full mb-4 ${type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+          {type === 'success' ? <CheckCircle className="h-8 w-8 text-green-600" /> : <XCircle className="h-8 w-8 text-red-600" />}
+        </div>
+        <h3 className="text-lg font-bold text-secondary-900 mb-2">{title}</h3>
+        <p className="text-secondary-500 mb-6 text-sm">{message}</p>
+        <button onClick={onClose} className={`w-full py-2.5 rounded-xl font-bold text-white transition-transform active:scale-95 ${type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+          Entendido
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function ClientsView() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientWithFinancials[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Estados para Modales
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  
+  // Estado para Crear Evento desde Tabla
+  const [clientForEvent, setClientForEvent] = useState<Client | null>(null);
+  const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
+
+  const [feedback, setFeedback] = useState<{ isOpen: boolean; type: 'success' | 'error'; title: string; message: string }>({
+    isOpen: false, type: 'success', title: '', message: ''
+  });
 
   const { isSuperAdmin } = useUserRole();
 
@@ -26,13 +75,21 @@ export function ClientsView() {
   async function fetchClients() {
     try {
       setLoading(true);
+      // ✅ Fetching profundo: Traemos eventos, pagos y gastos para calcular en vivo
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select(`
+          *,
+          events (
+            id,
+            event_payments ( amount ),
+            expenses ( amount, category )
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setClients((data as Client[]) || []);
+      setClients((data as any) || []);
     } catch (error) {
       console.error('Error fetching clients:', error);
     } finally {
@@ -40,30 +97,78 @@ export function ClientsView() {
     }
   }
 
-  // ✅ Abrir modal para VER/EDITAR
+  // ✅ LÓGICA DE FINANZAS REPLICADA
+  // Calcula: Total Pagado - Total Devoluciones
+  const calculateClientNetTotal = (client: ClientWithFinancials) => {
+    let totalIncome = 0;
+    let totalRefunds = 0;
+
+    if (client.events && client.events.length > 0) {
+      client.events.forEach(event => {
+        // Sumar todos los pagos (ingresos brutos)
+        if (event.event_payments) {
+          totalIncome += event.event_payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        }
+        // Sumar gastos que sean CATEGORÍA 'devolucion'
+        if (event.expenses) {
+          totalRefunds += event.expenses
+            .filter(e => e.category === 'devolucion')
+            .reduce((sum, e) => sum + (e.amount || 0), 0);
+        }
+      });
+    }
+
+    return totalIncome - totalRefunds;
+  };
+
+  // --- ACCIONES ---
+
+  const handleCreateClient = () => {
+    setSelectedClient(null);
+    setIsClientModalOpen(true);
+  };
+
   const handleOpenClient = (client: Client) => {
     setSelectedClient(client);
-    setIsModalOpen(true);
+    setIsClientModalOpen(true);
   };
 
-  // ✅ Abrir modal para CREAR
-  const handleCreateClient = () => {
-    setSelectedClient(null); // Null indica creación
-    setIsModalOpen(true);
-  };
-
-  // ✅ Callback unificado para guardar (Add o Update)
   const handleClientSaved = (savedClient: Client) => {
-    setClients(prev => {
-      const exists = prev.find(c => c.id === savedClient.id);
-      if (exists) {
-        // Actualizar existente
-        return prev.map(c => c.id === savedClient.id ? savedClient : c);
-      } else {
-        // Agregar nuevo al principio
-        return [savedClient, ...prev];
-      }
-    });
+    // Recargamos todo para asegurar que los cálculos financieros se mantengan sincronizados
+    // (Podríamos optimizar actualizando el estado local, pero recargar garantiza consistencia)
+    fetchClients(); 
+  };
+
+  const handleWhatsApp = (e: React.MouseEvent, phone: string) => {
+    e.stopPropagation(); 
+    const cleanPhone = phone.replace(/\D/g, ''); 
+    if (cleanPhone.length < 9) {
+      setFeedback({
+        isOpen: true, type: 'error', title: 'Número inválido',
+        message: 'El número de teléfono no parece tener el formato correcto.'
+      });
+      return;
+    }
+    const fullPhone = cleanPhone.length === 9 ? `51${cleanPhone}` : cleanPhone;
+    window.open(`https://wa.me/${fullPhone}`, '_blank');
+  };
+
+  const handleEmail = (e: React.MouseEvent, email: string) => {
+    e.stopPropagation();
+    if (!email) {
+      setFeedback({
+        isOpen: true, type: 'error', title: 'Sin correo',
+        message: 'Este cliente no tiene un correo electrónico registrado.'
+      });
+      return;
+    }
+    window.location.href = `mailto:${email}`;
+  };
+
+  const handleCreateEventClick = (e: React.MouseEvent, client: Client) => {
+    e.stopPropagation();
+    setClientForEvent(client);
+    setIsCreateEventOpen(true);
   };
 
   const filteredClients = clients.filter(client => {
@@ -105,7 +210,6 @@ export function ClientsView() {
             />
           </div>
 
-          {/* ✅ Botón Crear Cliente (Solo Super Admin) */}
           {isSuperAdmin && (
             <button 
               onClick={handleCreateClient}
@@ -118,7 +222,7 @@ export function ClientsView() {
         </div>
       </div>
 
-      {/* Tabla (Se mantiene igual, solo cambia el evento de la fila) */}
+      {/* Tabla */}
       <div className="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
         {filteredClients.length === 0 ? (
           <div className="p-12 text-center">
@@ -134,9 +238,12 @@ export function ClientsView() {
               <thead className="bg-secondary-50/50 text-secondary-500 font-medium border-b border-secondary-200">
                 <tr>
                   <th className="px-6 py-4">Cliente / Empresa</th>
-                  <th className="px-6 py-4">Contacto</th>
+                  <th className="px-6 py-4">Contacto Directo</th>
                   <th className="px-6 py-4 text-center">Historial</th>
-                  <th className="px-6 py-4 text-right">Inversión Total</th>
+                  {/* OCULTAR SI NO ES SUPER ADMIN */}
+                  {isSuperAdmin && (
+                    <th className="px-6 py-4 text-right">Inversión Total (Neto)</th>
+                  )}
                   <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -147,7 +254,6 @@ export function ClientsView() {
                     className="hover:bg-secondary-50/30 transition-colors group cursor-pointer"
                     onClick={() => handleOpenClient(client)}
                   >
-                    {/* ... (Las celdas de la tabla son iguales al código anterior) ... */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs border border-primary-200">
@@ -166,15 +272,26 @@ export function ClientsView() {
                     </td>
 
                     <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-secondary-600">
-                          <Mail className="w-3.5 h-3.5 text-secondary-400" />
-                          <span className="text-xs truncate max-w-[180px]">{client.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-secondary-600">
-                          <Phone className="w-3.5 h-3.5 text-secondary-400" />
+                      <div className="flex flex-col gap-2">
+                        {/* Botón WhatsApp */}
+                        <button
+                          onClick={(e) => handleWhatsApp(e, client.phone)}
+                          className="flex items-center gap-2 text-secondary-600 hover:text-green-600 transition-colors w-fit p-1 -ml-1 rounded hover:bg-green-50"
+                          title="Enviar WhatsApp"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
                           <span className="text-xs">{client.phone}</span>
-                        </div>
+                        </button>
+
+                        {/* Botón Correo */}
+                        <button 
+                          onClick={(e) => handleEmail(e, client.email)}
+                          className="flex items-center gap-2 text-secondary-600 hover:text-blue-600 transition-colors w-fit p-1 -ml-1 rounded hover:bg-blue-50"
+                          title="Enviar Correo"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          <span className="text-xs truncate max-w-[150px]">{client.email}</span>
+                        </button>
                       </div>
                     </td>
 
@@ -191,15 +308,26 @@ export function ClientsView() {
                       </div>
                     </td>
 
-                    <td className="px-6 py-4 text-right">
-                      <div className="font-bold text-secondary-900">
-                        {formatCurrency(client.total_spent)}
-                      </div>
-                      <div className="text-xs text-secondary-400 mt-0.5">LTV</div>
-                    </td>
+                    {/* ✅ LÓGICA FINANCIERA CORREGIDA */}
+                    {isSuperAdmin && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="font-bold text-secondary-900">
+                          {formatCurrency(calculateClientNetTotal(client))}
+                        </div>
+                        <div className="text-xs text-secondary-400 mt-0.5">Real (Ing - Dev)</div>
+                      </td>
+                    )}
 
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={(e) => handleCreateEventClick(e, client)}
+                          className="p-2 text-secondary-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Agendar nuevo evento"
+                        >
+                          <CalendarPlus className="w-4 h-4" />
+                        </button>
+
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
@@ -220,11 +348,39 @@ export function ClientsView() {
         )}
       </div>
 
+      {/* --- MODALES --- */}
+      
       <ClientDetailModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isClientModalOpen}
+        onClose={() => setIsClientModalOpen(false)}
         client={selectedClient}
-        onUpdate={handleClientSaved} // ✅ Usamos el handler que soporta create/update
+        onUpdate={handleClientSaved}
+      />
+
+      {clientForEvent && (
+        <CreateManualEventModal
+          isOpen={isCreateEventOpen}
+          onClose={() => setIsCreateEventOpen(false)}
+          onCreated={() => {
+            setIsCreateEventOpen(false);
+            setFeedback({
+              isOpen: true,
+              type: 'success',
+              title: 'Evento Agendado',
+              message: `Se ha creado el evento para ${clientForEvent.name} exitosamente.`
+            });
+            fetchClients();
+          }}
+          initialClient={clientForEvent}
+        />
+      )}
+
+      <FeedbackModal 
+        isOpen={feedback.isOpen}
+        type={feedback.type}
+        title={feedback.title}
+        message={feedback.message}
+        onClose={() => setFeedback(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   );
