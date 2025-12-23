@@ -7,6 +7,7 @@ import type {
   PACKAGES 
 } from '@/utils/constants';
 
+
 /**
  * LA RESERVA - TIPOS TYPESCRIPT
  * Version: 1.4 (Incluye Módulo de Finanzas)
@@ -215,6 +216,13 @@ export interface TeamTask {
   priority: string;
   created_at: string | null;
   updated_at: string | null;
+// ✅ NUEVOS CAMPOS
+  created_by?: string; 
+  assigned_to?: string;
+
+  // ✅ RELACIONES (Para los JOINS)
+  creator?: AdminUser;   // El usuario que la creó
+  assignee?: AdminUser;  // El usuario responsable
 }
 
 export interface ContactMessage {
