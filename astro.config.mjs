@@ -2,6 +2,8 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
 
+import vercel from '@astrojs/vercel';
+
 export default defineConfig({
   // Integraciones
   integrations: [
@@ -27,6 +29,10 @@ export default defineConfig({
   },
 
   // Vite configuration
+  // Experimental features
+  // experimental: {
+  //   contentCollectionCache: true,
+  // },
   vite: {
     optimizeDeps: {
       exclude: ['@supabase/supabase-js'],
@@ -40,8 +46,5 @@ export default defineConfig({
     },
   },
 
-  // Experimental features
-  // experimental: {
-  //   contentCollectionCache: true,
-  // },
+  adapter: vercel(),
 });
