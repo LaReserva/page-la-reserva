@@ -4,23 +4,26 @@ import {
   LayoutDashboard, 
   MessageSquare, 
   CalendarDays, 
-  Users, 
+  Users, // Usado para Clientes
   Settings, 
   LogOut,
   Image as ImageIcon,
   DollarSign,
-  Loader2
+  Loader2,
+  // ✅ NUEVOS ICONOS IMPORTADOS
+  UserCog,   // Para Gestión de Usuarios (Equipo)
+  PenTool,   // Para Blog
+  FileText   // Para Documentos
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { AdminUser } from '@/types';
 import { cn } from '@/utils/utils';
 
-// 1. Definimos la interfaz para los items del menú para asegurar el tipado de roles
 interface MenuItem {
   name: string;
   href: string;
   icon: any;
-  roles: Array<AdminUser['role']>; // Tipado fuerte: Solo permite roles válidos
+  roles: Array<AdminUser['role']>;
 }
 
 export function AdminSidebar() {
@@ -42,13 +45,10 @@ export function AdminSidebar() {
             .from('admin_users')
             .select('role')
             .eq('id', user.id)
-            .maybeSingle(); // 2. Usamos maybeSingle para evitar errores de consola si no existe
+            .maybeSingle();
           
-          if (error) {
-            console.error('Error loading role:', error.message);
-          }
+          if (error) console.error('Error loading role:', error.message);
           
-          // Casting seguro
           const userData = data as { role: AdminUser['role'] } | null;
           setRole(userData?.role || null);
         }
@@ -66,7 +66,6 @@ export function AdminSidebar() {
     window.location.href = '/admin/login';
   };
 
-  // 3. Definición del menú con tipado
   const menuItems: MenuItem[] = [
     { 
       name: 'Dashboard', 
@@ -98,14 +97,35 @@ export function AdminSidebar() {
       icon: DollarSign,
       roles: ['super_admin'] 
     },
+    // ✅ NUEVO: Blog
+    { 
+      name: 'Blog', 
+      href: '/admin/blog', 
+      icon: PenTool,
+      roles: ['super_admin', 'sales'] // Asumo que ventas/marketing puede editar blog
+    },
+    // ✅ NUEVO: Documentos
+    { 
+      name: 'Documentos', 
+      href: '/admin/documentos', 
+      icon: FileText,
+      roles: ['super_admin', 'sales', 'operations'] // Útil para todos los roles
+    },
     { 
       name: 'Portafolio', 
       href: '/admin/contenido', 
       icon: ImageIcon,
       roles: ['super_admin', 'operations'] 
     },
+    // ✅ NUEVO: Gestión de Usuarios (Equipo)
     { 
-      name: 'Configuracion', 
+      name: 'Usuarios', 
+      href: '/admin/usuarios', 
+      icon: UserCog,
+      roles: ['super_admin'] // Estrictamente solo Super Admin
+    },
+    { 
+      name: 'Configuración', 
       href: '/admin/configuracion', 
       icon: Settings,
       roles: ['super_admin'] 
@@ -121,7 +141,6 @@ export function AdminSidebar() {
     return currentPath.startsWith(href);
   };
 
-  // Estado de carga elegante
   if (loading) return (
     <aside className="w-64 bg-secondary-900 border-r border-secondary-800 hidden lg:flex flex-col h-screen sticky top-0 items-center justify-center">
       <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
