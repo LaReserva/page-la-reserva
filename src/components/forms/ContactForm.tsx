@@ -24,29 +24,50 @@ function ContactFormContent() {
     try {
       setIsSubmitting(true);
 
-      // ✅ CORRECCIÓN: Agregamos 'as any' al final del objeto insert
-      const { error } = await supabase.from('contact_messages' as any).insert({
+      // 1. PRIMERO: Guardar en Base de Datos (Respaldo seguro)
+      // Usamos 'as any' temporalmente hasta que actualices los tipos de la BD
+      const { error: dbError } = await supabase.from('contact_messages' as any).insert({
         name: data.name,
         email: data.email,
         phone: data.phone,
         subject: data.subject,
         message: data.message,
         status: 'new'
-      } as any); // <--- ESTO SOLUCIONA EL ERROR ROJO
+      } as any);
 
-      if (error) throw error;
+      if (dbError) throw new Error(`Error BD: ${dbError.message}`);
 
-      showToast('¡Mensaje enviado! Te responderemos pronto.', 'success');
+      // 2. SEGUNDO: Enviar el correo a través de nuestra API
+      const response = await fetch('/api/send-contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Si falló el correo, lo registramos en consola pero no asustamos al usuario
+        // porque ya se guardó en la BD.
+        console.error('Error enviando email:', result.error);
+        showToast('Mensaje guardado, pero hubo un problema con la notificación.', 'warning');
+      } else {
+        // Todo salió perfecto
+        showToast('¡Mensaje enviado correctamente! Te responderemos pronto.', 'success');
+      }
+
       reset();
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (error: any) {
+      console.error('Error general:', error);
       showToast('Error al enviar mensaje. Intenta de nuevo.', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Estilos reutilizables
+  // Estilos reutilizables (Sin cambios aquí)
   const inputClasses = (hasError: boolean) => cn(
     'w-full px-4 py-3 border rounded-lg transition-all duration-200',
     'bg-white text-secondary-900 placeholder:text-secondary-400',
