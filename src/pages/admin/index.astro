@@ -1,5 +1,9 @@
 ---
 // src/pages/admin/index.astro
+
+// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
+export const prerender = false;
+
 import AdminLayout from '@/layouts/AdminLayout.astro';
 // Importamos SOLO el componente "Maestro"
 import { DashboardView } from '@/components/admin/dashboard/DashboardView';

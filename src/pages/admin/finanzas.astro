@@ -1,5 +1,9 @@
 ---
 //src/pages/admin/finanzas.astro
+
+// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
+export const prerender = false;
+
 import Layout from '@/layouts/AdminLayout.astro';
 import FinanceView from '@/components/admin/FinanceView';
 

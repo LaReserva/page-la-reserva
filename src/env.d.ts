@@ -1,3 +1,4 @@
+/// <reference path="../.astro/types.d.ts" />
 /// <reference types="astro/client" />
 
 interface ImportMetaEnv {
@@ -18,4 +19,14 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+// ✅ Agregamos esto para el tipado del Middleware
+declare namespace App {
+  interface Locals {
+    // Definimos que 'user' puede ser un Usuario de Supabase o undefined
+    user?: import('@supabase/supabase-js').User;
+    // Definimos el rol como string (ej: 'super_admin')
+    role?: string;
+  }
 }

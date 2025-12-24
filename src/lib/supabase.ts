@@ -1,15 +1,16 @@
-// src/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types'; // ✅ Usamos el alias
+import { createBrowserClient } from '@supabase/ssr';
 
+// Obtenemos las variables de entorno
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables (Client)');
+  throw new Error('Faltan las variables de entorno de Supabase');
 }
 
-export const supabase = createClient<Database>(
-  supabaseUrl as string, 
-  supabaseAnonKey as string
+// Creamos el cliente para el navegador (Client-Side)
+// createBrowserClient maneja automáticamente las cookies por ti.
+export const supabase = createBrowserClient(
+  supabaseUrl,
+  supabaseAnonKey
 );
