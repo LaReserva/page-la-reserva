@@ -196,12 +196,14 @@ export function getDaysBetween(date1: Date, date2: Date): number {
 }
 
 /**
- * Obtiene el saludo apropiado según la hora
- * 
+ * Obtiene el saludo apropiado según la hora.
+ * Acepta una fecha opcional para facilitar las pruebas.
+ * * @param date - Fecha a evaluar (opcional, por defecto es ahora)
  * @returns Saludo del día
  */
-export function getGreeting(): string {
-  const hour = new Date().getHours();
+export function getGreeting(date: Date = new Date()): string {
+  const hour = date.getHours();
+
   if (hour < 12) return 'Buenos días';
   if (hour < 19) return 'Buenas tardes';
   return 'Buenas noches';

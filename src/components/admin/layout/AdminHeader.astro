@@ -6,7 +6,8 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
 
 <header class="bg-white border-b border-secondary-200 h-16 px-6 flex items-center justify-between sticky top-0 z-30">
   
-  <button class="lg:hidden p-2 text-secondary-600 hover:bg-secondary-50 rounded-lg">
+  {/* ✅ CORRECCIÓN 1: Agregamos id="menu-toggle" para identificar el botón */}
+  <button id="menu-toggle" class="lg:hidden p-2 text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors">
     <Menu className="w-6 h-6" />
   </button>
 
@@ -16,7 +17,6 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
 
   <div class="flex items-center gap-4">
     
-    {/* Componente de Notificaciones */}
     <NotificationBell client:load />
 
     <div class="h-8 w-px bg-secondary-200 mx-2"></div>
@@ -27,9 +27,7 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
         <p class="text-xs text-secondary-500 capitalize" id="admin-role">Admin</p>
       </div>
       
-      {/* CONTENEDOR DE LA IMAGEN/INICIALES */}
       <div class="relative">
-        {/* 1. Imagen de Perfil (Oculta por defecto con 'hidden') */}
         <img 
           id="admin-avatar" 
           src="" 
@@ -37,7 +35,6 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
           class="hidden h-10 w-10 rounded-full object-cover border-2 border-primary-500 shadow-sm group-hover:border-primary-400 transition-colors"
         />
 
-        {/* 2. Iniciales (Visible por defecto, se oculta si hay imagen) */}
         <div 
           id="admin-initials-container"
           class="h-10 w-10 bg-secondary-900 rounded-full flex items-center justify-center text-white font-bold shadow-sm border-2 border-primary-500 group-hover:border-primary-400 transition-colors"
@@ -53,11 +50,22 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
   import { supabase } from '@/lib/supabase';
   import type { AdminUser } from '@/types';
 
+  // --- ✅ CORRECCIÓN 2: LÓGICA DEL MENÚ HAMBURGUESA ---
+  const menuBtn = document.getElementById('menu-toggle');
+  
+  if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
+      // Despachamos un evento personalizado que el Layout o el Sidebar escucharán
+      document.dispatchEvent(new CustomEvent('toggle-sidebar'));
+      console.log('Menú clickeado: evento toggle-sidebar enviado');
+    });
+  }
+  // ----------------------------------------------------
+
   async function loadUserData() {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
-      // ✅ 1. Solicitamos también el campo 'avatar_url'
       const { data } = await supabase
         .from('admin_users')
         .select('full_name, role, avatar_url')
@@ -70,7 +78,6 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
       const role = profile?.role || 'staff';
       const avatarUrl = profile?.avatar_url;
 
-      // Elementos del DOM
       const nameEl = document.getElementById('admin-name');
       const roleEl = document.getElementById('admin-role');
       const initialsEl = document.getElementById('admin-initials');
@@ -78,21 +85,16 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
       const avatarImg = document.getElementById('admin-avatar') as HTMLImageElement;
       const initialsContainer = document.getElementById('admin-initials-container');
 
-      // Asignar textos
       if (nameEl) nameEl.textContent = name;
       if (roleEl) roleEl.textContent = role === 'super_admin' ? 'Super Admin' : 'Administrador';
 
-      // ✅ 2. Lógica de Imagen vs Iniciales
       if (avatarUrl && avatarImg && initialsContainer) {
-        // Si hay URL, mostramos la imagen y ocultamos el div de iniciales
         avatarImg.src = avatarUrl;
         avatarImg.classList.remove('hidden');
         initialsContainer.classList.add('hidden');
       } else {
-        // Si no hay URL, mostramos iniciales (fallback)
         if (initialsEl) initialsEl.textContent = name.charAt(0).toUpperCase();
         
-        // Aseguramos que el estado visual sea el correcto (por si se recarga dinámicamente)
         if (avatarImg) avatarImg.classList.add('hidden');
         if (initialsContainer) initialsContainer.classList.remove('hidden');
       }
