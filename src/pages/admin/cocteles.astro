@@ -1,0 +1,27 @@
+---
+// src/pages/admin/cocteles.astro
+
+// ✅ Modo SSR activado (OBLIGATORIO)
+export const prerender = false;
+
+import Layout from '@/layouts/AdminLayout.astro';
+import { CocktailManager } from '@/components/admin/recipes/CocktailManager';
+
+// Metadatos
+const title = "Gestor de Cocteles y Recetas | La Reserva";
+---
+
+<Layout title={title}>
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
+      Gestor de Bar y Recetas
+    </h1>
+    <p class="mt-2 text-gray-600 text-lg">
+      Configura los cocteles, sus ingredientes y las cantidades para el cálculo de compras.
+    </p>
+  </div>
+
+  <div class="bg-white/50 min-h-[600px] rounded-xl">
+    <CocktailManager client:load />
+  </div>
+</Layout>

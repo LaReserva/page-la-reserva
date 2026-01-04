@@ -298,3 +298,46 @@ export interface FinanceSummary {
 // DEFINICIÓN DE BASE DE DATOS SUPABASE
 // ============================================
 export type { Database } from './database';
+
+// ============================================
+// 2. MÓDULO DE GESTIÓN DE BAR (Recetas)
+// ============================================
+
+export type IngredientCategory = 'licor' | 'mixer' | 'fruta' | 'garnish' | 'otro';
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  category: string;
+  estimated_price: number;
+  // Nuevos campos de compra
+  purchase_unit: string;    // 'botella', 'kg', 'bolsa'
+  package_volume: number;   // 750, 1000
+  measurement_unit: string; // 'ml', 'gr', 'und' (Unidad base científica)
+  yield_pieces?: number;    // Para garnish: cuantas piezas salen de 1 unidad de compra
+}
+
+export interface Cocktail {
+  id: string;
+  name: string;
+  slug: string;
+  image_url?: string;
+  description?: string;
+  active: boolean;
+  created_at: string;
+}
+
+export interface RecipeItem {
+  id: string;
+  cocktail_id: string;
+  ingredient_id: string;
+  quantity: number;
+  is_garnish: boolean;
+  unit: string; // 'oz', 'ml', 'cl', 'pieza'
+  ingredient?: Ingredient;
+}
+
+// Tipo auxiliar para la UI
+export interface CocktailWithRecipe extends Cocktail {
+  recipe: RecipeItem[];
+}
