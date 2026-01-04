@@ -21,11 +21,8 @@ export function NotificationBell() {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Referencia para guardar el ID del usuario actual y usarlo en la clave de localStorage
   const userIdRef = useRef<string | null>(null);
 
-  // Cerrar dropdown si se hace click fuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -39,11 +36,10 @@ export function NotificationBell() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      // A. Obtener usuario y rol
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
-      userIdRef.current = user.id; // Guardamos ID para usarlo al limpiar
+      userIdRef.current = user.id;
 
       const { data: userData } = await supabase
         .from('admin_users')
@@ -53,15 +49,13 @@ export function NotificationBell() {
 
       const role = userData?.role || 'staff';
       const isSalesOrSuper = role === 'sales' || role === 'super_admin';
-
-      // RECUPERAR TIMESTAMP DE ÚLTIMA LIMPIEZA
+      
       const lastClearedKey = `notifs_last_cleared_${user.id}`;
       const lastClearedStr = localStorage.getItem(lastClearedKey);
-      const lastClearedDate = lastClearedStr ? new Date(lastClearedStr) : new Date(0); // Fecha 0 si nunca se limpió
+      const lastClearedDate = lastClearedStr ? new Date(lastClearedStr) : new Date(0);
 
       let allNotifs: NotificationItem[] = [];
 
-      // B. BUSCAR COTIZACIONES NUEVAS
       if (isSalesOrSuper) {
         const { data: quotes } = await supabase
           .from('quotes')
@@ -83,7 +77,6 @@ export function NotificationBell() {
         }
       }
 
-      // C. BUSCAR EVENTOS RECIENTES
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
@@ -106,10 +99,7 @@ export function NotificationBell() {
         allNotifs = [...allNotifs, ...eventNotifs];
       }
 
-      // D. FILTRAR: Solo mostramos las que sean POSTERIORES a la fecha de limpieza
       const visibleNotifs = allNotifs.filter(n => new Date(n.date) > lastClearedDate);
-
-      // E. ORDENAR
       visibleNotifs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       setNotifications(visibleNotifs);
@@ -126,15 +116,10 @@ export function NotificationBell() {
     fetchNotifications();
   }, []);
 
-  // --- NUEVA FUNCIÓN: LIMPIAR NOTIFICACIONES ---
   const handleClearAll = () => {
     if (!userIdRef.current) return;
-
-    // 1. Guardamos la fecha/hora actual como "última vez limpiado"
     const now = new Date().toISOString();
     localStorage.setItem(`notifs_last_cleared_${userIdRef.current}`, now);
-
-    // 2. Limpiamos el estado visualmente
     setNotifications([]);
     setUnreadCount(0);
     setIsOpen(false);
@@ -142,7 +127,6 @@ export function NotificationBell() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Botón Campana */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-secondary-400 hover:text-primary-600 transition-colors relative outline-none"
@@ -153,11 +137,14 @@ export function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown Modal */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-          
-          {/* Header del Dropdown */}
+        <div 
+          className={`
+            bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200
+            fixed left-4 right-4 top-20 w-auto
+            md:absolute md:right-0 md:top-full md:mt-2 md:w-80 md:left-auto
+          `}
+        >
           <div className="px-4 py-3 border-b border-secondary-100 bg-secondary-50/50 flex justify-between items-center">
             <h3 className="text-sm font-bold text-secondary-900">Notificaciones</h3>
             {unreadCount > 0 && (
@@ -167,7 +154,6 @@ export function NotificationBell() {
             )}
           </div>
 
-          {/* Lista de Notificaciones */}
           <div className="max-h-[400px] overflow-y-auto">
             {loading ? (
               <div className="p-8 flex justify-center text-secondary-400">
@@ -214,7 +200,6 @@ export function NotificationBell() {
             )}
           </div>
           
-          {/* Footer con Botón Limpiar */}
           {notifications.length > 0 && (
              <div className="px-4 py-2 bg-secondary-50 border-t border-secondary-100 text-center">
                <button 
