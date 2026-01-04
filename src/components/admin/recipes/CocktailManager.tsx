@@ -31,7 +31,7 @@ export function CocktailManager() {
   // Estado Cálculo
   const [testQuantity, setTestQuantity] = useState<number>(1);
 
-  // ✅ NUEVO: Estado para el Modal de Alertas (Feedback)
+  // Estado Feedback
   const [feedback, setFeedback] = useState<{
     isOpen: boolean;
     type: 'success' | 'error' | 'warning';
@@ -83,7 +83,7 @@ export function CocktailManager() {
 
   // 3. Manejadores (Handlers)
 
-  // --- CREAR COCTEL ---
+  // --- COCTEL: CREAR ---
   const handleCreateCocktail = async (e: React.FormEvent, formData: any) => {
     e.preventDefault();
     setSavingCocktail(true);
@@ -109,67 +109,79 @@ export function CocktailManager() {
     }
   };
 
-  // --- CREAR INSUMO (Corrección aquí) ---
-  const handleCreateIngredient = async (e: React.FormEvent, formData: any) => {
-    // e.preventDefault() ya se maneja en el modal, pero por seguridad lo dejamos
-    try {
-      // ✅ SOLUCIÓN: La base de datos exige la columna antigua 'unit'.
-      // Hacemos que 'unit' sea igual a 'measurement_unit' (ml, gr, und) para satisfacer la base de datos.
-      const payload = {
-        ...formData,
-        unit: formData.measurement_unit 
-      };
+  // --- ✅ COCTEL: ELIMINAR (NUEVO) ---
+  const handleDeleteCocktail = async (id: string) => {
+    // Confirmación nativa simple
+    if (!confirm('¿Estás seguro de eliminar este coctel? Se borrará su receta también.')) return;
 
+    try {
+      // Supabase eliminará en cascada las recetas si tu BD está configurada así (CASCADE).
+      // Si no, habría que borrar recetas primero, pero asumimos CASCADE por defecto en tu SQL.
+      const { error } = await supabase.from('catalog_cocktails').delete().eq('id', id);
+      
+      if (error) throw error;
+
+      // Actualizar UI
+      setCocktails(prev => prev.filter(c => c.id !== id));
+      
+      // Si el coctel eliminado era el seleccionado, limpiamos la selección
+      if (selectedCocktailId === id) {
+        setSelectedCocktailId(null);
+        setCurrentRecipe([]);
+      }
+
+      setFeedback({ isOpen: true, type: 'success', title: 'Eliminado', message: 'El coctel fue eliminado correctamente.' });
+
+    } catch (err: any) {
+      console.error(err);
+      setFeedback({ isOpen: true, type: 'error', title: 'Error al eliminar', message: 'No se pudo eliminar. Verifica si tiene historial asociado.' });
+    }
+  };
+
+  // --- INSUMO: CREAR ---
+  const handleCreateIngredient = async (e: React.FormEvent, formData: any) => {
+    try {
+      const payload = { ...formData, unit: formData.measurement_unit }; // Fix para columna 'unit'
       const { data, error } = await supabase.from('catalog_ingredients').insert(payload).select().single();
       
       if (error) throw error;
 
       if (data) {
         setIngredients(prev => [...prev, data].sort((a,b) => a.name.localeCompare(b.name)));
-        // Usamos tu nuevo componente de Feedback
         setFeedback({ isOpen: true, type: 'success', title: 'Insumo Guardado', message: `${data.name} añadido correctamente.` });
-        
-        // Cerramos el modal solo si fue exitoso
-        setShowIngredientModal(false); 
+        setShowIngredientModal(false);
       }
     } catch (err: any) {
-      console.error("Error creating ingredient:", err);
-      setFeedback({ isOpen: true, type: 'error', title: 'Error al guardar', message: err.message || 'Verifica los datos.' });
+      setFeedback({ isOpen: true, type: 'error', title: 'Error al guardar', message: err.message });
     }
   };
+
   const handleDeleteIngredient = async (id: string) => {
-    // Usamos el modal de confirmación nativo del navegador por simplicidad antes de borrar
-    // Podrías crear otro modal de confirmación si quisieras, pero el FeedbackModal es informativo post-acción.
-    if (!confirm("¿Estás seguro de eliminar este insumo?")) return;
-    
+    if (!confirm("¿Eliminar insumo?")) return;
     try {
       const { error } = await supabase.from('catalog_ingredients').delete().eq('id', id);
       if (error) throw error;
-      
       setIngredients(prev => prev.filter(i => i.id !== id));
-      setFeedback({ isOpen: true, type: 'success', title: 'Eliminado', message: 'El insumo fue eliminado correctamente.' });
+      setFeedback({ isOpen: true, type: 'success', title: 'Eliminado', message: 'El insumo fue eliminado.' });
     } catch (err) {
-      setFeedback({ isOpen: true, type: 'error', title: 'No se puede eliminar', message: 'Este insumo está siendo usado en una o más recetas. Retíralo de las recetas primero.' });
+      setFeedback({ isOpen: true, type: 'error', title: 'No se puede eliminar', message: 'Este insumo está en uso en una receta.' });
     }
   };
 
   // --- RECETA ---
   const handleAddToRecipe = async (ingredientId: string) => {
     if (!selectedCocktailId || currentRecipe.find(r => r.ingredient_id === ingredientId)) {
-        setFeedback({ isOpen: true, type: 'warning', title: 'Ya existe', message: 'Este insumo ya está en la receta actual.' });
+        setFeedback({ isOpen: true, type: 'warning', title: 'Ya existe', message: 'Este insumo ya está en la receta.' });
         return;
     }
-    
     try {
         const { data, error } = await supabase.from('cocktail_recipes').insert({
-        cocktail_id: selectedCocktailId, ingredient_id: ingredientId, quantity: 1, is_garnish: false, unit: 'oz'
+          cocktail_id: selectedCocktailId, ingredient_id: ingredientId, quantity: 1, is_garnish: false, unit: 'oz'
         }).select('*, ingredient:catalog_ingredients(*)').single();
-        
         if (error) throw error;
-        
         if (data) setCurrentRecipe([...currentRecipe, { ...data, ingredient: data.ingredient as unknown as Ingredient }]);
     } catch (err) {
-        setFeedback({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo agregar el insumo a la receta.' });
+        setFeedback({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo agregar el insumo.' });
     }
   };
 
@@ -196,6 +208,7 @@ export function CocktailManager() {
     <div className="relative">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-180px)]">
         
+        {/* ✅ Pasamos onDelete al CocktailList */}
         <CocktailList 
           cocktails={cocktails}
           selectedId={selectedCocktailId}
@@ -204,6 +217,7 @@ export function CocktailManager() {
           onSearchChange={setSearchTerm}
           isAdmin={isSuperAdmin}
           onNewClick={() => setShowCocktailModal(true)}
+          onDelete={handleDeleteCocktail} // <--- AQUÍ
         />
 
         <RecipeTable 
@@ -222,7 +236,6 @@ export function CocktailManager() {
         />
       </div>
 
-      {/* MODALES */}
       <CreateCocktailModal 
         isOpen={showCocktailModal} 
         onClose={() => setShowCocktailModal(false)}
@@ -238,7 +251,6 @@ export function CocktailManager() {
         onDelete={handleDeleteIngredient}
       />
 
-      {/* ✅ FEEDBACK MODAL (Alertas) */}
       <FeedbackModal 
         isOpen={feedback.isOpen}
         type={feedback.type}
