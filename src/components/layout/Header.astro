@@ -3,7 +3,7 @@
 import Navbar from './Navbar.astro';
 import MobileMenu from './MobileMenu.astro';
 import Button from '@/components/ui/Button.astro';
-import { Menu, X } from 'lucide-react'; // Importamos X para el icono de cerrar si quisieras cambiarlo dinámicamente
+import { Menu } from 'lucide-react';
 
 const currentPath = Astro.url.pathname;
 ---
@@ -11,6 +11,7 @@ const currentPath = Astro.url.pathname;
 <header 
   id="main-header"
   class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-transparent transition-all duration-300 h-20"
+  data-header-initialized="false" 
 >
   <div class="container-custom h-full">
     <div class="flex items-center justify-between h-full">
@@ -26,6 +27,8 @@ const currentPath = Astro.url.pathname;
       
       {/* Desktop Navigation */}
       <div class="hidden lg:block">
+        {/* Nota: Al ser persistente, Navbar no se actualiza automáticamente. 
+            El script de abajo se encarga de resaltar el link activo. */}
         <Navbar currentPath={currentPath} />
       </div>
       
@@ -47,41 +50,46 @@ const currentPath = Astro.url.pathname;
     </div>
   </div>
   
-  {/* Mobile Menu (Overlay) - Se renderiza aquí */}
   <MobileMenu currentPath={currentPath} />
 </header>
 
 <div class="h-20"></div>
 
-<script is:inline>
-  // Función de inicialización
-  function initHeader() {
+<script>
+  // ✅ Usamos <script> tipo módulo (sin is:inline) para mejor encapsulamiento
+
+  const initHeader = () => {
+    const header = document.getElementById('main-header');
     const btn = document.getElementById('mobile-menu-btn');
     const menu = document.getElementById('mobile-menu');
-    const header = document.getElementById('main-header');
     
-    // Debug: Verificar si los elementos existen
-    if (!btn || !menu) {
-      console.error('Error: No se encontró el botón o el menú móvil');
-      return;
+    if (!header || !btn || !menu) return;
+
+    // --- 1. RESETEO DE ESTADO POR NAVEGACIÓN ---
+    // Como el header persiste, si cambiamos de página con el menú abierto,
+    // debemos forzar su cierre.
+    menu.classList.add('hidden');
+    document.body.style.overflow = '';
+
+    // --- 2. PROTECCIÓN CONTRA EVENTOS DUPLICADOS ---
+    // Si ya inicializamos los eventos en este header persistente, NO lo hacemos de nuevo.
+    if (header.dataset.headerInitialized === 'true') {
+        // Solo actualizamos el "Link Activo" visualmente
+        updateActiveLinks(); 
+        return;
     }
 
-    // Toggle Menú
+    // --- 3. EVENT LISTENER: TOGGLE ---
     btn.addEventListener('click', () => {
-      // Toggle de la clase 'hidden'
       menu.classList.toggle('hidden');
-      
-      // Bloquear scroll si el menú está abierto
       if (!menu.classList.contains('hidden')) {
         document.body.style.overflow = 'hidden';
-        console.log('Menú abierto');
       } else {
         document.body.style.overflow = '';
-        console.log('Menú cerrado');
       }
     });
 
-    // Cerrar menú al hacer click en un enlace
+    // --- 4. EVENT LISTENER: CERRAR AL CLICK EN LINK ---
     const links = menu.querySelectorAll('a');
     links.forEach(link => {
       link.addEventListener('click', () => {
@@ -90,21 +98,54 @@ const currentPath = Astro.url.pathname;
       });
     });
 
-    // Efecto Scroll del Header
-    window.addEventListener('scroll', () => {
+    // --- 5. EVENT LISTENER: SCROLL ---
+    const handleScroll = () => {
       if (window.scrollY > 10) {
-        header?.classList.add('shadow-md', 'bg-white');
-        header?.classList.remove('bg-white/95');
+        header.classList.add('shadow-md', 'bg-white');
+        header.classList.remove('bg-white/95');
       } else {
-        header?.classList.remove('shadow-md', 'bg-white');
-        header?.classList.add('bg-white/95');
+        header.classList.remove('shadow-md', 'bg-white');
+        header.classList.add('bg-white/95');
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Ejecutar una vez al inicio
+
+    // Marcamos como inicializado para que no se repita
+    header.dataset.headerInitialized = 'true';
+    
+    // Ejecutamos actualización de links la primera vez
+    updateActiveLinks();
+  };
+
+  // Función extra: Actualizar clases activas en el menú (porque el HTML persistente no se regenera)
+  function updateActiveLinks() {
+    const currentPath = window.location.pathname;
+    
+    // ✅ 1. TIPADO FUERTE: Usamos el genérico <HTMLAnchorElement> 
+    // para que TS sepa que 'link' tendrá propiedades de un enlace (como href, style, etc).
+    const navLinks = document.querySelectorAll<HTMLAnchorElement>('nav a'); 
+
+    navLinks.forEach(link => {
+      const href = link.getAttribute('href');
+
+      // ✅ 2. CLÁUSULA DE GUARDA (Seguridad):
+      // Si href es null o vacío, detenemos la ejecución para este elemento.
+      // A partir de esta línea, TypeScript sabe que 'href' es 100% un string.
+      if (!href) return;
+
+      // Lógica de activo
+      // Ahora 'startsWith(href)' no dará error porque garantizamos que es string arriba.
+      if (href === currentPath || (href !== '/' && currentPath.startsWith(href))) {
+          link.classList.add('text-primary-600', 'font-bold');
+          link.classList.remove('text-secondary-600');
+      } else {
+          link.classList.remove('text-primary-600', 'font-bold');
+          link.classList.add('text-secondary-600');
       }
     });
   }
 
-  // Ejecutar cuando el DOM esté listo
-  document.addEventListener('DOMContentLoaded', initHeader);
-  
-  // Soporte para Astro View Transitions (si lo usas en el futuro)
+  // Ejecutar en cada navegación de Astro
   document.addEventListener('astro:page-load', initHeader);
 </script>

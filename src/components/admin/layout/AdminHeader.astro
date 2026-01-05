@@ -1,12 +1,11 @@
 ---
-// src/components/admin/AdminHeader.astro
+// src/components/admin/layout/AdminHeader.astro
 import { Menu } from 'lucide-react';
 import { NotificationBell } from '@/components/admin/NotificationBell';
 ---
 
 <header class="bg-white border-b border-secondary-200 h-16 px-6 flex items-center justify-between sticky top-0 z-30">
   
-  {/* ✅ CORRECCIÓN 1: Agregamos id="menu-toggle" para identificar el botón */}
   <button id="menu-toggle" class="lg:hidden p-2 text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors">
     <Menu className="w-6 h-6" />
   </button>
@@ -50,56 +49,67 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
   import { supabase } from '@/lib/supabase';
   import type { AdminUser } from '@/types';
 
-  // --- ✅ CORRECCIÓN 2: LÓGICA DEL MENÚ HAMBURGUESA ---
-  const menuBtn = document.getElementById('menu-toggle');
-  
-  if (menuBtn) {
-    menuBtn.addEventListener('click', () => {
-      // Despachamos un evento personalizado que el Layout o el Sidebar escucharán
-      document.dispatchEvent(new CustomEvent('toggle-sidebar'));
-      console.log('Menú clickeado: evento toggle-sidebar enviado');
-    });
-  }
-  // ----------------------------------------------------
-
-  async function loadUserData() {
-    const { data: { user } } = await supabase.auth.getUser();
+  // ✅ ENCAPSULAMOS LA LÓGICA
+  // Esta función se encargará de inicializar todo cada vez que cambiemos de página
+  const initHeader = () => {
     
-    if (user) {
-      const { data } = await supabase
-        .from('admin_users')
-        .select('full_name, role, avatar_url')
-        .eq('id', user.id)
-        .single();
-
-      const profile = data as AdminUser | null;
-
-      const name = profile?.full_name || user.email || 'Admin';
-      const role = profile?.role || 'staff';
-      const avatarUrl = profile?.avatar_url;
-
-      const nameEl = document.getElementById('admin-name');
-      const roleEl = document.getElementById('admin-role');
-      const initialsEl = document.getElementById('admin-initials');
-      
-      const avatarImg = document.getElementById('admin-avatar') as HTMLImageElement;
-      const initialsContainer = document.getElementById('admin-initials-container');
-
-      if (nameEl) nameEl.textContent = name;
-      if (roleEl) roleEl.textContent = role === 'super_admin' ? 'Super Admin' : 'Administrador';
-
-      if (avatarUrl && avatarImg && initialsContainer) {
-        avatarImg.src = avatarUrl;
-        avatarImg.classList.remove('hidden');
-        initialsContainer.classList.add('hidden');
-      } else {
-        if (initialsEl) initialsEl.textContent = name.charAt(0).toUpperCase();
-        
-        if (avatarImg) avatarImg.classList.add('hidden');
-        if (initialsContainer) initialsContainer.classList.remove('hidden');
-      }
+    // 1. Lógica del Menú Hamburguesa
+    const menuBtn = document.getElementById('menu-toggle');
+    if (menuBtn) {
+      // Importante: Como el Header se reconstruye, no necesitamos remover el listener anterior
+      menuBtn.addEventListener('click', () => {
+        document.dispatchEvent(new CustomEvent('toggle-sidebar'));
+        console.log('Menú clickeado: evento toggle-sidebar enviado');
+      });
     }
-  }
 
-  loadUserData();
+    // 2. Lógica de Carga de Usuario
+    const loadUserData = async () => {
+      // Obtenemos sesión
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Obtenemos perfil detallado
+        const { data } = await supabase
+          .from('admin_users')
+          .select('full_name, role, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        const profile = data as AdminUser | null;
+
+        const name = profile?.full_name || user.email || 'Admin';
+        const role = profile?.role || 'staff';
+        const avatarUrl = profile?.avatar_url;
+
+        // Buscamos los elementos (Tienen que buscarse AQUÍ dentro, porque el DOM es nuevo)
+        const nameEl = document.getElementById('admin-name');
+        const roleEl = document.getElementById('admin-role');
+        const initialsEl = document.getElementById('admin-initials');
+        const avatarImg = document.getElementById('admin-avatar') as HTMLImageElement;
+        const initialsContainer = document.getElementById('admin-initials-container');
+
+        // Actualizamos UI
+        if (nameEl) nameEl.textContent = name;
+        if (roleEl) roleEl.textContent = role === 'super_admin' ? 'Super Admin' : 'Administrador';
+
+        if (avatarUrl && avatarImg && initialsContainer) {
+          avatarImg.src = avatarUrl;
+          avatarImg.classList.remove('hidden');
+          initialsContainer.classList.add('hidden');
+        } else {
+          if (initialsEl) initialsEl.textContent = name.charAt(0).toUpperCase();
+          if (avatarImg) avatarImg.classList.add('hidden');
+          if (initialsContainer) initialsContainer.classList.remove('hidden');
+        }
+      }
+    };
+
+    // Ejecutamos la carga
+    loadUserData();
+  };
+
+  // ✅ EVENTO CLAVE: astro:page-load
+  // Esto asegura que initHeader corra en la primera carga Y en cada navegación subsiguiente.
+  document.addEventListener('astro:page-load', initHeader);
 </script>

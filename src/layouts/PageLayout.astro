@@ -8,24 +8,34 @@ interface Props {
   title: string;
   description?: string;
   image?: string;
-  noindex?: boolean; // ✅ 1. Agregamos la propiedad opcional aquí
+  noindex?: boolean;
 }
 
 const { 
   title, 
   description, 
   image, 
-  noindex = false // ✅ 2. La desestructuramos con valor por defecto
+  noindex = false 
 } = Astro.props;
 ---
 
-{/* ✅ 3. Se la pasamos al BaseLayout */}
 <BaseLayout title={title} description={description} image={image} noindex={noindex}>
-  <Header />
   
-  <main class="min-h-screen">
+  {/* ✅ 1. Header persistente: 
+      El menú se queda fijo y no parpadea al navegar.
+  */}
+  <div transition:persist>
+    <Header />
+  </div>
+  
+  {/* ✅ 2. Animación de contenido:
+      El contenido viejo se desvanece suavemente mientras entra el nuevo.
+  */}
+  <main class="min-h-screen" transition:animate="fade">
     <slot />
   </main>
   
+  {/* El Footer lo dejamos que se recargue (opcional) o también podrías ponerle persist */}
   <Footer />
+
 </BaseLayout>

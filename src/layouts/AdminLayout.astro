@@ -1,9 +1,6 @@
 ---
 // src/layouts/AdminLayout.astro
 import BaseLayout from './BaseLayout.astro';
-
-// ✅ MEJORA: Importamos ambos componentes estructurales desde la carpeta 'layout'
-// Asegúrate de mover los archivos físicos a src/components/admin/layout/
 import { AdminSidebar } from '@/components/admin/layout/AdminSidebar'; 
 import AdminHeader from '@/components/admin/layout/AdminHeader.astro';
 
@@ -17,15 +14,21 @@ const { title } = Astro.props;
 <BaseLayout title={title} noindex={true}>
   <div class="flex h-screen bg-secondary-50">
     
-    {/* client:only="react" es una excelente elección aquí. 
-      Evita errores de hidratación ya que el menú depende 100% del estado del cliente (Auth).
+    {/* ✅ AGREGAMOS: transition:persist 
+       Esto hace que el Sidebar NO se recargue al navegar. 
+       El estado de React (abierto/cerrado) se mantiene intacto entre páginas.
     */}
-    <AdminSidebar client:only="react" />
+    <div transition:persist>
+        <AdminSidebar client:only="react" />
+    </div>
     
     <div class="flex-1 flex flex-col overflow-hidden">
       <AdminHeader />
       
-      <main class="flex-1 overflow-y-auto">
+      {/* Opcional: transition:animate="fade"
+         Hace que el contenido viejo se desvanezca y el nuevo aparezca suavemente.
+      */}
+      <main class="flex-1 overflow-y-auto" transition:animate="fade">
         <div class="container-custom py-8">
           <slot />
         </div>

@@ -1,7 +1,8 @@
 ---
 // src/layouts/BaseLayout.astro
 import '@/styles/global.css';
-// ELIMINADO: import { ToastProvider } ... (Ya no es necesario aquí)
+// ✅ 1. Importamos el Router de Cliente (antes ViewTransitions)
+import { ClientRouter } from 'astro:transitions';
 
 interface Props {
   title: string;
@@ -12,7 +13,6 @@ interface Props {
 
 const {
   title,
-  // CORRECCIÓN: "Servico" -> "Servicio"
   description = 'Servicio de bartender exclusivo para eventos premium en Lima, Perú. Cócteles de autor y servicio excepcional.',
   image = '/images/og-image.jpg',
   noindex = false,
@@ -54,6 +54,9 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
       rel="stylesheet"
     />
     
+    {/* ✅ 2. Activamos las transiciones suaves SPA en todo el sitio */}
+    <ClientRouter />
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -71,7 +74,6 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
     </script>
   </head>
   <body class="antialiased">
-    {/* ELIMINADO: ToastProvider wrapper */}
     <slot />
   </body>
 </html>

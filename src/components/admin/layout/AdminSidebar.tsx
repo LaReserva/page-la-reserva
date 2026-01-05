@@ -14,9 +14,8 @@ import {
   PenTool,
   FileText,
   X,
-  // ✅ NUEVOS ICONOS
-  Martini, // Para Cocteles
-  Mail     // Para Correo
+  Martini, 
+  Mail     
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { AdminUser } from '@/types';
@@ -37,9 +36,18 @@ export function AdminSidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrentPath(window.location.pathname);
-    }
+    // 1. Definimos la función para actualizar la ruta
+    const updatePath = () => {
+      if (typeof window !== 'undefined') {
+        setCurrentPath(window.location.pathname);
+      }
+    };
+
+    // 2. Ejecutamos al inicio
+    updatePath();
+
+    // 3. Escuchamos el evento de navegación de Astro
+    document.addEventListener('astro:page-load', updatePath);
 
     const handleToggle = () => setIsMobileOpen(prev => !prev);
     document.addEventListener('toggle-sidebar', handleToggle);
@@ -68,7 +76,11 @@ export function AdminSidebar() {
     }
     getRole();
 
-    return () => document.removeEventListener('toggle-sidebar', handleToggle);
+    // Limpieza de eventos
+    return () => {
+      document.removeEventListener('astro:page-load', updatePath);
+      document.removeEventListener('toggle-sidebar', handleToggle);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -93,7 +105,6 @@ export function AdminSidebar() {
       icon: MessageSquare, 
       roles: ['super_admin', 'sales'] 
     },
-    // ✅ NUEVO: Correo (Bandeja de entrada)
     { 
       name: 'Correo', 
       href: '/admin/correo', 
@@ -130,7 +141,6 @@ export function AdminSidebar() {
       icon: FileText, 
       roles: ['super_admin', 'sales', 'operations'] 
     },
-    // ✅ NUEVO: Cocteles (Gestión de Menú/Bar)
     { 
       name: 'Cocteles', 
       href: '/admin/cocteles', 
@@ -162,7 +172,7 @@ export function AdminSidebar() {
   );
 
   const isActive = (href: string) => {
-    if (href === '/admin') return currentPath === '/admin';
+    if (href === '/admin') return currentPath === '/admin' || currentPath === '/admin/';
     return currentPath.startsWith(href);
   };
 
@@ -201,7 +211,12 @@ export function AdminSidebar() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-6 px-4">
+        {/* ✅ MEJORA VISUAL: Ocultar Scrollbar 
+           - [scrollbar-width:none]: Para Firefox
+           - [-ms-overflow-style:none]: Para IE/Edge antiguo
+           - [&::-webkit-scrollbar]:hidden: Para Chrome/Safari/Edge moderno
+        */}
+        <nav className="flex-1 overflow-y-auto py-6 px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {role ? (
             <ul className="space-y-2">
               {filteredItems.map((item) => (
