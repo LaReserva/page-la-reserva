@@ -11,7 +11,7 @@ interface CocktailListProps {
   onSearchChange: (term: string) => void;
   isAdmin: boolean;
   onNewClick: () => void;
-  onDelete: (id: string) => void; // ✅ NUEVA PROP
+  onDelete: (id: string) => void;
 }
 
 export function CocktailList({ 
@@ -21,6 +21,11 @@ export function CocktailList({
   const filtered = cocktails.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
+    // ✅ CAMBIOS DE DISEÑO MÓVIL:
+    // - 'w-full': Ocupa todo el ancho.
+    // - 'min-h-[400px]': Altura mínima en móvil.
+    // - 'lg:h-auto': Altura automática en desktop (se ajusta al padre).
+    // - 'lg:col-span-4': Vuelve a 4 columnas en desktop.
     <div className="w-full min-h-[400px] lg:h-auto lg:col-span-4 flex flex-col bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
       
       {/* Header Lista */}
@@ -83,11 +88,11 @@ export function CocktailList({
                     </div>
                 </div>
 
-                {/* ✅ BOTÓN DE ELIMINAR (Solo Admin) */}
+                {/* Botón de Eliminar (Solo Admin) */}
                 {isAdmin && (
                     <button
                         onClick={(e) => {
-                            e.stopPropagation(); // Evita seleccionar el coctel al borrar
+                            e.stopPropagation();
                             onDelete(cocktail.id);
                         }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-secondary-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"

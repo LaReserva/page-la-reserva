@@ -323,6 +323,7 @@ export interface Cocktail {
   slug: string;
   image_url?: string;
   description?: string;
+  instructions?: string;
   active: boolean;
   created_at: string;
 }
