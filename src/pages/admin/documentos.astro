@@ -1,0 +1,27 @@
+---
+// src/pages/admin/documentos.astro
+
+// ✅ Modo SSR activado
+export const prerender = false;
+
+import Layout from '@/layouts/AdminLayout.astro';
+import { DocumentsManager } from '@/components/admin/documents/DocumentsManager';
+
+// Metadatos
+const title = "Generación de Documentos | La Reserva";
+---
+
+<Layout title={title}>
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
+      Generación de Documentos
+    </h1>
+    <p class="mt-2 text-gray-600 text-lg">
+      Gestiona propuestas comerciales y genera listas de compras (picking) automatizadas para operaciones.
+    </p>
+  </div>
+
+  <div class="bg-white/50 min-h-[600px] rounded-xl">
+    <DocumentsManager client:load />
+  </div>
+</Layout>

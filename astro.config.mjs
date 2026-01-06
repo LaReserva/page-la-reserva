@@ -1,48 +1,49 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
-
 import vercel from '@astrojs/vercel';
 
 export default defineConfig({
-  // Integraciones
   integrations: [
     react(),
-    tailwind({
-      // Aplicar estilos base de Tailwind
-      applyBaseStyles: false, // Lo haremos manualmente para más control
-    }),
+    tailwind({ applyBaseStyles: false }),
   ],
 
-  // Output estático por defecto (SSG)
   output: 'static',
 
-  // Build configuration
   build: {
     inlineStylesheets: 'auto',
   },
 
-  // Server configuration (para desarrollo)
   server: {
     port: 3000,
-    host: true, // Permite acceso desde red local
+    host: true,
   },
 
-  // Vite configuration
-  // Experimental features
-  // experimental: {
-  //   contentCollectionCache: true,
-  // },
   vite: {
     optimizeDeps: {
       exclude: ['@supabase/supabase-js'],
+      include: ['@hookform/resolvers/zod', 'zod', 'react-hook-form'],
     },
 
     ssr: {
       noExternal: ['react-hook-form', '@hookform/resolvers'],
     },
-    optimizeDeps: {
-      include: ['@hookform/resolvers/zod', 'zod', 'react-hook-form'],
+
+    build: {
+      // ✅ NUEVO: Aumentamos el límite de advertencia a 2000kb (2MB)
+      // para que no moleste por las librerías de PDF/Excel.
+      chunkSizeWarningLimit: 4000, 
+
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            pdfrenderer: ['@react-pdf/renderer'],
+            xlsx: ['xlsx'],
+            docx: ['docx', 'file-saver'],
+          },
+        },
+      },
     },
   },
 
