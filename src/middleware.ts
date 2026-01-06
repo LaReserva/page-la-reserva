@@ -86,12 +86,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
           '/admin/clientes', 
           '/admin/cotizaciones', 
           '/admin/eventos', 
-          '/admin/perfil'
+          '/admin/perfil',
+          '/admin/cocteles'
         ],
         operations: [
           '/admin/eventos', 
           '/admin/contenido', 
-          '/admin/perfil'
+          '/admin/perfil',
+          '/admin/cocteles'
         ],
       };
 

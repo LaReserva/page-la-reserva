@@ -73,22 +73,31 @@ export function RecipeTable({
             <p className="text-sm text-secondary-500 mb-3">{cocktail.description}</p>
             
             <div className="flex flex-wrap items-center gap-3">
-              {/* Input Prueba */}
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-secondary-400 uppercase tracking-wider">Prueba:</span>
+              {/* Input Prueba de Cálculo Mejorado */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <span className="text-[10px] font-bold text-secondary-400 uppercase tracking-wider hidden sm:block">
+                  Prueba de Cálculo:
+                </span>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                    <GlassWater className="h-3.5 w-3.5 text-primary-500" />
+                  {/* Icono Izquierda */}
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <GlassWater className="h-5 w-5 text-primary-500" />
                   </div>
+                  
+                  {/* Input Principal */}
                   <input 
                     type="number" 
                     min="1"
                     value={testQty}
                     onChange={(e) => onTestQtyChange(Math.max(1, parseInt(e.target.value) || 0))}
-                    className="pl-8 pr-12 py-1.5 w-28 bg-white border border-secondary-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 font-bold text-base text-secondary-900 outline-none transition-all"
+                    className="pl-10 pr-16 py-2 w-40 sm:w-44 bg-white border border-secondary-300 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 font-bold text-2xl text-secondary-900 outline-none transition-all"
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <span className="text-[10px] font-medium text-secondary-400 uppercase">Unds</span>
+                  
+                  {/* Texto Derecha (Unidad) */}
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <span className="text-[10px] font-bold text-secondary-400 uppercase tracking-wide">
+                      Cocteles
+                    </span>
                   </div>
                 </div>
               </div>

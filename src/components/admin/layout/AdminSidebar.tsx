@@ -133,7 +133,7 @@ export function AdminSidebar() {
       name: 'Blog', 
       href: '/admin/blog', 
       icon: PenTool, 
-      roles: ['super_admin', 'sales'] 
+      roles: ['super_admin'] 
     },
     { 
       name: 'Documentos', 
