@@ -82,7 +82,7 @@ export function DocumentsManager() {
   }
 
   return (
-    <div className="flex flex-col h-[85vh] gap-6">
+    <div className="flex flex-col h-[130vh] gap-6">
       
       {/* Header */}
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">

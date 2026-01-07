@@ -1,3 +1,4 @@
+// src/components/admin/events/EventDetailModal.tsx
 import { useState, useEffect } from 'react';
 import { 
   X, Save, Calendar, MapPin, FileText, 
