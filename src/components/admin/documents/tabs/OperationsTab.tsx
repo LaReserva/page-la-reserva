@@ -243,20 +243,86 @@ export function OperationsTab({ userRole }: { userRole: string }) {
     }
   };
 
+// --- EXPORTAR EXCEL FORMAL ---
   const handleExportExcel = () => {
     if (shoppingList.length === 0) return;
-    const dataToExport = shoppingList.map(item => ({
-      'Categoría': item.category.toUpperCase(),
-      'Insumo': item.ingredientName,
-      'Cantidad Total': item.totalQuantity,
-      'Unidad Compra': item.purchaseUnit,
+
+    // 1. Preparar los datos estructurados
+    const tableData = shoppingList.map(item => ({
+      categoria: item.category.toUpperCase(),
+      insumo: item.ingredientName,
+      cantidad: item.totalQuantity,
+      unidad: item.purchaseUnit,
+      precio: item.price,
+      total: item.totalCost
     }));
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
+
+    // Calcular el Gran Total
+    const grandTotal = tableData.reduce((sum, item) => sum + item.total, 0);
+
+    // 2. Crear la hoja de trabajo (Worksheet)
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Lista de Compras");
+    const ws = XLSX.utils.aoa_to_sheet([]); // Iniciamos vacía para personalizar
+
+    // 3. Agregar Título del Reporte (Fila 1)
+    const eventTitle = isFreeMode ? 'PRESUPUESTO - MODO LIBRE' : `PRESUPUESTO: ${selectedEvent?.event_type.toUpperCase()}`;
+    const dateTitle = isFreeMode ? `Fecha: ${new Date().toLocaleDateString()}` : `Fecha: ${selectedEvent?.event_date}`;
+    
+    XLSX.utils.sheet_add_aoa(ws, [
+      [eventTitle], // A1
+      [dateTitle],  // A2
+      ['']          // A3 (Espacio vacío)
+    ], { origin: 'A1' });
+
+    // 4. Agregar Encabezados de Tabla (Fila 4)
+    const headers = [['CATEGORÍA', 'INSUMO', 'CANTIDAD', 'UNIDAD', 'PRECIO UNIT.', 'SUBTOTAL']];
+    XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A4' });
+
+    // 5. Agregar Datos (Desde Fila 5)
+    const rows = tableData.map(d => [
+      d.categoria, 
+      d.insumo, 
+      d.cantidad, 
+      d.unidad, 
+      d.precio, 
+      d.total
+    ]);
+    XLSX.utils.sheet_add_aoa(ws, rows, { origin: 'A5' });
+
+    // 6. Agregar Fila de Total General al final
+    const finalRowIndex = 5 + rows.length;
+    XLSX.utils.sheet_add_aoa(ws, [
+      ['', '', '', '', 'TOTAL ESTIMADO:', grandTotal]
+    ], { origin: `A${finalRowIndex}` });
+
+    // 7. Estilizar Anchos de Columna (A, B, C, D, E, F)
+    ws['!cols'] = [
+      { wch: 15 }, // A: Categoría
+      { wch: 35 }, // B: Insumo (Más ancho)
+      { wch: 10 }, // C: Cantidad
+      { wch: 15 }, // D: Unidad
+      { wch: 12 }, // E: Precio
+      { wch: 15 }  // F: Total
+    ];
+
+    // 8. Opcional: Formato de moneda para columnas E y F (Precio y Total)
+    // Recorremos las celdas de precio y total para asignarles formato numérico
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:F1');
+    for (let R = 4; R <= range.e.r; ++R) { // Empezamos desde la fila de datos
+      ['E', 'F'].forEach(col => {
+        const cellRef = `${col}${R + 1}`;
+        if (ws[cellRef]) {
+          ws[cellRef].z = '"S/" #,##0.00'; // Formato de moneda (Soles)
+        }
+      });
+    }
+
+    // 9. Guardar Archivo
+    XLSX.utils.book_append_sheet(wb, ws, "Presupuesto");
     const fileName = isFreeMode 
-      ? `Compras_ModoLibre_${new Date().toISOString().split('T')[0]}.xlsx`
-      : `Compras_${selectedEvent?.event_date || 'Evento'}.xlsx`;
+      ? `Presupuesto_ModoLibre_${new Date().toISOString().split('T')[0]}.xlsx`
+      : `Presupuesto_${selectedEvent?.event_type.replace(/\s+/g, '_')}_${selectedEvent?.event_date}.xlsx`;
+    
     XLSX.writeFile(wb, fileName);
   };
 

@@ -8,6 +8,8 @@ export interface CalculationResult {
   totalQuantity: number;
   purchaseUnit: string;
   details: string;
+  price: number;
+  totalCost: number;
 }
 
 export interface CalculationParams {
@@ -30,18 +32,16 @@ export function generateShoppingList({
   settings
 }: CalculationParams): CalculationResult[] {
   
-  // Array de resultados
   const results: CalculationResult[] = [];
   const totalsMap = new Map<string, number>();
 
-  // --- LÓGICA DE COCTELES ---
+  // --- 1. CALCULAR CANTIDADES TOTALES ---
   if (event.cocktails_selected && event.cocktails_selected.length > 0) {
     const totalDrinksEstimated = event.guest_count * settings.hours * settings.consumptionRate;
     
     event.cocktails_selected.forEach(cocktailId => {
       let drinksForThisCocktail = 0;
 
-      // Calculamos tragos por coctel según distribución
       if (settings.distribution && typeof settings.distribution[cocktailId] === 'number') {
         const percent = settings.distribution[cocktailId];
         drinksForThisCocktail = totalDrinksEstimated * (percent / 100);
@@ -49,7 +49,6 @@ export function generateShoppingList({
         drinksForThisCocktail = totalDrinksEstimated / event.cocktails_selected!.length;
       }
 
-      // Buscamos las recetas
       const cocktailRecipeItems = recipes.filter(r => r.cocktail_id === cocktailId);
 
       cocktailRecipeItems.forEach(item => {
@@ -72,30 +71,37 @@ export function generateShoppingList({
       });
     });
 
-    // --- PROCESAR RESULTADOS Y APLICAR REDONDEO ---
+    // --- 2. PROCESAR Y CALCULAR COSTOS ---
     totalsMap.forEach((qty, ingredientId) => {
       const ingredient = ingredients.find(i => i.id === ingredientId);
       if (!ingredient) return;
 
       const rawQty = qty * settings.safetyMargin;
-      
-      // LOGICA DE REDONDEO SOLICITADA:
-      // Si la unidad es 'kg' (o contiene 'kg'), mantenemos decimales.
-      // Si no (botellas, paquetes, etc.), redondeamos al entero superior (techo).
       const isWeight = ingredient.purchase_unit.toLowerCase().includes('kg');
       
       let finalQty = 0;
       let displayQty = '';
 
       if (isWeight) {
-        // Kilos: Mantenemos hasta 2 decimales para precisión
         finalQty = Number(rawQty.toFixed(2));
         displayQty = finalQty.toString(); 
       } else {
-        // Otros: Redondeo hacia arriba (Math.ceil) para asegurar que no falte insumo
-        // Ej: 3.1 botellas -> Compras 4 botellas
         finalQty = Math.ceil(rawQty);
         displayQty = finalQty.toString();
+      }
+
+      // --- CORRECCIÓN FINAL AQUÍ ---
+      // Leemos explícitamente 'estimated_price'.
+      // Usamos (ingredient as any) por si acaso no has actualizado el types.ts todavía,
+      // pero idealmente TypeScript ya sabrá que existe.
+      const dbPrice = (ingredient as any).estimated_price || 0;
+      
+      // Cálculo del costo total por línea
+      const totalCost = Number((finalQty * dbPrice).toFixed(2));
+
+      if (dbPrice === 0) {
+        // Warning útil para desarrollo
+        console.warn(`Aviso: El insumo "${ingredient.name}" tiene precio 0 (estimated_price).`);
       }
 
       results.push({
@@ -104,15 +110,21 @@ export function generateShoppingList({
         category: ingredient.category,
         totalQuantity: finalQty,
         purchaseUnit: ingredient.purchase_unit,
-        details: `${displayQty} ${ingredient.purchase_unit}(s)`
+        details: `${displayQty} ${ingredient.purchase_unit}(s)`,
+        price: dbPrice,      // Aquí guardamos el precio unitario
+        totalCost: totalCost // Aquí el total
       });
     });
   }
 
-  // --- LÓGICA DE HIELO (SIEMPRE SE CALCULA SI HAY INVITADOS) ---
+  // --- 3. LÓGICA DE HIELO ---
   if (event.guest_count > 0) {
     const baseIceBags = Math.ceil(event.guest_count / 4);
     const totalIceBags = baseIceBags + (settings.extraIceBags || 0);
+    
+    // Precio FIJO del hielo
+    const icePrice = 5.00; 
+    const iceTotalCost = totalIceBags * icePrice;
 
     results.push({
       ingredientId: 'ice-auto-generated',
@@ -120,7 +132,9 @@ export function generateShoppingList({
       category: 'hielo',
       totalQuantity: totalIceBags,
       purchaseUnit: 'bolsa 3kg',
-      details: `${totalIceBags} bolsa(s)`
+      details: `${totalIceBags} bolsa(s)`,
+      price: icePrice,
+      totalCost: iceTotalCost
     });
   }
 
