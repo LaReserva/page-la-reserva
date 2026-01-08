@@ -8,6 +8,7 @@ import {
 import { pdf } from '@react-pdf/renderer';
 import FileSaver from 'file-saver';
 import { ProposalPdf } from '../templates/ProposalPdf';
+import { generateContractWord } from '@/utils/ContractGenerator'; // ✅ IMPORTANTE: Importar el generador
 import { QUOTE_DOC_STATUSES } from '@/utils/constants';
 import type { Proposal, Contract } from '@/types';
 
@@ -15,8 +16,6 @@ import type { Proposal, Contract } from '@/types';
 
 const StatusSelector = ({ currentStatus, onChange, loading }: { currentStatus: string, onChange: (val: string) => void, loading: boolean }) => {
   const config = QUOTE_DOC_STATUSES[currentStatus as keyof typeof QUOTE_DOC_STATUSES] || QUOTE_DOC_STATUSES.pending;
-  
-  // Colores sutiles para los badges
   const colorClasses: Record<string, string> = {
     yellow: "bg-yellow-100 text-yellow-800 border-yellow-200",
     green: "bg-green-100 text-green-800 border-green-200",
@@ -134,7 +133,6 @@ export function CommercialTab({ userRole }: { userRole: string }) {
   const clearForm = () => {
     setClientName(''); setClientPhone(''); setClientEmail(''); 
     setEventType('Boda'); setEventDate(''); setGuestCount(50); setQuoteAmount(''); 
-    // RESTAURAR DEFAULT (Corrección importante)
     setIncludesList(DEFAULT_INCLUDES); 
     setLinkedQuoteId(null);
   };
@@ -234,12 +232,15 @@ export function CommercialTab({ userRole }: { userRole: string }) {
     } catch (error: any) { alert(`Error: ${error.message}`); return null; } finally { setIsSaving(false); }
   }
 
-  // --- GENERACIÓN CONTRATO ---
+  // --- GENERACIÓN CONTRATO (WORD) ---
   async function generateContract() {
     if (!selectedProposal) return;
+    if (!confirm("¿Generar contrato? Esto marcará la propuesta como ACEPTADA.")) return;
+    
     setIsSaving(true);
     try {
       const { data: user } = await supabase.auth.getUser();
+      
       const payload = {
         proposal_id: selectedProposal.id,
         client_name: selectedProposal.client_name, client_email: selectedProposal.client_email,
@@ -247,12 +248,22 @@ export function CommercialTab({ userRole }: { userRole: string }) {
         event_type: selectedProposal.event_type, total_amount: selectedProposal.total_price,
         items: selectedProposal.items, contract_status: 'created', user_id: user.user?.id
       };
+      
       const { data: contract, error } = await supabase.from('contracts').insert(payload).select().single();
       if (error) throw error;
 
       await supabase.from('proposals').update({ status: 'accepted' }).eq('id', selectedProposal.id);
-      alert(`Contrato generado correctamente.\nFolio: ${contract.id.slice(0,8).toUpperCase()}`);
+
+      // GENERAR WORD
+      const blob = await generateContractWord(selectedProposal);
+      const folio = contract.id.slice(0, 8).toUpperCase();
+      const fileName = `Contrato_${selectedProposal.client_name.replace(/\s+/g, '_')}_${folio}.docx`;
+      
+      FileSaver.saveAs(blob, fileName);
+
+      alert(`Contrato generado y descargado (WORD).\nFolio: ${folio}`);
       setViewMode('list_contracts');
+      
     } catch (e: any) { alert(e.message); } finally { setIsSaving(false); }
   }
 
@@ -272,6 +283,7 @@ export function CommercialTab({ userRole }: { userRole: string }) {
   const handleViewPdf = async (doc: any, type: 'proposal' | 'contract') => {
     try {
       setIsGenerating(true);
+      // Para visualización rápida, usamos el PDF (incluso para contratos)
       const itemsArray = typeof doc.items === 'string' ? JSON.parse(doc.items) : doc.items || [];
       const isContract = type === 'contract';
       const blob = await pdf(
@@ -371,9 +383,6 @@ export function CommercialTab({ userRole }: { userRole: string }) {
              <ListPlus size={18}/> Archivo Contratos
            </button>
         </div>
-        <div className="p-6 text-xs text-gray-400">
-          Gestión comercial completa. Crea propuestas y contratos en un solo lugar.
-        </div>
       </div>
 
       {/* AREA PRINCIPAL */}
@@ -384,7 +393,7 @@ export function CommercialTab({ userRole }: { userRole: string }) {
           <div className="max-w-6xl mx-auto w-full space-y-6 animate-in fade-in">
             {/* Header */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-4 z-30">
-               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><FileText className="text-blue-600"/> Generador de Propuestas</h2>
+               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><FileText className="text-primary-600"/> Generador de Propuestas</h2>
                <div className="flex gap-3">
                  <button onClick={handleDirectSave} disabled={isSaving} className="bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-bold hover:bg-gray-200 flex items-center gap-2 text-sm">
                    {isSaving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} Guardar
@@ -463,7 +472,7 @@ export function CommercialTab({ userRole }: { userRole: string }) {
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col h-auto min-h-[600px]">
                    <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100 flex-none">
-                     <div className="p-2 bg-gray-50 rounded-lg text-gray-600"><ListPlus size={20}/></div>
+                     <div className="p-2 bg-primary-50 rounded-lg text-primary-600"><ListPlus size={20}/></div>
                      <div><h3 className="text-lg font-bold text-gray-800">Detalles del Servicio</h3><p className="text-xs text-gray-400">Items incluidos en la propuesta</p></div>
                    </div>
                    <div className="flex gap-2 mb-4 flex-none">
@@ -489,7 +498,7 @@ export function CommercialTab({ userRole }: { userRole: string }) {
 
         {/* --- 2. VISTA: LISTA PROPUESTAS --- */}
         {viewMode === 'list_proposals' && (
-          <div className="max-w-6xl mx-auto w-full space-y-6 animate-in fade-in">
+          <div className="w-full space-y-6 animate-in fade-in">
              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm min-h-[600px]">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><FileStack className="text-blue-600"/> Archivo de Propuestas</h2>
@@ -504,7 +513,7 @@ export function CommercialTab({ userRole }: { userRole: string }) {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                      <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs border-b border-gray-200">
+                      <thead className="bg-blue-50 text-blue-900 font-semibold uppercase text-xs border-b border-blue-100">
                         <tr><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cliente</th><th className="px-6 py-4">Monto</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4 text-right">Acción</th></tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -591,38 +600,40 @@ export function CommercialTab({ userRole }: { userRole: string }) {
 
         {/* --- 4. VISTA: LISTA CONTRATOS --- */}
         {viewMode === 'list_contracts' && (
-           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-6xl mx-auto animate-in fade-in">
-              <div className="flex justify-between items-center mb-6">
-                 <h2 className="text-xl font-bold flex gap-2 text-gray-800"><ListPlus/> Archivo de Contratos</h2>
-                 <div className="relative w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
-                    <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar contrato..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2"/>
-                 </div>
+           <div className="w-full space-y-6 animate-in fade-in">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 min-h-[600px]">
+                  <div className="flex justify-between items-center mb-6">
+                     <h2 className="text-xl font-bold flex gap-2 text-gray-800"><ListPlus/> Archivo de Contratos</h2>
+                     <div className="relative w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
+                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar contrato..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2"/>
+                     </div>
+                  </div>
+                  
+                  {loadingList ? <div className="p-20 text-center text-gray-400">Cargando...</div> : contractsList.length === 0 ? <div className="p-20 text-center border-2 border-dashed border-gray-100 rounded-xl">No hay contratos.</div> : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                         <thead className="bg-gray-50 text-gray-600 font-bold text-xs uppercase">
+                            <tr><th className="p-3">Folio</th><th className="p-3">Cliente</th><th className="p-3">Evento</th><th className="p-3">Estado</th><th className="p-3 text-right">PDF</th></tr>
+                         </thead>
+                         <tbody className="divide-y divide-gray-100">
+                            {contractsList.map(c => (
+                               <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="p-3"><span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded border border-gray-200">{c.id.slice(0,8).toUpperCase()}</span></td>
+                                  <td className="p-3 font-bold text-gray-800">{c.client_name}</td>
+                                  <td className="p-3 text-gray-600">{c.event_type}</td>
+                                  <td className="p-3"><span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold uppercase">{c.contract_status}</span></td>
+                                  <td className="p-3 text-right flex justify-end gap-2">
+                                     <button onClick={() => handleViewPdf(c, 'contract')} className="text-gray-400 hover:text-blue-600 p-2"><Eye size={16}/></button>
+                                     {userRole === 'super_admin' && <button onClick={() => confirmDelete(c.id, 'contract')} className="text-gray-400 hover:text-red-600 p-2"><Trash2 size={16}/></button>}
+                                  </td>
+                               </tr>
+                            ))}
+                         </tbody>
+                      </table>
+                    </div>
+                  )}
               </div>
-              
-              {loadingList ? <div className="p-20 text-center text-gray-400">Cargando...</div> : contractsList.length === 0 ? <div className="p-20 text-center border-2 border-dashed border-gray-100 rounded-xl">No hay contratos.</div> : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                     <thead className="bg-gray-50 text-gray-600 font-bold text-xs uppercase">
-                        <tr><th className="p-3">Folio</th><th className="p-3">Cliente</th><th className="p-3">Evento</th><th className="p-3">Estado</th><th className="p-3 text-right">PDF</th></tr>
-                     </thead>
-                     <tbody className="divide-y divide-gray-100">
-                        {contractsList.map(c => (
-                           <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="p-3"><span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded border border-gray-200">{c.id.slice(0,8).toUpperCase()}</span></td>
-                              <td className="p-3 font-bold text-gray-800">{c.client_name}</td>
-                              <td className="p-3 text-gray-600">{c.event_type}</td>
-                              <td className="p-3"><span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold uppercase">{c.contract_status}</span></td>
-                              <td className="p-3 text-right flex justify-end gap-2">
-                                 <button onClick={() => handleViewPdf(c, 'contract')} className="text-gray-400 hover:text-blue-600 p-2"><Eye size={16}/></button>
-                                 {userRole === 'super_admin' && <button onClick={() => confirmDelete(c.id, 'contract')} className="text-gray-400 hover:text-red-600 p-2"><Trash2 size={16}/></button>}
-                              </td>
-                           </tr>
-                        ))}
-                     </tbody>
-                  </table>
-                </div>
-              )}
            </div>
         )}
 
