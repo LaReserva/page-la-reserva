@@ -29,6 +29,14 @@ import {
 export const SITE_URL = import.meta.env.PUBLIC_SITE_URL || 'https://lareserva.pe';
 export const API_URL = `${SITE_URL}/api`;
 
+// ✅ NUEVO: Estados para el DOCUMENTO de Cotización (Módulo Comercial)
+export const QUOTE_DOC_STATUSES = {
+  pending: { label: 'Pendiente', color: 'yellow' },   // Se creó pero no se ha cerrado
+  accepted: { label: 'Aceptada', color: 'green' },    // El cliente dijo que sí
+  rejected: { label: 'Rechazada', color: 'red' },     // El cliente dijo que no
+  expired:  { label: 'Vencida',  color: 'gray' },     // Pasaron los 15 días
+} as const;
+
 export const SITE_INFO = {
   name: 'La Reserva',
   tagline: 'Mixología Exclusiva',

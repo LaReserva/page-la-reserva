@@ -4,7 +4,8 @@ import type {
   EVENT_STATUSES, 
   EVENT_TYPES, 
   SERVICES, 
-  PACKAGES 
+  PACKAGES,
+  QUOTE_DOC_STATUSES
 } from '@/utils/constants';
 
 
@@ -55,6 +56,46 @@ export interface Quote {
   interested_package?: string;
 }
 
+export interface Proposal {
+  id: string;
+  created_at: string;
+  
+  // Datos Cliente
+  client_name: string;
+  client_email: string;
+  client_phone: string;
+  
+  // Datos Evento
+  event_type: string;
+  event_date: string;
+  guest_count: number;
+  
+  // Datos Económicos
+  total_price: number;
+  items: string[]; // TypeScript ahora sabe que esto es un array de strings
+  
+  // Gestión
+  status: ProposalStatus;
+  source_quote_id?: string; // ID de la solicitud web original (si existe)
+  user_id: string;
+}
+
+export interface Contract {
+  id: string;
+  created_at: string;
+  proposal_id: string;
+  
+  client_name: string;
+  client_email: string;
+  client_phone: string;
+  event_date: string;
+  event_type: string;
+  total_amount: number;
+  items: string[];
+  
+  contract_status: 'created' | 'signed' | 'cancelled';
+  user_id: string;
+}
 export interface Event {
   id: string;
   client_id?: string;
@@ -265,6 +306,7 @@ export interface LoginFormData {
 }
 
 export type QuoteStatus = keyof typeof QUOTE_STATUSES;
+export type ProposalStatus = keyof typeof QUOTE_DOC_STATUSES;
 export type EventStatus = keyof typeof EVENT_STATUSES;
 export type EventType = typeof EVENT_TYPES[number]['value'];
 export type ServiceId = typeof SERVICES[number]['id'];
