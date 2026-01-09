@@ -1,8 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { Calendar, dateFnsLocalizer, type View, type ToolbarProps } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2, Filter, Plus } from 'lucide-react';
+import { 
+  Loader2, 
+  Filter, 
+  Plus, 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronDown, 
+  Calendar as CalendarIcon,
+  Check
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Event, EventStatus } from '@/types';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -10,9 +19,16 @@ import { EventDetailModal } from './EventDetailModal';
 import { CreateManualEventModal } from './CreateManualEventModal';
 import { useUserRole } from '@/hooks/useUserRole'; 
 
-// ... (Configuración de locales y tipos internos se mantienen igual)
+// ✅ HEADLESS UI IMPORTS
+import { Listbox, Transition } from '@headlessui/react';
+import { cn } from '@/utils/utils'; // Asumiendo que tienes una utilidad 'cn' para clases, si no, usa template literals
+
 const locales = { 'es': es };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
+
+// ==========================================
+// CONFIGURACIÓN DE TIPOS Y ESTADOS
+// ==========================================
 
 interface CalendarEvent {
   id: string;
@@ -24,10 +40,10 @@ interface CalendarEvent {
 }
 
 const STATUS_COLORS: Record<EventStatus, string> = {
-  pending: '#EAB308',
-  confirmed: '#16A34A',
-  completed: '#2563EB',
-  cancelled: '#DC2626',
+  pending: '#EAB308',   // Yellow-500
+  confirmed: '#16A34A', // Green-600
+  completed: '#2563EB', // Blue-600
+  cancelled: '#DC2626', // Red-600
 };
 
 const STATUS_TRANSLATIONS: Record<EventStatus, string> = {
@@ -37,30 +53,114 @@ const STATUS_TRANSLATIONS: Record<EventStatus, string> = {
   cancelled: 'Cancelado',
 };
 
-// ✅ Componente Toolbar extraído (Se mantiene igual)
-const CustomToolbar = (props: ToolbarProps) => {
-  return (
-    <div className="rbc-toolbar mb-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-      <span className="rbc-btn-group shadow-sm rounded-lg overflow-hidden">
-        <button type="button" onClick={() => props.onNavigate('PREV')} className="px-3 py-1.5 bg-white hover:bg-secondary-50 text-secondary-600 border-r text-sm">Anterior</button>
-        <button type="button" onClick={() => props.onNavigate('TODAY')} className="px-3 py-1.5 bg-secondary-50 font-semibold text-secondary-900 border-r text-sm">Hoy</button>
-        <button type="button" onClick={() => props.onNavigate('NEXT')} className="px-3 py-1.5 bg-white hover:bg-secondary-50 text-secondary-600 text-sm">Siguiente</button>
-      </span>
-      
-      <span className="rbc-toolbar-label font-display font-bold text-xl text-secondary-900 capitalize">
-        {props.label}
-      </span>
+const VIEW_OPTIONS: { id: View; label: string }[] = [
+  { id: 'month', label: 'Vista Mensual' },
+  { id: 'week', label: 'Vista Semanal' },
+  { id: 'agenda', label: 'Agenda / Lista' },
+];
 
-      <span className="rbc-btn-group shadow-sm rounded-lg overflow-hidden">
-        <button type="button" onClick={() => props.onView('month')} className={`px-3 py-1.5 text-sm ${props.view === 'month' ? 'bg-primary-500 text-white' : 'bg-white text-secondary-600 hover:bg-secondary-50'}`}>Mes</button>
-        <button type="button" onClick={() => props.onView('week')} className={`px-3 py-1.5 text-sm ${props.view === 'week' ? 'bg-primary-500 text-white' : 'bg-white text-secondary-600 hover:bg-secondary-50'}`}>Semana</button>
-        <button type="button" onClick={() => props.onView('agenda')} className={`px-3 py-1.5 text-sm ${props.view === 'agenda' ? 'bg-primary-500 text-white' : 'bg-white text-secondary-600 hover:bg-secondary-50'}`}>Agenda</button>
-      </span>
+// ==========================================
+// COMPONENTES AUXILIARES UI
+// ==========================================
+
+/**
+ * Toolbar Personalizado con Headless UI Listbox
+ */
+const CustomToolbar = (props: ToolbarProps) => {
+  const currentView = VIEW_OPTIONS.find(v => v.id === props.view) || VIEW_OPTIONS[0];
+
+  return (
+    <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6 pb-6 border-b border-secondary-100">
+      
+      {/* 1. Navegación e Info de Fecha */}
+      <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+        <div className="flex items-center bg-white rounded-lg border border-secondary-200 shadow-sm p-1">
+          <button 
+            type="button" 
+            onClick={() => props.onNavigate('PREV')} 
+            className="p-1.5 text-secondary-500 hover:text-primary-600 hover:bg-secondary-50 rounded-md transition-colors"
+            title="Anterior"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button 
+            type="button" 
+            onClick={() => props.onNavigate('TODAY')} 
+            className="px-3 py-1 text-xs font-bold text-secondary-700 hover:bg-secondary-50 rounded-md transition-colors uppercase tracking-wider"
+          >
+            Hoy
+          </button>
+          <button 
+            type="button" 
+            onClick={() => props.onNavigate('NEXT')} 
+            className="p-1.5 text-secondary-500 hover:text-primary-600 hover:bg-secondary-50 rounded-md transition-colors"
+            title="Siguiente"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+
+        <h2 className="text-xl font-display font-bold text-secondary-900 capitalize min-w-[150px]">
+          {props.label}
+        </h2>
+      </div>
+
+      {/* 2. Selector de Vista (Headless UI Listbox) */}
+      <div className="w-full md:w-56 relative z-20">
+        <Listbox value={props.view} onChange={(val) => props.onView(val as View)}>
+          <div className="relative mt-1">
+            <Listbox.Button className="relative w-full cursor-pointer rounded-lg bg-white py-2.5 pl-4 pr-10 text-left border border-secondary-200 shadow-sm focus:outline-none focus-visible:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500/20 sm:text-sm transition-all hover:border-secondary-300">
+              <span className="block truncate font-medium text-secondary-700">{currentView.label}</span>
+              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                <ChevronDown className="h-4 w-4 text-secondary-400" aria-hidden="true" />
+              </span>
+            </Listbox.Button>
+            
+            <Transition
+              as={Fragment}
+              leave="transition ease-in duration-100"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-xl bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-50">
+                {VIEW_OPTIONS.map((viewOption) => (
+                  <Listbox.Option
+                    key={viewOption.id}
+                    className={({ active }) =>
+                      cn(
+                        "relative cursor-pointer select-none py-2.5 pl-10 pr-4 transition-colors",
+                        active ? "bg-secondary-50 text-primary-700" : "text-secondary-900"
+                      )
+                    }
+                    value={viewOption.id}
+                  >
+                    {({ selected }) => (
+                      <>
+                        <span className={cn("block truncate", selected ? "font-bold" : "font-normal")}>
+                          {viewOption.label}
+                        </span>
+                        {selected ? (
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-600">
+                            <Check className="h-4 w-4" aria-hidden="true" />
+                          </span>
+                        ) : null}
+                      </>
+                    )}
+                  </Listbox.Option>
+                ))}
+              </Listbox.Options>
+            </Transition>
+          </div>
+        </Listbox>
+      </div>
     </div>
   );
 };
 
-// ✅ DEFINICIÓN DE PROPS: Agregamos showHeader opcional
+// ==========================================
+// COMPONENTE PRINCIPAL
+// ==========================================
+
 interface EventsCalendarViewProps {
   showHeader?: boolean;
 }
@@ -88,28 +188,18 @@ export function EventsCalendarView({ showHeader = true }: EventsCalendarViewProp
       if (error) throw error;
 
       if (data) {
-        // Obtenemos "Hoy" a las 00:00:00 para comparar solo fechas puras
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const formattedEvents: CalendarEvent[] = data.map((evt: any) => {
-          const dateStr = evt.event_date; // YYYY-MM-DD
+          const dateStr = evt.event_date;
           const timeStr = evt.event_time || '12:00:00';
           
-          // Construimos fechas
           const start = new Date(`${dateStr}T${timeStr}`);
           const end = new Date(start.getTime() + (5 * 60 * 60 * 1000));
-          
-          // Crear objeto fecha del evento a medianoche para comparar con 'today'
-          // Usamos la cadena YYYY-MM-DD para evitar problemas de zona horaria con las horas
           const eventDateObj = new Date(`${dateStr}T00:00:00`);
 
-          // ✅ LÓGICA DE ESTADO DINÁMICO
-          // Si el estado es 'confirmed' Y la fecha del evento es estrictamente MENOR que hoy
-          // entonces visualmente es 'completed'.
-          // (Si es igual a hoy, eventDateObj < today será falso, así que se mantiene verde).
           let displayStatus = evt.status;
-          
           if (displayStatus === 'confirmed' && eventDateObj < today) {
             displayStatus = 'completed';
           }
@@ -119,7 +209,7 @@ export function EventsCalendarView({ showHeader = true }: EventsCalendarViewProp
             title: `${evt.event_type} - ${evt.client?.name || 'Cliente'}`,
             start,
             end,
-            status: displayStatus as EventStatus, // Forzamos el tipo visual
+            status: displayStatus as EventStatus,
             resource: evt,
           };
         });
@@ -128,7 +218,8 @@ export function EventsCalendarView({ showHeader = true }: EventsCalendarViewProp
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
-      setLoading(false);
+      // Pequeño delay artificial para que la transición se aprecie si la carga es muy rápida
+      setTimeout(() => setLoading(false), 300);
     }
   }
 
@@ -146,67 +237,100 @@ export function EventsCalendarView({ showHeader = true }: EventsCalendarViewProp
     return {
       style: {
         backgroundColor,
-        borderRadius: '6px',
-        opacity: 0.9,
+        borderRadius: '4px',
+        opacity: 0.95,
         color: 'white',
         border: '0px',
         display: 'block',
         fontSize: '0.75rem',
-        fontWeight: '600',
-        cursor: 'pointer'
+        fontWeight: '500',
+        cursor: 'pointer',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
       }
     };
   };
 
-  if (loading) return <div className="flex justify-center items-center h-96 bg-white rounded-xl border border-secondary-200"><Loader2 className="w-8 h-8 text-primary-500 animate-spin" /></div>;
-
   return (
     <div className="space-y-6">
       
-      {/* ✅ RENDERIZADO CONDICIONAL DEL HEADER (LEYENDA Y BOTÓN) */}
+      {/* Header / Leyenda */}
       {showHeader && (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-secondary-200 shadow-sm">
-          <div className="flex flex-wrap gap-4">
-            <span className="text-sm font-medium text-secondary-500 flex items-center gap-2">
-              <Filter className="w-4 h-4" /> Estados:
+          <div className="flex flex-wrap gap-4 items-center">
+            <span className="text-sm font-medium text-secondary-900 flex items-center gap-2 bg-secondary-50 px-3 py-1.5 rounded-lg border border-secondary-100">
+              <Filter className="w-4 h-4 text-secondary-500" /> 
+              Filtros
             </span>
-            {Object.entries(STATUS_COLORS).map(([status, color]) => (
-              <div key={status} className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }}></span>
-                <span className="text-xs text-secondary-600 capitalize">
-                  {STATUS_TRANSLATIONS[status as EventStatus]}
-                </span>
-              </div>
-            ))}
+            <div className="flex gap-3 flex-wrap">
+              {Object.entries(STATUS_COLORS).map(([status, color]) => (
+                <div key={status} className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-secondary-50 transition-colors cursor-help" title={`Eventos ${STATUS_TRANSLATIONS[status as EventStatus]}`}>
+                  <span className="w-2.5 h-2.5 rounded-full ring-1 ring-inset ring-black/10" style={{ backgroundColor: color }}></span>
+                  <span className="text-xs font-medium text-secondary-600 capitalize">
+                    {STATUS_TRANSLATIONS[status as EventStatus]}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
           
           {!isOperations && (
             <button 
               onClick={() => setIsCreateOpen(true)}
-              className="px-4 py-2 bg-secondary-900 text-white text-sm font-bold rounded-lg shadow hover:bg-secondary-800 transition-colors flex items-center gap-2"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-secondary-900 hover:bg-black text-white text-sm font-bold rounded-xl shadow-lg shadow-secondary-900/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Plus className="w-4 h-4" /> Nuevo Evento Manual
+              <Plus className="w-4 h-4" /> 
+              <span>Nuevo Evento</span>
             </button>
           )}
         </div>
       )}
 
-      {/* Calendario */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-secondary-200 h-[700px]">
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: '100%' }}
-          culture="es"
-          messages={{ next: "Siguiente", previous: "Anterior", today: "Hoy", month: "Mes", week: "Semana", day: "Día", agenda: "Agenda", date: "Fecha", time: "Hora", event: "Evento", noEventsInRange: "No hay eventos." }}
-          eventPropGetter={eventStyleGetter}
-          onView={(newView: View) => setView(newView)}
-          view={view}
-          onSelectEvent={handleSelectEvent}
-          components={{ toolbar: CustomToolbar }}
-        />
+      {/* Contenedor del Calendario con Transición de Carga */}
+      <div className="relative bg-white p-6 rounded-xl shadow-sm border border-secondary-200 min-h-[700px]">
+        
+        {/* Loading Overlay */}
+        <Transition
+          show={loading}
+          as={Fragment}
+          leave="transition ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
+            <Loader2 className="w-10 h-10 text-primary-500 animate-spin mb-3" />
+            <p className="text-sm font-medium text-secondary-500 animate-pulse">Cargando calendario...</p>
+          </div>
+        </Transition>
+
+        {/* Calendar Component - Solo visible (opacity) cuando no carga para evitar salto de layout */}
+        <div className={cn("h-[700px] transition-opacity duration-500", loading ? "opacity-0" : "opacity-100")}>
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%' }}
+            culture="es"
+            messages={{ 
+              next: "Siguiente", 
+              previous: "Anterior", 
+              today: "Hoy", 
+              month: "Mes", 
+              week: "Semana", 
+              day: "Día", 
+              agenda: "Agenda", 
+              date: "Fecha", 
+              time: "Hora", 
+              event: "Evento", 
+              noEventsInRange: "No hay eventos en este rango." 
+            }}
+            eventPropGetter={eventStyleGetter}
+            onView={(newView: View) => setView(newView)}
+            view={view}
+            onSelectEvent={handleSelectEvent}
+            components={{ toolbar: CustomToolbar }}
+          />
+        </div>
       </div>
 
       <EventDetailModal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} event={selectedEvent} onUpdate={handleEventUpdated} />
