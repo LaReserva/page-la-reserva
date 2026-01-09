@@ -1,57 +1,82 @@
 ---
-export const prerender = false; // Importante: SSR
+// src/pages/feedback/[id].astro
+export const prerender = false;
+
 import PageLayout from '@/layouts/PageLayout.astro';
 import { FeedbackForm } from '@/components/public/FeedbackForm';
 import { supabase } from '@/lib/supabase';
 
 const { id } = Astro.params;
 
-// 1. Validar ID
-if (!id) return Astro.redirect('/');
+let event = null;
+let alreadyReviewed = false;
+let isValid = false;
 
-// 2. Obtener datos del evento
-const { data: event, error } = await supabase
-  .from('events')
-  .select('id, client_name, event_type') // Necesitamos JOIN con clientes si client_name no está plano en events, ajusta según tu modelo
-  .eq('id', id)
-  .single();
+if (id) {
+  // --- CAMBIO DE SEGURIDAD AQUÍ ---
+  // Usamos .rpc() en lugar de .from('events').select()
+  // Esto llama a la función segura que creamos en SQL
+  const { data, error } = await supabase
+    .rpc('get_public_event_info', { lookup_id: id });
 
-// 3. Verificar si ya existe un testimonio
-const { data: existingReview } = await supabase
-  .from('testimonials')
-  .select('id')
-  .eq('event_id', id)
-  .single();
+  // RPC devuelve un array, tomamos el primero
+  const eventData = data && data[0] ? data[0] : null;
 
-const isValid = event && !error;
-const alreadyReviewed = !!existingReview;
+  if (eventData) {
+    event = { 
+        id: eventData.id, 
+        event_type: eventData.event_type, 
+        client_name: eventData.client_name 
+    };
+    isValid = true;
+
+    // Verificar si ya existe review (Esto requiere que la tabla testimonials 
+    // tenga una política de lectura restringida o usamos otra función, 
+    // pero para validar duplicados simples, el insert fallará si hay restricción unique).
+    
+    // MEJOR PRACTICA: Intentar leer el testimonio
+    // Como RLS de testimonials suele ser privado, lo mejor es asumir que NO ha comentado
+    // y dejar que la restricción UNIQUE de la base de datos maneje el error si intenta duplicar.
+    // Opcionalmente, puedes crear una funcion rpc 'check_if_reviewed' similar a la anterior.
+    
+    // Para simplificar y mantener seguridad, intentaremos consultar. 
+    // Si tienes RLS privado en testimonials, esto devolverá null siempre, 
+    // lo cual está bien por seguridad. El error saltará al intentar guardar.
+    const { data: review } = await supabase
+      .from('testimonials')
+      .select('id')
+      .eq('event_id', id)
+      .maybeSingle(); // Usar maybeSingle para evitar errores en consola
+      
+    if (review) alreadyReviewed = true;
+  }
+}
 ---
 
-<PageLayout title="Tu opinión - La Reserva">
-  <div class="min-h-screen bg-secondary-50 flex flex-col justify-center items-center p-4">
+<PageLayout title="Tu Opinión - La Reserva">
+  {/* El resto del HTML se mantiene igual */}
+<div class="min-h-screen bg-secondary-50 flex flex-col items-center justify-center p-4">
     
-    {isValid && !alreadyReviewed ? (
-       /* Caso Exitoso: Renderizar formulario */
-      <FeedbackForm 
-        client:load 
-        eventId={event.id} 
-        clientName={event.client_name || 'Cliente'} 
-        eventType={event.event_type}
-      />
-    ) : alreadyReviewed ? (
-       /* Caso Ya Reseñado */
-      <div class="text-center max-w-md">
-        <h1 class="text-2xl font-bold text-secondary-900 mb-2">Ya recibimos tu opinión</h1>
-        <p class="text-secondary-500">Este enlace ya ha sido utilizado. ¡Gracias por ayudarnos a mejorar!</p>
-        <a href="/" class="inline-block mt-6 text-secondary-900 underline font-medium">Volver al inicio</a>
-      </div>
-    ) : (
-       /* Caso Link Inválido */
-      <div class="text-center max-w-md">
-        <h1 class="text-2xl font-bold text-secondary-900 mb-2">Enlace no válido</h1>
-        <p class="text-secondary-500">No pudimos encontrar el evento asociado a este enlace.</p>
-      </div>
-    )}
-    
-  </div>
+      {/* CORRECCIÓN AQUÍ: Usamos 'event' en la condición */}
+      {event && !alreadyReviewed ? (
+        <FeedbackForm 
+          client:load 
+          eventId={event.id} 
+          clientName={event.client_name} 
+          eventType={event.event_type} 
+        />
+      ) : alreadyReviewed ? (
+        <div class="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md border border-secondary-100">
+          <h1 class="text-xl font-bold text-secondary-900 mb-2">Ya recibimos tu opinión</h1>
+          <p class="text-secondary-500 text-sm">El enlace que has utilizado ya tiene una respuesta registrada o ha expirado.</p>
+          <a href="/" class="mt-6 inline-block text-primary-600 font-bold hover:underline">Ir al Inicio</a>
+        </div>
+      ) : (
+        <div class="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md border border-secondary-100">
+          <h1 class="text-xl font-bold text-secondary-900 mb-2">Enlace no válido</h1>
+          <p class="text-secondary-500 text-sm">No pudimos encontrar el evento. El enlace podría ser incorrecto.</p>
+        </div>
+      )}
+  
+    </div>
 </PageLayout>
