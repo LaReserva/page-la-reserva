@@ -1,0 +1,57 @@
+---
+export const prerender = false; // Importante: SSR
+import PageLayout from '@/layouts/PageLayout.astro';
+import { FeedbackForm } from '@/components/public/FeedbackForm';
+import { supabase } from '@/lib/supabase';
+
+const { id } = Astro.params;
+
+// 1. Validar ID
+if (!id) return Astro.redirect('/');
+
+// 2. Obtener datos del evento
+const { data: event, error } = await supabase
+  .from('events')
+  .select('id, client_name, event_type') // Necesitamos JOIN con clientes si client_name no está plano en events, ajusta según tu modelo
+  .eq('id', id)
+  .single();
+
+// 3. Verificar si ya existe un testimonio
+const { data: existingReview } = await supabase
+  .from('testimonials')
+  .select('id')
+  .eq('event_id', id)
+  .single();
+
+const isValid = event && !error;
+const alreadyReviewed = !!existingReview;
+---
+
+<PageLayout title="Tu opinión - La Reserva">
+  <div class="min-h-screen bg-secondary-50 flex flex-col justify-center items-center p-4">
+    
+    {isValid && !alreadyReviewed ? (
+       /* Caso Exitoso: Renderizar formulario */
+      <FeedbackForm 
+        client:load 
+        eventId={event.id} 
+        clientName={event.client_name || 'Cliente'} 
+        eventType={event.event_type}
+      />
+    ) : alreadyReviewed ? (
+       /* Caso Ya Reseñado */
+      <div class="text-center max-w-md">
+        <h1 class="text-2xl font-bold text-secondary-900 mb-2">Ya recibimos tu opinión</h1>
+        <p class="text-secondary-500">Este enlace ya ha sido utilizado. ¡Gracias por ayudarnos a mejorar!</p>
+        <a href="/" class="inline-block mt-6 text-secondary-900 underline font-medium">Volver al inicio</a>
+      </div>
+    ) : (
+       /* Caso Link Inválido */
+      <div class="text-center max-w-md">
+        <h1 class="text-2xl font-bold text-secondary-900 mb-2">Enlace no válido</h1>
+        <p class="text-secondary-500">No pudimos encontrar el evento asociado a este enlace.</p>
+      </div>
+    )}
+    
+  </div>
+</PageLayout>

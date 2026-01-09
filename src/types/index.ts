@@ -203,6 +203,7 @@ export interface Package {
 
 export interface Testimonial {
   id: string;
+  event_id?: string;
   client_name: string;
   client_company?: string;
   event_type?: string;
