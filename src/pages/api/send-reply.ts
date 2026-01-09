@@ -46,7 +46,10 @@ export const POST: APIRoute = async ({ request }) => {
     const emailResult = await resend.emails.send({
       from: 'La Reserva <info@lareservabartending.com>',
       to: [toEmail],
-      subject: `Re: ${subject}`, // Añadimos Re: para hilo de conversación
+      // ✅ AQUÍ ESTÁ EL CAMBIO:
+      // Esto fuerza a que la respuesta del cliente vaya a tu Gmail principal
+      replyTo: 'lareservabartending@gmail.com', 
+      subject: `Re: ${subject}`, 
       html: `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; color: #333333; line-height: 1.6;">
           
@@ -84,13 +87,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 4. Actualizar estado en Supabase
     const { error: updateError } = await supabase
-      .from('contact_messages') // ⚠️ Asumo que este es el nombre real de la tabla en Supabase
+      .from('contact_messages')
       .update({ status: 'replied' })
       .eq('id', id);
 
     if (updateError) {
       console.error('Correo enviado pero error actualizando DB:', updateError);
-      // No fallamos la request completa porque el correo sí salió
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });

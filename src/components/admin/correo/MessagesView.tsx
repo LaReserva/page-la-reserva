@@ -5,7 +5,6 @@ import type { ContactMessage } from '@/types';
 import { cn } from '@/utils/utils';
 import { MessageDetailModal } from './MessageDetailModal';
 
-// Configuración de estilos por estado
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   new: {
     label: 'Nuevo',
@@ -27,6 +26,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 export function MessagesView() {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // 'all' = Todos
+  // 'new' = Pendientes (Incluye "new" y "read", todo lo que falta responder)
+  // 'replied' = Respondidos
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'replied'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -37,10 +40,10 @@ export function MessagesView() {
     fetchMessages();
   }, []);
 
-  async function fetchMessages() {
+  async function fetchMessages(isBackgroundUpdate = false) {
     try {
-      setLoading(true);
-      // Forzamos el tipado porque la tabla puede no estar actualizada en tus tipos locales
+      if (!isBackgroundUpdate) setLoading(true);
+      
       const { data, error } = await supabase
         .from('contact_messages')
         .select('*')
@@ -60,7 +63,7 @@ export function MessagesView() {
     setSelectedMessage(msg);
     setIsModalOpen(true);
     
-    // Si es nuevo, lo marcamos como leído localmente y en DB
+    // Si el mensaje es "nuevo", lo pasamos a "leído" visualmente y en DB
     if (msg.status === 'new') {
       try {
         await supabase
@@ -68,7 +71,6 @@ export function MessagesView() {
           .update({ status: 'read' })
           .eq('id', msg.id);
         
-        // Actualizar UI local para reflejar el cambio inmediato
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'read' } : m));
       } catch (e) {
         console.error('Error marcando como leído', e);
@@ -76,11 +78,28 @@ export function MessagesView() {
     }
   };
 
+  const handleReplySuccess = () => {
+    fetchMessages(true);
+  };
+
+  // ✅ LÓGICA DE FILTRADO CORREGIDA Y EXPLÍCITA
   const filteredMessages = messages.filter(msg => {
-    const matchesStatus = filterStatus === 'all' || 
-                          (filterStatus === 'replied' ? msg.status === 'replied' : msg.status !== 'replied');
-    
-    // Búsqueda insensible a mayúsculas/minúsculas
+    // 1. Normalizamos el estado (minúsculas y sin espacios) para evitar errores de tipeo en DB
+    const currentStatus = (msg.status || '').toLowerCase().trim();
+
+    let matchesStatus = true;
+
+    if (filterStatus === 'new') {
+      // PENDIENTES: Mostramos todo lo que NO esté respondido.
+      // Esto incluye 'new' (sin leer) y 'read' (leído pero no respondido).
+      matchesStatus = currentStatus !== 'replied';
+    } else if (filterStatus === 'replied') {
+      // RESPONDIDOS: Solo lo que tenga status 'replied'
+      matchesStatus = currentStatus === 'replied';
+    }
+    // Si es 'all', matchesStatus se mantiene true
+
+    // 2. Filtro de Búsqueda
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
       (msg.name || '').toLowerCase().includes(searchLower) ||
@@ -89,14 +108,6 @@ export function MessagesView() {
     
     return matchesStatus && matchesSearch;
   });
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64 bg-white rounded-xl border border-secondary-200">
-        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -150,7 +161,7 @@ export function MessagesView() {
             />
           </div>
           <button 
-            onClick={fetchMessages}
+            onClick={() => fetchMessages(false)}
             className="p-2 text-secondary-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg border border-secondary-200 transition-colors"
             title="Recargar lista"
           >
@@ -159,15 +170,26 @@ export function MessagesView() {
         </div>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
-        {filteredMessages.length === 0 ? (
+      {/* Tabla con estado de Loading interno */}
+      <div className="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden min-h-[300px] relative">
+        
+        {loading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+            <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+          </div>
+        ) : filteredMessages.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Inbox className="w-8 h-8 text-secondary-300" />
             </div>
-            <h3 className="text-secondary-900 font-medium mb-1">No se encontraron mensajes</h3>
-            <p className="text-secondary-500 text-sm">Ajusta los filtros o espera nuevos contactos.</p>
+            <h3 className="text-secondary-900 font-medium mb-1">
+              {filterStatus === 'all' ? 'No hay mensajes' : 
+               filterStatus === 'new' ? 'No tienes mensajes pendientes' : 
+               'No has respondido mensajes aún'}
+            </h3>
+            <p className="text-secondary-500 text-sm">
+              {filterStatus === 'all' ? 'Espera a que los clientes te contacten.' : 'Cambia el filtro para ver otros mensajes.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -182,8 +204,8 @@ export function MessagesView() {
               </thead>
               <tbody className="divide-y divide-secondary-100">
                 {filteredMessages.map((msg) => {
-                  // Fallback por si el status viene undefined o desconocido
-                  const statusInfo = STATUS_CONFIG[msg.status] || STATUS_CONFIG.read;
+                  const safeStatus = (msg.status || 'read').toLowerCase();
+                  const statusInfo = STATUS_CONFIG[safeStatus] || STATUS_CONFIG.read;
                   const StatusIcon = statusInfo.icon;
 
                   return (
@@ -230,7 +252,7 @@ export function MessagesView() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         message={selectedMessage}
-        onReplySuccess={fetchMessages}
+        onReplySuccess={handleReplySuccess} 
       />
     </div>
   );
