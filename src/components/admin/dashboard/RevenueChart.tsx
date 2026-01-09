@@ -1,14 +1,15 @@
-// src/components/admin/dashboard/RevenueChart.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
+import { Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/utils/formatters';
 import { startOfMonth, subMonths, format, parseISO, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2 } from 'lucide-react';
+import { Loader2, TrendingUp, DollarSign } from 'lucide-react';
+import { cn } from '@/utils/utils';
 
 type ChartDataPoint = {
   month: string;
-  fullDate: string; // Para ordenamiento
+  fullDate: string;
   amount: number;
 };
 
@@ -20,12 +21,10 @@ export function RevenueChart() {
   useEffect(() => {
     async function fetchRevenueData() {
       try {
-        // 1. Definimos el rango: Últimos 6 meses
         const today = new Date();
-        const startDate = startOfMonth(subMonths(today, 5)); // Hace 5 meses + este mes = 6 meses
+        const startDate = startOfMonth(subMonths(today, 5));
         const endDate = endOfMonth(today);
 
-        // 2. Consulta a Supabase
         const { data: payments, error } = await supabase
           .from('event_payments')
           .select('amount, payment_date')
@@ -34,7 +33,6 @@ export function RevenueChart() {
 
         if (error) throw error;
 
-        // 3. Inicializamos el mapa de meses
         const initialMap = new Map<string, number>();
         let currentDateIterator = startDate;
 
@@ -44,7 +42,6 @@ export function RevenueChart() {
           currentDateIterator = new Date(currentDateIterator.getFullYear(), currentDateIterator.getMonth() + 1, 1);
         }
 
-        // 4. Sumamos los montos
         let total = 0;
         payments?.forEach((payment) => {
           const paymentMonth = format(parseISO(payment.payment_date), 'yyyy-MM');
@@ -55,11 +52,10 @@ export function RevenueChart() {
           }
         });
 
-        // 5. Convertimos a Array
         const processedData: ChartDataPoint[] = Array.from(initialMap.entries()).map(([key, amount]) => {
           const dateObj = parseISO(`${key}-01`); 
           return {
-            month: format(dateObj, 'MMM', { locale: es }), // Ej: "dic"
+            month: format(dateObj, 'MMM', { locale: es }),
             fullDate: key,
             amount: amount,
           };
@@ -71,7 +67,8 @@ export function RevenueChart() {
       } catch (error) {
         console.error('Error fetching revenue chart:', error);
       } finally {
-        setLoading(false);
+        // Pequeño delay artificial para suavizar la animación si la carga es instantánea
+        setTimeout(() => setLoading(false), 300);
       }
     }
 
@@ -80,72 +77,110 @@ export function RevenueChart() {
 
   const maxVal = Math.max(...data.map(d => d.amount)) || 1;
 
-  if (loading) {
-    return (
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-secondary-200 h-full flex items-center justify-center min-h-[350px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-secondary-200 h-full flex flex-col min-h-[350px]">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h3 className="font-bold text-lg text-secondary-900">Ingresos Mensuales</h3>
-          <p className="text-sm text-secondary-500">Últimos 6 meses</p>
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-secondary-200 h-full flex flex-col min-h-[380px] relative overflow-hidden">
+      
+      {/* Estado de Carga */}
+      <Transition
+        show={loading}
+        as={Fragment}
+        leave="transition ease-in duration-300"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white rounded-2xl">
+          <Loader2 className="w-8 h-8 animate-spin text-secondary-400" />
         </div>
-        <div className="text-right">
-          <p className="text-xs text-secondary-400 uppercase tracking-wider">Total Recaudado</p>
-          <p className="text-xl font-bold text-green-600">
-            {formatCurrency(totalAmount)}
-          </p>
-        </div>
-      </div>
+      </Transition>
 
-      {/* CORRECCIÓN CSS AQUÍ:
-         1. h-64: Altura fija para toda el área del gráfico.
-         2. items-end: Alinea las columnas al fondo.
-      */}
-      <div className="flex items-end justify-between gap-2 h-64 mt-auto w-full">
-        {data.map((item) => {
-          // Calculamos el porcentaje
-          const heightPercentage = (item.amount / maxVal) * 100;
-          
-          return (
-            <div key={item.fullDate} className="flex flex-col items-center gap-2 w-full h-full justify-end group cursor-pointer relative">
-              
-              {/* Tooltip flotante */}
-              <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-secondary-900 text-white text-xs py-1 px-2 rounded mb-1 whitespace-nowrap z-20 pointer-events-none shadow-lg">
-                {formatCurrency(item.amount)}
-              </div>
-              
-              {/* CORRECCIÓN CLAVE:
-                 1. flex-1: Ocupa todo el espacio vertical disponible que NO usan el texto o el gap.
-                 2. w-full: Ocupa el ancho de la columna.
-                 3. flex items-end: Alinea la barra de color al fondo de este espacio reservado.
-              */}
-              <div className="w-full flex-1 flex items-end relative rounded-t-lg bg-gray-50/50">
-                 <div 
-                    className={`w-full rounded-t-lg relative overflow-hidden transition-all duration-700 ease-out ${item.amount > 0 ? 'bg-primary-500 group-hover:bg-primary-600' : 'bg-gray-200'}`}
-                    // Si el monto es 0, damos 2px de altura para que se vea una linea gris sutil
-                    style={{ height: `${item.amount === 0 ? '4px' : `${heightPercentage}%`}` }} 
-                  >
-                    {/* Brillo interno opcional */}
-                    {item.amount > 0 && (
-                      <div className="absolute top-0 left-0 w-full h-1 bg-white opacity-20"></div>
-                    )}
-                 </div>
-              </div>
-              
-              {/* Etiqueta del mes */}
-              <span className="text-xs font-medium text-secondary-500 capitalize h-4 block">
-                {item.month}
-              </span>
+      {/* Contenido del Gráfico */}
+      <Transition
+        show={!loading}
+        as={Fragment}
+        enter="transition ease-out duration-500"
+        enterFrom="opacity-0 translate-y-4"
+        enterTo="opacity-100 translate-y-0"
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h3 className="font-display font-bold text-lg text-secondary-900 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-secondary-500" />
+                Ingresos Mensuales
+              </h3>
+              <p className="text-sm text-secondary-500 mt-1">Comparativa últimos 6 meses</p>
             </div>
-          );
-        })}
-      </div>
+            <div className="text-right">
+              <p className="text-xs text-secondary-400 uppercase tracking-wider font-semibold mb-1">Total Recaudado</p>
+              <div className="flex items-center justify-end gap-1 text-green-600">
+                <p className="text-2xl font-bold tracking-tight">
+                  {formatCurrency(totalAmount)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Área del Gráfico */}
+          <div className="relative flex-1 w-full min-h-[200px]">
+            
+            {/* Grid de Fondo (Líneas guía) */}
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="w-full border-t border-dashed border-secondary-100 h-px first:border-none last:border-secondary-200" />
+              ))}
+            </div>
+
+            {/* Barras */}
+            <div className="absolute inset-0 flex items-end justify-between gap-3 sm:gap-6 px-2">
+              {data.map((item, index) => {
+                const heightPercentage = (item.amount / maxVal) * 100;
+                // Calculamos un delay escalonado para la animación de las barras
+                const delay = index * 100; 
+                
+                return (
+                  <div key={item.fullDate} className="flex flex-col items-center gap-3 w-full h-full justify-end group relative">
+                    
+                    {/* Barra */}
+                    <div className="w-full flex-1 flex items-end relative">
+                       {/* Contenedor de la barra para hover area más grande */}
+                       <div className="w-full h-full flex items-end justify-center">
+                          <div 
+                            className={cn(
+                              "w-full max-w-[40px] rounded-t-lg relative transition-all duration-700 ease-out group-hover:opacity-90 group-hover:scale-[1.02]",
+                              item.amount > 0 ? "bg-green-500 shadow-sm" : "bg-secondary-100"
+                            )}
+                            style={{ 
+                              height: `${item.amount === 0 ? '4px' : `${heightPercentage}%`}`,
+                            }} 
+                          >
+                            {/* Brillo sutil superior */}
+                            {item.amount > 0 && (
+                              <div className="absolute top-0 left-0 w-full h-1 bg-white/20 rounded-t-lg"></div>
+                            )}
+                          </div>
+                       </div>
+                    </div>
+                    
+                    {/* Tooltip (CSS puro para performance) */}
+                    <div className="absolute bottom-[calc(100%+8px)] opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-20 pointer-events-none">
+                      <div className="bg-secondary-900 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-xl whitespace-nowrap flex flex-col items-center after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-secondary-900">
+                        <span>{formatCurrency(item.amount)}</span>
+                        <span className="text-[10px] font-normal text-secondary-300 capitalize">{item.month}</span>
+                      </div>
+                    </div>
+
+                    {/* Etiqueta del Eje X */}
+                    <span className="text-xs font-medium text-secondary-400 group-hover:text-secondary-600 transition-colors capitalize">
+                      {item.month}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
   );
 }

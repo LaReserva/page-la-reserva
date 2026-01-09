@@ -1,10 +1,11 @@
-// src/components/admin/dashboard/DashboardStats.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
+import { Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
-import { DollarSign, Users, MessageSquare, CalendarDays } from 'lucide-react';
+import { DollarSign, Users, MessageSquare, CalendarDays, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import type { AdminUser } from '@/types';
-import { endOfMonth } from 'date-fns'; // Recomendado para cerrar el rango del mes
+import { endOfMonth } from 'date-fns';
+import { cn } from '@/utils/utils';
 
 interface Props {
   userRole: AdminUser['role'] | null;
@@ -30,24 +31,23 @@ export function DashboardStats({ userRole }: Props) {
     async function fetchStats() {
       try {
         const now = new Date();
-        // Definimos el rango del mes actual
+        // Rangos de fechas
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const lastDayOfMonth = endOfMonth(now).toISOString(); // O usa una fecha futura lejana si prefieres
+        const lastDayOfMonth = endOfMonth(now).toISOString();
         const firstDayOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
-        // 1. Eventos Confirmados (Se mantiene igual, visualiza volumen de trabajo)
+        // 1. Eventos Confirmados (Año actual)
         const { count: eventsCount } = await supabase
           .from('events')
           .select('*', { count: 'exact', head: true })
           .in('status', ['confirmed', 'completed'])
           .gte('event_date', firstDayOfYear);
 
-        // Variables temporales
         let quotesCount = 0;
         let clientsCount = 0;
         let realRevenue = 0;
 
-        // 2. Consultas para Ventas y Super Admin
+        // 2. Datos para Ventas y Super Admin
         if (userRole === 'super_admin' || userRole === 'sales') {
           const { count: q } = await supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('status', 'new');
           quotesCount = q || 0;
@@ -56,8 +56,7 @@ export function DashboardStats({ userRole }: Props) {
           clientsCount = c || 0;
         }
 
-        // 3. Consulta de INGRESOS REALES (Solo Super Admin)
-        // CAMBIO: Ahora miramos 'event_payments' en lugar de 'events'
+        // 3. Ingresos Reales (Solo Super Admin) - Basado en pagos registrados
         if (userRole === 'super_admin') {
           const { data: paymentsRaw } = await supabase
             .from('event_payments')
@@ -65,7 +64,6 @@ export function DashboardStats({ userRole }: Props) {
             .gte('payment_date', firstDayOfMonth)
             .lte('payment_date', lastDayOfMonth);
           
-          // Sumamos lo realmente cobrado en este mes (depósitos + saldos)
           realRevenue = paymentsRaw?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
         }
 
@@ -78,34 +76,46 @@ export function DashboardStats({ userRole }: Props) {
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
-        setLoading(false);
+        // Pequeño delay artificial para que la animación de carga se aprecie si es muy rápida
+        setTimeout(() => setLoading(false), 300);
       }
     }
 
     if (userRole) fetchStats();
   }, [userRole]);
 
-  // CONFIGURACIÓN DE VISIBILIDAD
-  const allCards = [
+  // Configuración de Tarjetas
+  const cards = [
     {
-      id: 'quotes',
-      label: 'Cotizaciones Nuevas',
-      value: stats.newQuotes,
-      icon: MessageSquare,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-      subtext: 'Pendientes de respuesta',
-      allowedRoles: ['super_admin', 'sales', 'admin']
+      id: 'revenue',
+      label: 'Ingresos Reales (Mes)',
+      value: formatCurrency(stats.monthlyRevenue),
+      icon: DollarSign,
+      color: 'text-green-600',
+      bg: 'bg-green-50 border-green-100',
+      subtext: 'Flujo de caja registrado',
+      allowedRoles: ['super_admin'],
+      trend: true // Indicador visual especial
     },
     {
       id: 'events',
-      label: 'Eventos Cerrados (Año)',
+      label: 'Eventos Confirmados',
       value: stats.confirmedEventsYear,
       icon: CalendarDays,
       color: 'text-primary-600',
-      bg: 'bg-primary-50',
-      subtext: 'Eventos confirmados',
+      bg: 'bg-primary-50 border-primary-100',
+      subtext: 'Acumulado del año actual',
       allowedRoles: ['super_admin', 'sales', 'operations', 'admin']
+    },
+    {
+      id: 'quotes',
+      label: 'Nuevas Cotizaciones',
+      value: stats.newQuotes,
+      icon: MessageSquare,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50 border-blue-100',
+      subtext: 'Solicitudes sin responder',
+      allowedRoles: ['super_admin', 'sales', 'admin']
     },
     {
       id: 'clients',
@@ -113,43 +123,74 @@ export function DashboardStats({ userRole }: Props) {
       value: stats.activeClients,
       icon: Users,
       color: 'text-purple-600',
-      bg: 'bg-purple-50',
-      subtext: 'Clientes registrados',
+      bg: 'bg-purple-50 border-purple-100',
+      subtext: 'Clientes totales',
       allowedRoles: ['super_admin', 'sales', 'admin']
-    },
-    {
-      id: 'revenue',
-      label: 'Ingresos Reales (Mes)', // Etiqueta actualizada
-      value: formatCurrency(stats.monthlyRevenue),
-      icon: DollarSign,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
-      subtext: 'Cobrado en caja (Cash Flow)', // Subtexto actualizado para claridad
-      allowedRoles: ['super_admin']
     },
   ];
 
-  // Filtramos las tarjetas
-  const visibleCards = allCards.filter(card => 
+  const visibleCards = cards.filter(card => 
     userRole && card.allowedRoles.includes(userRole)
   );
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 ${userRole === 'super_admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
-      {visibleCards.map((card) => (
-        <div key={card.id} className="bg-white p-6 rounded-xl shadow-sm border border-secondary-200 flex items-start justify-between transition-all hover:shadow-md">
-          <div>
-            <p className="text-sm font-medium text-secondary-500 mb-1">{card.label}</p>
-            {loading ? (
-              <div className="h-8 w-24 bg-secondary-100 animate-pulse rounded"></div>
-            ) : (
-              <h3 className="text-2xl font-bold text-secondary-900">{card.value}</h3>
-            )}
-            <p className="text-xs text-secondary-400 mt-2">{card.subtext}</p>
+    <div className={cn(
+      "grid grid-cols-1 gap-6",
+      userRole === 'super_admin' ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"
+    )}>
+      {visibleCards.map((card, index) => (
+        <div 
+          key={card.id} 
+          className="relative bg-white p-6 rounded-2xl shadow-sm border border-secondary-200 flex items-start justify-between transition-all duration-300 hover:shadow-md hover:border-secondary-300 group"
+        >
+          <div className="flex flex-col justify-between h-full">
+            <div>
+              <p className="text-sm font-medium text-secondary-500 mb-1 flex items-center gap-2">
+                {card.label}
+              </p>
+              
+              <div className="h-10 flex items-center">
+                {/* Transición entre Loading y Valor */}
+                <Transition
+                  show={!loading}
+                  as={Fragment}
+                  enter="transition ease-out duration-500"
+                  enterFrom="opacity-0 translate-y-2"
+                  enterTo="opacity-100 translate-y-0"
+                >
+                  <h3 className="text-3xl font-display font-bold text-secondary-900 tracking-tight">
+                    {card.value}
+                  </h3>
+                </Transition>
+
+                {/* Skeleton Loader */}
+                <Transition
+                  show={loading}
+                  as={Fragment}
+                  leave="transition ease-in duration-200"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <div className="absolute h-8 w-24 bg-secondary-100 rounded animate-pulse" />
+                </Transition>
+              </div>
+            </div>
+            
+            <p className="text-xs text-secondary-400 mt-2 font-medium">
+              {card.subtext}
+            </p>
           </div>
-          <div className={`p-3 rounded-lg ${card.bg}`}>
-            <card.icon className={`w-6 h-6 ${card.color}`} />
+
+          <div className={cn("p-3 rounded-xl border transition-transform duration-300 group-hover:scale-110", card.bg)}>
+            <card.icon className={cn("w-6 h-6", card.color)} />
           </div>
+
+          {/* Decoración opcional para ingresos */}
+          {card.trend && !loading && (
+            <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+               <TrendingUp className="w-4 h-4 text-green-500" />
+            </div>
+          )}
         </div>
       ))}
     </div>
