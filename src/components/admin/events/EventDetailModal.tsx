@@ -391,7 +391,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
                                   onChange={(e) => handleInputChange('event_date', e.target.value)} 
                                   disabled={!canEdit} 
                                   className={cn(
-                                    "w-full text-sm font-medium border rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all",
+                                    "w-full text-sm font-medium border rounded-xl py-2.5 px-3 resize-none focus:ring-primary-500 focus:border-primary-500 transition-all",
                                     dateError ? "border-red-300 bg-red-50 text-red-900" : "border-secondary-200"
                                   )} 
                                 />
@@ -399,7 +399,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
                               </div>
                               <div>
                                 <label className="text-xs text-secondary-500 block mb-1.5 font-bold uppercase">Hora</label>
-                                <input type="time" value={formData.event_time || ''} onChange={(e) => handleInputChange('event_time', e.target.value)} disabled={!canEdit} className="w-full text-sm font-medium border-secondary-200 rounded-xl py-2.5 px-3" />
+                                <input type="time" value={formData.event_time || ''} onChange={(e) => handleInputChange('event_time', e.target.value)} disabled={!canEdit} className="w-full text-sm font-medium border-secondary-200 rounded-xl py-2.5 px-3 resize-none focus:ring-primary-500 focus:border-primary-500" />
                               </div>
                             </div>
 
@@ -542,13 +542,13 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
                               <div>
                                 <label className="text-xs text-secondary-500 block mb-2 font-bold uppercase">Bartenders Requeridos</label>
                                 <div className="relative">
-                                   <input type="number" min="0" value={formData.bartender_count || 0} onChange={(e) => handleInputChange('bartender_count', parseInt(e.target.value))} disabled={!canEdit} className="w-full text-sm border-secondary-200 rounded-xl pl-10 py-2.5 font-bold" />
-                                   <UserCog className="absolute top-2.5 left-3 w-4 h-4 text-secondary-400" />
+                                   <input type="number" min="0" value={formData.bartender_count || 0} onChange={(e) => handleInputChange('bartender_count', parseInt(e.target.value))} disabled={!canEdit} className="w-full text-sm border-secondary-200 rounded-xl pl-10 py-2.5 font-bold resize-none focus:ring-primary-500 focus:border-primary-500" />
+                                   <UserCog className="absolute top-2.5 left-3 w-4 h-4  text-secondary-400" />
                                 </div>
                               </div>
                               <div>
                                 <label className="text-xs text-secondary-500 block mb-2 font-bold uppercase">Staff Asignado</label>
-                                <textarea value={formData.bartender_names || ''} onChange={(e) => handleInputChange('bartender_names', e.target.value)} disabled={!canEdit} rows={4} className="w-full text-sm border-secondary-200 rounded-2xl resize-none bg-secondary-50/50" placeholder="Nombres del equipo..." />
+                                <textarea value={formData.bartender_names || ''} onChange={(e) => handleInputChange('bartender_names', e.target.value)} disabled={!canEdit} rows={4} className="w-full text-sm border-secondary-200 rounded-2xl resize-none focus:ring-primary-500 focus:border-primary-500 bg-secondary-50/50" placeholder="Nombres del equipo..." />
                               </div>
                             </div>
                           </div>
@@ -625,7 +625,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
                           
                           <div className="mt-6">
                             <label className="text-xs text-secondary-500 block mb-2 font-bold uppercase">Acotaciones Extras</label>
-                            <textarea value={formData.special_requests || ''} onChange={(e) => handleInputChange('special_requests', e.target.value)} disabled={!canEdit} rows={4} className="w-full text-sm border-secondary-200 rounded-2xl resize-none focus:ring-primary-500 bg-grey-50/50" placeholder="Detalles importantes..." />
+                            <textarea value={formData.special_requests || ''} onChange={(e) => handleInputChange('special_requests', e.target.value)} disabled={!canEdit} rows={4} className="w-full text-sm border-secondary-200 rounded-2xl resize-none focus:ring-primary-500 focus:border-primary-500 bg-grey-50/50" placeholder="Detalles importantes..." />
                           </div>
                         </div>
 
