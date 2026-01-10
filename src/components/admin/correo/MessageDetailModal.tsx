@@ -3,6 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { X, Send, Mail, User, Calendar, Loader2, CheckCircle2 } from 'lucide-react';
 import type { ContactMessage } from '@/types';
 import { cn } from '@/utils/utils';
+import { supabase } from '@/lib/supabase';
 
 interface MessageDetailModalProps {
   isOpen: boolean;
@@ -30,16 +31,27 @@ export function MessageDetailModal({ isOpen, onClose, message, onReplySuccess }:
     onClose();
   };
 
-  const handleSendReply = async () => {
+const handleSendReply = async () => {
     if (!replyText.trim()) return;
 
     try {
       setStatus('sending');
       setErrorMessage('');
+
+      // 1. OBTENEMOS LA SESIÓN ACTUAL (Tu credencial)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No hay sesión activa. Por favor recarga la página.');
+      }
       
       const response = await fetch('/api/send-reply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          // 2. ENVIAMOS EL TOKEN EN LA CABECERA (Como un pase VIP)
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           id: message.id,
           toEmail: message.email,
@@ -53,19 +65,13 @@ export function MessageDetailModal({ isOpen, onClose, message, onReplySuccess }:
 
       if (!response.ok) throw new Error(result.error || 'Error enviando correo');
 
-      // ✅ ÉXITO: Cambiamos al estado visual de éxito en lugar de alert()
       setStatus('success');
-      
-      // Notificamos al padre para que recargue la tabla
       onReplySuccess();
 
-      // Opcional: Cerrar automáticamente después de 2 segundos
-      // setTimeout(handleClose, 2000); 
-
-    } catch (error) {
+    } catch (error: any) { // Tipado básico para el error
       console.error(error);
-      setStatus('idle'); // Volvemos a permitir intentar
-      setErrorMessage('Hubo un error al enviar el correo. Por favor intenta de nuevo.');
+      setStatus('idle');
+      setErrorMessage(error.message || 'Hubo un error al enviar el correo.');
     }
   };
 
