@@ -17,7 +17,6 @@ const { data: testimonialsData, error } = await supabase
   .from('testimonials')
   .select('*')
   .eq('approved', true)
-  .eq('featured', true)
   .limit(5);
 
 if (error) console.error('Error fetching testimonials:', error);

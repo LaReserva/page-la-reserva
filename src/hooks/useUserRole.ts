@@ -1,4 +1,3 @@
-// src/hooks/useUserRole.ts
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { UserRole } from '@/types';
@@ -15,7 +14,6 @@ export function useUserRole() {
         if (authError) throw authError;
 
         if (user) {
-          // Consultamos la base de datos
           const { data, error: dbError } = await supabase
             .from('admin_users')
             .select('role')
@@ -24,16 +22,13 @@ export function useUserRole() {
 
           if (dbError) throw dbError;
 
-          // ✅ CORRECCIÓN: Casting explícito para evitar error de tipo 'never'
           const userData = data as { role: UserRole } | null;
 
-          // VALIDACIÓN:
-          // Usamos userData en lugar de data
           if (userData && isValidRole(userData.role)) {
             setRole(userData.role);
           } else {
             console.warn("⚠️ Usuario sin rol válido en admin_users");
-            setRole(null); // Sin permisos
+            setRole(null);
           }
         }
       } catch (err: any) {
@@ -47,17 +42,18 @@ export function useUserRole() {
     fetchRole();
   }, []);
 
+  // ✅ AQUÍ ESTÁ EL CAMBIO: Agregamos isOperations e isSales
   return { 
     role, 
     loading, 
     error,
-    isSuperAdmin: role === 'super_admin'
+    isSuperAdmin: role === 'super_admin',
+    isOperations: role === 'operations', // <--- Agregado
+    isSales: role === 'sales'            // <--- Agregado (por si acaso)
   };
 }
 
-// Helper para validar que el string que viene de la BD sea un rol real
 function isValidRole(role: string): role is UserRole {
-  // Tipamos el array como const para que includes funcione bien con literales
   const validRoles = ['super_admin', 'sales', 'operations'] as const;
   return validRoles.includes(role as any);
 }
