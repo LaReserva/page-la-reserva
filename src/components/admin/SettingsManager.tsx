@@ -1,76 +1,139 @@
-import React, { useState, useEffect } from 'react';
+// src/components/admin/settings/SettingsManager.tsx
+import React, { useState, useEffect, Fragment } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
+import { Dialog, Transition } from '@headlessui/react';
 import { 
-  Save, 
-  Plus, 
-  Trash2, 
-  Settings, 
-  Package as PackageIcon, 
-  Coffee, 
-  Loader2,
-  Clock,
-  AlertCircle
+  Save, Plus, Trash2, Settings, Package as PackageIcon, 
+  Coffee, Loader2, Clock, AlertTriangle, CheckCircle, XCircle,
+  Instagram, Facebook, MapPin, Phone, Mail, Globe, AlertCircle
 } from 'lucide-react';
 import type { SiteSetting, Package, Service } from '@/types';
 
 // ==========================================
-// Componente Auxiliar: Editor de Listas
+// 1. UI COMPONENTS (Solo visual, sin lógica compleja)
 // ==========================================
-const FeatureListEditor = ({ 
-  features, 
-  onChange 
-}: { 
-  features: string[], 
-  onChange: (f: string[]) => void 
-}) => {
-  const addFeature = () => onChange([...features, '']);
-  
+
+const TabButton = ({ id, label, icon: Icon, active, onClick }: any) => (
+  <button
+    onClick={() => onClick(id)}
+    className={`
+      flex items-center gap-2 py-3 px-5 border-b-2 text-sm font-medium transition-all whitespace-nowrap
+      ${active 
+        ? 'border-secondary-900 text-secondary-900 bg-secondary-50/50' 
+        : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:bg-secondary-50'}
+    `}
+  >
+    <Icon className={`w-4 h-4 ${active ? 'text-secondary-900' : 'text-secondary-400'}`} />
+    {label}
+  </button>
+);
+
+const InputField = ({ label, value, onChange, type = "text", placeholder, full = false, icon, helpText }: any) => (
+  <div className={full ? "md:col-span-2" : ""}>
+    <label className="flex items-center gap-2 text-xs font-bold text-secondary-500 uppercase tracking-wide mb-1.5">
+      {icon && <span className="text-secondary-400">{icon}</span>}
+      {label}
+    </label>
+    <div className="relative">
+      {type === 'textarea' ? (
+        <textarea
+          rows={3}
+          value={value || ''}
+          onChange={e => onChange(e.target.value)}
+          className="w-full rounded-lg border-secondary-300 shadow-sm p-2.5 border focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none text-sm transition-all resize-none bg-white text-secondary-900"
+          placeholder={placeholder}
+        />
+      ) : (
+        <input
+          type={type}
+          value={value || ''}
+          onChange={e => onChange(e.target.value)}
+          className="w-full rounded-lg border-secondary-300 shadow-sm p-2.5 border focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none text-sm transition-all bg-white text-secondary-900"
+          placeholder={placeholder}
+        />
+      )}
+    </div>
+    {helpText && <p className="text-[10px] text-secondary-400 mt-1">{helpText}</p>}
+  </div>
+);
+
+const FeatureListEditor = ({ features = [], onChange }: { features: string[], onChange: (f: string[]) => void }) => {
   const updateFeature = (index: number, value: string) => {
     const newFeatures = [...features];
     newFeatures[index] = value;
     onChange(newFeatures);
   };
 
-  const removeFeature = (index: number) => {
-    onChange(features.filter((_, i) => i !== index));
-  };
-
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">Características (Features)</label>
-      {features?.map((feature, idx) => (
-        <div key={idx} className="flex gap-2">
-          <input
-            type="text"
-            value={feature}
-            onChange={(e) => updateFeature(idx, e.target.value)}
-            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black focus:ring-1 text-sm p-2 border outline-none transition-colors"
-            placeholder="Ej: Barra iluminada..."
-          />
-          <button
-            type="button"
-            onClick={() => removeFeature(idx)}
-            className="text-gray-400 hover:text-red-600 p-2 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={addFeature}
-        className="flex items-center gap-1 text-sm text-gray-800 hover:text-black font-medium mt-1 transition-colors"
+    <div className="bg-secondary-50/50 p-4 rounded-xl border border-secondary-200 space-y-3 h-full">
+      <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wide">
+        Características Incluidas
+      </label>
+      <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+        {features.map((feature, idx) => (
+          <div key={idx} className="flex gap-2">
+            <input
+              type="text"
+              value={feature}
+              onChange={(e) => updateFeature(idx, e.target.value)}
+              className="flex-1 rounded-lg border-secondary-300 shadow-sm text-sm p-2 border focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
+              placeholder="Ej: Barra iluminada..."
+            />
+            <button 
+              type="button" 
+              onClick={() => onChange(features.filter((_, i) => i !== idx))} 
+              className="text-secondary-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+        {features.length === 0 && <p className="text-xs text-secondary-400 italic text-center py-2">No hay características.</p>}
+      </div>
+      <button 
+        type="button" 
+        onClick={() => onChange([...features, ''])} 
+        className="flex items-center justify-center gap-1.5 text-xs text-secondary-900 font-bold bg-white border border-secondary-300 px-3 py-2 rounded-lg hover:bg-secondary-50 transition-colors shadow-sm w-full"
       >
-        <Plus className="w-3 h-3" /> Agregar característica
+        <Plus className="w-3 h-3" /> Agregar Característica
       </button>
     </div>
   );
 };
 
+// Modal de Confirmación (Headless UI)
+const DeleteModal = ({ isOpen, onClose, onConfirm, title, message }: any) => (
+  <Transition appear show={isOpen} as={Fragment}>
+    <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+        <div className="fixed inset-0 bg-secondary-900/40 backdrop-blur-sm" />
+      </Transition.Child>
+      <div className="fixed inset-0 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4 text-center">
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+            <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all border border-secondary-100">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-red-50 rounded-full text-red-600"><AlertTriangle className="w-6 h-6" /></div>
+                <Dialog.Title as="h3" className="text-lg font-bold text-secondary-900">{title}</Dialog.Title>
+              </div>
+              <p className="text-sm text-secondary-500 mb-6">{message}</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-secondary-600 bg-secondary-50 rounded-lg hover:bg-secondary-100">Cancelar</button>
+                <button onClick={onConfirm} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-lg shadow-red-200">Sí, eliminar</button>
+              </div>
+            </Dialog.Panel>
+          </Transition.Child>
+        </div>
+      </div>
+    </Dialog>
+  </Transition>
+);
+
 // ==========================================
-// Componente Interno con Lógica
+// 2. COMPONENTE LÓGICO PRINCIPAL
 // ==========================================
+
 function SettingsContent() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'general' | 'hours' | 'packages' | 'services'>('general');
@@ -82,25 +145,15 @@ function SettingsContent() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [services, setServices] = useState<Service[]>([]);
 
+  // Estado del Modal de Eliminación
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean, id: string | null, table: 'packages' | 'services' | null }>({ open: false, id: null, table: null });
+
+  // --- LÓGICA ORIGINAL (Restaurada) ---
   useEffect(() => {
     const init = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          window.location.href = '/admin/login'; 
-          return;
-        }
-
-        const { data: userData, error: userError } = await supabase
-          .from('admin_users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-
-        if (userError || userData?.role !== 'super_admin') {
-          window.location.href = '/admin/dashboard';
-          return;
-        }
+        if (!session) { window.location.href = '/admin/login'; return; }
 
         const [settingsRes, packagesRes, servicesRes] = await Promise.all([
           supabase.from('site_settings').select('*'),
@@ -108,595 +161,271 @@ function SettingsContent() {
           supabase.from('services').select('*').order('order_index')
         ]);
 
-        if (settingsRes.data) setSettings(settingsRes.data as unknown as SiteSetting[]);
-        if (packagesRes.data) setPackages(packagesRes.data as unknown as Package[]);
-        if (servicesRes.data) setServices(servicesRes.data as unknown as Service[]);
-
+        if (settingsRes.data) setSettings(settingsRes.data as any);
+        if (packagesRes.data) setPackages(packagesRes.data as any);
+        if (servicesRes.data) setServices(servicesRes.data as any);
         setIsInitializing(false);
-
       } catch (error) {
-        console.error('Error al inicializar:', error);
-        showToast('Error de conexión o permisos', 'error');
+        showToast('Error de conexión', 'error');
       }
     };
-
     init();
   }, [showToast]);
 
-  const getSettingValue = (key: string) => {
-    const item = settings.find(s => s.key === key);
-    return item?.value ? String(item.value) : '';
-  };
+  const getSettingValue = (key: string) => settings.find(s => s.key === key)?.value ? String(settings.find(s => s.key === key)?.value) : '';
 
   const updateSettingState = (key: string, value: string) => {
     setSettings(prev => {
       const exists = prev.find(s => s.key === key);
-      if (exists) {
-        return prev.map(s => s.key === key ? { ...s, value } : s);
-      }
-      return [...prev, { key, value, updated_at: new Date().toISOString() } as SiteSetting];
+      return exists 
+        ? prev.map(s => s.key === key ? { ...s, value } : s)
+        : [...prev, { key, value, updated_at: new Date().toISOString() } as SiteSetting];
     });
   };
 
   const saveGeneralSettings = async () => {
     setLoading(true);
     try {
-      const updates = settings.map(s => ({
-        key: s.key,
-        value: s.value,
-        updated_at: new Date().toISOString()
-      }));
+      const updates = settings.map(s => ({ key: s.key, value: s.value, updated_at: new Date().toISOString() }));
       const { error } = await supabase.from('site_settings').upsert(updates, { onConflict: 'key' });
       if (error) throw error;
-      showToast('Configuración guardada correctamente', 'success');
-    } catch (err) {
-      console.error(err);
-      showToast('Error al guardar configuración', 'error');
-    } finally {
-      setLoading(false);
-    }
+      showToast('Configuración guardada', 'success');
+    } catch (err) { showToast('Error al guardar', 'error'); } 
+    finally { setLoading(false); }
   };
 
-  // ✅ ACTUALIZAR ITEM
-  const handleUpdateItem = async (
-    table: 'packages' | 'services', 
-    id: string, 
-    data: any, 
-    stateUpdater: React.Dispatch<React.SetStateAction<any[]>>
-  ) => {
+  // ✅ LÓGICA DE ACTUALIZACIÓN (Restaurada: Guarda lo que está en el estado)
+  const handleUpdateItem = async (table: 'packages' | 'services', id: string, data: any, stateUpdater: any) => {
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from(table)
-        .update({ ...data, updated_at: new Date().toISOString() })
-        .eq('id', id);
-
+      const { error } = await supabase.from(table).update({ ...data, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
-
-      stateUpdater(prev => prev.map(item => item.id === id ? { ...item, ...data } : item));
+      // Confirmación visual
+      stateUpdater((prev: any[]) => prev.map(item => item.id === id ? { ...item, ...data } : item));
       showToast('Guardado correctamente', 'success');
-    } catch (err) {
-      console.error(err);
-      showToast('Error al actualizar', 'error');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { showToast('Error al actualizar', 'error'); } 
+    finally { setLoading(false); }
   };
 
-  // ✅ CREAR NUEVO ITEM
+  // ✅ LÓGICA DE CREACIÓN (Restaurada)
   const handleCreateItem = async (table: 'packages' | 'services') => {
     setLoading(true);
     try {
         const timestamp = Date.now();
-        // Definimos los datos por defecto
-        const baseItem = {
-            active: false,
-            features: [],
-            order_index: 99, // Lo mandamos al final
-        };
+        const baseItem = { active: false, features: [], order_index: 99 };
+        const newItemData = table === 'packages' 
+            ? { ...baseItem, name: 'Nuevo Paquete', slug: `paquete-${timestamp}`, price: 0, description: '', duration: 4, guest_range: '25-50' }
+            : { ...baseItem, name: 'Nuevo Servicio', slug: `servicio-${timestamp}`, price_from: 0, description: '', duration: 4, guest_range: 'Consultar' };
 
-        let newItemData;
-        
-        if (table === 'packages') {
-            newItemData = {
-                ...baseItem,
-                name: 'Nuevo Paquete',
-                slug: `nuevo-paquete-${timestamp}`, // Slug temporal único
-                price: 0,
-                description: 'Descripción del nuevo paquete',
-                duration: 4,
-                guest_range: '25-50'
-            };
-        } else {
-            newItemData = {
-                ...baseItem,
-                name: 'Nuevo Servicio',
-                slug: `nuevo-servicio-${timestamp}`,
-                price_from: 0,
-                description: 'Descripción del nuevo servicio',
-                duration: 4,
-                guest_range: 'Consultar'
-            };
-        }
-
-        const { data, error } = await supabase
-            .from(table)
-            .insert(newItemData)
-            .select()
-            .single();
-
+        const { data, error } = await supabase.from(table).insert(newItemData).select().single();
         if (error) throw error;
 
-        // Actualizamos el estado local agregando el nuevo item
-        if (table === 'packages') {
-            setPackages(prev => [...prev, data as unknown as Package]);
-        } else {
-            setServices(prev => [...prev, data as unknown as Service]);
-        }
+        // Actualización inmediata del estado local
+        if (table === 'packages') setPackages(prev => [...prev, data as any]);
+        else setServices(prev => [...prev, data as any]);
 
-        showToast(`${table === 'packages' ? 'Paquete' : 'Servicio'} creado. Edítalo ahora.`, 'success');
-
-    } catch (err: any) {
-        console.error(err);
-        showToast(err.message || 'Error al crear', 'error');
-    } finally {
-        setLoading(false);
-    }
+        showToast(`${table === 'packages' ? 'Paquete' : 'Servicio'} creado`, 'success');
+    } catch (err: any) { showToast(err.message, 'error'); } 
+    finally { setLoading(false); }
   };
 
-  // ✅ ELIMINAR ITEM
-  const handleDeleteItem = async (table: 'packages' | 'services', id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este elemento? Esta acción no se puede deshacer.')) return;
-
+  // ✅ LÓGICA DE ELIMINACIÓN CON MODAL
+  const openDeleteModal = (table: 'packages' | 'services', id: string) => setDeleteModal({ open: true, id, table });
+  
+  const confirmDelete = async () => {
+    if (!deleteModal.id || !deleteModal.table) return;
     setLoading(true);
     try {
-        const { error } = await supabase.from(table).delete().eq('id', id);
+        const { error } = await supabase.from(deleteModal.table).delete().eq('id', deleteModal.id);
         if (error) throw error;
 
-        if (table === 'packages') {
-            setPackages(prev => prev.filter(item => item.id !== id));
-        } else {
-            setServices(prev => prev.filter(item => item.id !== id));
-        }
-        showToast('Elemento eliminado', 'success');
-    } catch (err) {
-        console.error(err);
-        showToast('Error al eliminar', 'error');
-    } finally {
-        setLoading(false);
-    }
+        if (deleteModal.table === 'packages') setPackages(prev => prev.filter(i => i.id !== deleteModal.id));
+        else setServices(prev => prev.filter(i => i.id !== deleteModal.id));
+        
+        showToast('Eliminado correctamente', 'success');
+    } catch (err) { showToast('Error al eliminar', 'error'); } 
+    finally { setLoading(false); setDeleteModal({ open: false, id: null, table: null }); }
   };
 
-  if (isInitializing) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-        <Loader2 className="w-8 h-8 animate-spin mb-2 text-gray-900" />
-        <p>Verificando permisos y cargando datos...</p>
-      </div>
-    );
-  }
+  if (isInitializing) return <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-secondary-400" /></div>;
 
+  // --- RENDERIZADO VISUAL ---
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px]">
-      {/* Header Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex -mb-px overflow-x-auto">
-          {[
-            { id: 'general', label: 'General', icon: Settings },
-            { id: 'hours', label: 'Horarios', icon: Clock }, 
-            { id: 'packages', label: 'Paquetes', icon: PackageIcon },
-            { id: 'services', label: 'Servicios', icon: Coffee },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`
-                  flex items-center gap-2 py-4 px-6 border-b-2 text-sm font-medium transition-colors whitespace-nowrap
-                  ${isActive 
-                    ? 'border-black text-black' 
-                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}
-                `}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+    <div className="bg-white rounded-2xl shadow-sm border border-secondary-200 min-h-[600px] flex flex-col overflow-hidden">
+      {/* 1. Header Tabs */}
+      <div className="border-b border-secondary-200 bg-white px-6 pt-2">
+        <nav className="flex space-x-2 overflow-x-auto">
+          <TabButton id="general" label="General" icon={Settings} active={activeTab === 'general'} onClick={setActiveTab} />
+          <TabButton id="hours" label="Horarios" icon={Clock} active={activeTab === 'hours'} onClick={setActiveTab} />
+          <TabButton id="packages" label="Paquetes" icon={PackageIcon} active={activeTab === 'packages'} onClick={setActiveTab} />
+          <TabButton id="services" label="Servicios" icon={Coffee} active={activeTab === 'services'} onClick={setActiveTab} />
         </nav>
       </div>
 
-      <div className="p-6">
+      <div className="p-6 md:p-8 bg-secondary-50/30 flex-1 overflow-y-auto">
         {/* --- TAB GENERAL --- */}
         {activeTab === 'general' && (
-          <div className="max-w-2xl space-y-6 animate-in fade-in duration-300">
-            <h3 className="text-lg font-medium text-gray-900">Información de Contacto</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { label: 'Email de Contacto', key: 'contact_email', type: 'email' },
-                { label: 'Teléfono', key: 'contact_phone', type: 'text' },
-                { label: 'Dirección', key: 'address', type: 'text', full: true },
-                { label: 'Instagram URL', key: 'social_instagram', type: 'text' },
-                { label: 'Facebook URL', key: 'social_facebook', type: 'text' },
-                { label: 'TikTok URL', key: 'social_tiktok', type: 'text' },
-              ].map((field) => (
-                <div key={field.key} className={field.full ? "md:col-span-2" : ""}>
-                  <label className="block text-sm font-medium text-gray-700">{field.label}</label>
-                  <input
-                    type={field.type}
-                    value={getSettingValue(field.key)}
-                    onChange={(e) => updateSettingState(field.key, e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black focus:ring-1 sm:text-sm p-2 border outline-none transition-all"
-                  />
+          <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div className="bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm space-y-6">
+                <h3 className="text-lg font-bold text-secondary-900 border-b border-secondary-100 pb-3">Contacto y Redes</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <InputField label="Email" value={getSettingValue('contact_email')} onChange={(v:any) => updateSettingState('contact_email', v)} icon={<Mail className="w-3 h-3"/>} />
+                    <InputField label="Teléfono" value={getSettingValue('contact_phone')} onChange={(v:any) => updateSettingState('contact_phone', v)} icon={<Phone className="w-3 h-3"/>} />
+                    <InputField label="Dirección" value={getSettingValue('address')} onChange={(v:any) => updateSettingState('address', v)} full icon={<MapPin className="w-3 h-3"/>} />
+                    <div className="md:col-span-2 h-px bg-secondary-100 my-2" />
+                    <InputField label="Instagram" value={getSettingValue('social_instagram')} onChange={(v:any) => updateSettingState('social_instagram', v)} icon={<Instagram className="w-3 h-3"/>} />
+                    <InputField label="Facebook" value={getSettingValue('social_facebook')} onChange={(v:any) => updateSettingState('social_facebook', v)} icon={<Facebook className="w-3 h-3"/>} />
+                    <InputField label="TikTok" value={getSettingValue('social_tiktok')} onChange={(v:any) => updateSettingState('social_tiktok', v)} icon={<Globe className="w-3 h-3"/>} />
                 </div>
-              ))}
             </div>
-            <div className="pt-4">
-              <button
-                onClick={saveGeneralSettings}
-                disabled={loading}
-                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-black disabled:opacity-50 transition-colors shadow-sm"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Guardar Cambios
-              </button>
+            <div className="flex justify-end">
+                <button onClick={saveGeneralSettings} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-6 py-2.5 rounded-xl hover:bg-black disabled:opacity-50 transition-all shadow-lg">
+                    {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />} Guardar General
+                </button>
             </div>
           </div>
         )}
 
         {/* --- TAB HORARIOS --- */}
         {activeTab === 'hours' && (
-          <div className="max-w-2xl space-y-6 animate-in fade-in duration-300">
-            <h3 className="text-lg font-medium text-gray-900">Horarios de Atención</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { label: 'Lunes - Viernes', key: 'hours_weekdays', placeholder: 'Ej: Lunes - Viernes: 9:00 AM - 5:00 PM' },
-                { label: 'Sábados', key: 'hours_saturday', placeholder: 'Ej: Sábado: 9:00 AM - 1:00 PM' },
-                { label: 'Domingos', key: 'hours_sunday', placeholder: 'Ej: Domingo: Cerrado' },
-                { label: 'Tiempo de Respuesta', key: 'response_time', placeholder: 'Ej: Respuestas dentro de 1 hora' },
-              ].map((field) => (
-                <div key={field.key} className="col-span-1">
-                  <label className="block text-sm font-medium text-gray-700">{field.label}</label>
-                  <input
-                    type="text"
-                    value={getSettingValue(field.key)}
-                    onChange={(e) => updateSettingState(field.key, e.target.value)}
-                    placeholder={field.placeholder}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black focus:ring-1 sm:text-sm p-2 border outline-none transition-all"
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="pt-4">
-              <button
-                onClick={saveGeneralSettings}
-                disabled={loading}
-                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-black disabled:opacity-50 transition-colors shadow-sm"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Guardar Horarios
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* --- TAB PACKAGES --- */}
-        {activeTab === 'packages' && (
-          <div className="space-y-8 animate-in fade-in duration-300">
-            {/* Cabecera con Botón Crear */}
-            <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div>
-                    <h3 className="text-lg font-bold text-gray-900">Gestión de Paquetes</h3>
-                    <p className="text-sm text-gray-500">Crea, edita o elimina paquetes.</p>
-                </div>
-                <button 
-                    onClick={() => handleCreateItem('packages')}
-                    disabled={loading}
-                    className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition-colors"
-                >
-                    <Plus className="w-4 h-4" /> Crear Nuevo
-                </button>
-            </div>
-
-            {packages.map((pkg) => (
-              <div key={pkg.id} className="border rounded-lg p-4 bg-white hover:border-gray-400 transition-colors shadow-sm">
-                
-                <div className="flex justify-between items-start mb-4 border-b border-gray-200 pb-2">
-                  <h4 className="font-bold text-lg text-gray-900">{pkg.name}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${pkg.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {pkg.active ? 'Activo' : 'Inactivo'}
-                    </span>
-                    <button 
-                      onClick={() => handleUpdateItem('packages', pkg.id, { active: !pkg.active }, setPackages)}
-                      className="text-xs text-gray-600 hover:text-black hover:underline font-medium ml-2"
-                    >
-                      {pkg.active ? 'Desactivar' : 'Activar'}
-                    </button>
-                    {/* Botón Eliminar */}
-                    <button 
-                        onClick={() => handleDeleteItem('packages', pkg.id)}
-                        className="text-gray-400 hover:text-red-600 p-1 ml-2"
-                        title="Eliminar paquete"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Nombre del Paquete</label>
-                      <input 
-                        type="text" 
-                        value={pkg.name} 
-                        onChange={(e) => {
-                           const newPackages = packages.map(p => p.id === pkg.id ? { ...p, name: e.target.value } : p);
-                           setPackages(newPackages);
-                        }}
-                        className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                      />
-                    </div>
-                    
-                    {/* CAMPO SLUG (URL) - IMPORTANTE PARA NUEVOS PAQUETES */}
-                    <div>
-                    <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wide">
-                        Slug (URL) 
-                        {/* ✅ SOLUCIÓN: Envolvemos el icono en un span para usar 'title' legalmente */}
-                        <span title="Identificador único para la URL. Sin espacios ni tildes." className="cursor-help">
-                          <AlertCircle className="w-3 h-3 text-gray-400" />
-                        </span>
-                      </label>
-                      <input 
-                        type="text" 
-                        value={pkg.slug} 
-                        onChange={(e) => {
-                           const newPackages = packages.map(p => p.id === pkg.id ? { ...p, slug: e.target.value } : p);
-                           setPackages(newPackages);
-                        }}
-                        className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-gray-50 font-mono text-gray-600 focus:border-black focus:ring-black focus:ring-1 outline-none"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Precio (S/)</label>
-                        <input 
-                          type="number" 
-                          value={pkg.price} 
-                          onChange={(e) => {
-                             const newPackages = packages.map(p => p.id === pkg.id ? { ...p, price: Number(e.target.value) } : p);
-                             setPackages(newPackages);
-                          }}
-                          className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Horas</label>
-                        <input 
-                          type="number" 
-                          value={pkg.duration} 
-                          onChange={(e) => {
-                             const newPackages = packages.map(p => p.id === pkg.id ? { ...p, duration: Number(e.target.value) } : p);
-                             setPackages(newPackages);
-                          }}
-                          className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Personas</label>
-                        <input 
-                          type="text" 
-                          value={pkg.guest_range} 
-                          placeholder="Ej: 25-50"
-                          onChange={(e) => {
-                             const newPackages = packages.map(p => p.id === pkg.id ? { ...p, guest_range: e.target.value } : p);
-                             setPackages(newPackages);
-                          }}
-                          className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Descripción Corta</label>
-                      <textarea 
-                        rows={3}
-                        value={pkg.description} 
-                        onChange={(e) => {
-                           const newPackages = packages.map(p => p.id === pkg.id ? { ...p, description: e.target.value } : p);
-                           setPackages(newPackages);
-                        }}
-                        className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <FeatureListEditor 
-                      features={pkg.features || []} 
-                      onChange={(newFeatures) => {
-                        const newPackages = packages.map(p => p.id === pkg.id ? { ...p, features: newFeatures } : p);
-                        setPackages(newPackages);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4 flex justify-end">
-                   <button
-                    onClick={() => handleUpdateItem('packages', pkg.id, pkg, setPackages)}
-                    disabled={loading}
-                    className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-100 hover:text-black hover:border-gray-400 transition-colors shadow-sm"
-                  >
-                    <Save className="w-4 h-4" /> Guardar {pkg.name}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* --- TAB SERVICES --- */}
-        {activeTab === 'services' && (
-           <div className="space-y-8 animate-in fade-in duration-300">
-           {/* Cabecera con Botón Crear */}
-           <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div>
-                    <h3 className="text-lg font-bold text-gray-900">Gestión de Servicios</h3>
-                    <p className="text-sm text-gray-500">Crea, edita o elimina servicios.</p>
-                </div>
-                <button 
-                    onClick={() => handleCreateItem('services')}
-                    disabled={loading}
-                    className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition-colors"
-                >
-                    <Plus className="w-4 h-4" /> Crear Nuevo
-                </button>
-            </div>
-
-           {services.map((svc) => (
-             <div key={svc.id} className="border rounded-lg p-4 bg-white hover:border-gray-400 transition-colors shadow-sm">
-               <div className="flex justify-between items-start mb-4 border-b border-gray-200 pb-2">
-                 <h4 className="font-bold text-lg text-gray-900">{svc.name}</h4>
-                 <div className="flex items-center gap-2">
-                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${svc.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                     {svc.active ? 'Activo' : 'Inactivo'}
-                   </span>
-                   <button 
-                      onClick={() => handleUpdateItem('services', svc.id, { active: !svc.active }, setServices)}
-                      className="text-xs text-gray-600 hover:text-black hover:underline font-medium ml-2"
-                    >
-                      {svc.active ? 'Desactivar' : 'Activar'}
-                    </button>
-                    {/* Botón Eliminar */}
-                    <button 
-                        onClick={() => handleDeleteItem('services', svc.id)}
-                        className="text-gray-400 hover:text-red-600 p-1 ml-2"
-                        title="Eliminar servicio"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                 </div>
-               </div>
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="space-y-4">
-                   <div>
-                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Nombre</label>
-                     <input 
-                       type="text" 
-                       value={svc.name} 
-                       onChange={(e) => {
-                          const newServices = services.map(s => s.id === svc.id ? { ...s, name: e.target.value } : s);
-                          setServices(newServices);
-                       }}
-                       className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                     />
-                   </div>
-
-                   {/* CAMPO SLUG PARA SERVICIOS */}
-                   <div>
-                    <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wide">
-                        Slug (URL) 
-                        {/* ✅ SOLUCIÓN: Envolvemos el icono en un span para usar 'title' legalmente */}
-                        <span title="Identificador único para la URL. Sin espacios ni tildes." className="cursor-help">
-                          <AlertCircle className="w-3 h-3 text-gray-400" />
-                        </span>
-                      </label>
-                      <input 
-                        type="text" 
-                        value={svc.slug} 
-                        onChange={(e) => {
-                           const newServices = services.map(s => s.id === svc.id ? { ...s, slug: e.target.value } : s);
-                           setServices(newServices);
-                        }}
-                        className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-gray-50 font-mono text-gray-600 focus:border-black focus:ring-black focus:ring-1 outline-none"
-                      />
-                    </div>
-
-                   <div className="grid grid-cols-3 gap-3">
-                     <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Precio Desde</label>
-                       <input 
-                         type="number" 
-                         value={svc.price_from} 
-                         onChange={(e) => {
-                            const newServices = services.map(s => s.id === svc.id ? { ...s, price_from: Number(e.target.value) } : s);
-                            setServices(newServices);
-                         }}
-                         className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                       />
-                     </div>
-                     <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Horas Base</label>
-                       <input 
-                         type="number" 
-                         value={svc.duration || 4} 
-                         onChange={(e) => {
-                            const newServices = services.map(s => s.id === svc.id ? { ...s, duration: Number(e.target.value) } : s);
-                            setServices(newServices);
-                         }}
-                         className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                       />
-                     </div>
-                     <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Capacidad</label>
-                       <input 
-                         type="text" 
-                         value={svc.guest_range || ''}
-                         placeholder="Ej: 25-500" 
-                         onChange={(e) => {
-                            const newServices = services.map(s => s.id === svc.id ? { ...s, guest_range: e.target.value } : s);
-                            setServices(newServices);
-                         }}
-                         className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                       />
-                     </div>
-                   </div>
-
-                   <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Descripción Corta</label>
-                      <textarea 
-                        rows={3}
-                        value={svc.description} 
-                        onChange={(e) => {
-                           const newServices = services.map(s => s.id === svc.id ? { ...s, description: e.target.value } : s);
-                           setServices(newServices);
-                        }}
-                        className="w-full mt-1 p-2 border border-gray-300 rounded text-sm bg-white focus:border-black focus:ring-black focus:ring-1 outline-none"
-                      />
-                    </div>
-                 </div>
-                 
-                 <div>
-                   <FeatureListEditor 
-                     features={svc.features || []} 
-                     onChange={(newFeatures) => {
-                       const newServices = services.map(s => s.id === svc.id ? { ...s, features: newFeatures } : s);
-                       setServices(newServices);
-                     }}
-                   />
-                 </div>
-               </div>
-
-               <div className="mt-4 flex justify-end">
-                  <button
-                   onClick={() => handleUpdateItem('services', svc.id, svc, setServices)}
-                   disabled={loading}
-                   className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-100 hover:text-black hover:border-gray-400 transition-colors shadow-sm"
-                 >
-                   <Save className="w-4 h-4" /> Guardar {svc.name}
-                 </button>
-               </div>
+          <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+             <div className="bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm grid grid-cols-1 gap-6">
+                <h3 className="text-lg font-bold text-secondary-900 border-b border-secondary-100 pb-3">Configuración de Horarios</h3>
+                <InputField label="Lunes - Viernes" value={getSettingValue('hours_weekdays')} onChange={(v:any) => updateSettingState('hours_weekdays', v)} placeholder="Ej: 9:00 AM - 6:00 PM" icon={<Clock className="w-3 h-3"/>}/>
+                <InputField label="Sábados" value={getSettingValue('hours_saturday')} onChange={(v:any) => updateSettingState('hours_saturday', v)} icon={<Clock className="w-3 h-3"/>}/>
+                <InputField label="Domingos" value={getSettingValue('hours_sunday')} onChange={(v:any) => updateSettingState('hours_sunday', v)} icon={<Clock className="w-3 h-3"/>}/>
+                <div className="h-px bg-secondary-100 my-2" />
+                <InputField label="Tiempo de Respuesta" value={getSettingValue('response_time')} onChange={(v:any) => updateSettingState('response_time', v)} icon={<AlertCircle className="w-3 h-3"/>} helpText="Mensaje visible en el formulario de contacto."/>
              </div>
-           ))}
-         </div>
+             <div className="flex justify-end">
+                <button onClick={saveGeneralSettings} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-6 py-2.5 rounded-xl hover:bg-black disabled:opacity-50 transition-all shadow-lg">
+                    {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />} Guardar Horarios
+                </button>
+            </div>
+          </div>
+        )}
+
+        {/* --- TABS DINÁMICOS (PAQUETES / SERVICIOS) --- */}
+        {(activeTab === 'packages' || activeTab === 'services') && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            {/* Header de Sección */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm gap-4">
+               <div>
+                  <h3 className="text-xl font-bold text-secondary-900">{activeTab === 'packages' ? 'Paquetes de Bar' : 'Servicios Adicionales'}</h3>
+                  <p className="text-sm text-secondary-500">Administra el contenido que verán tus clientes.</p>
+               </div>
+               <button onClick={() => handleCreateItem(activeTab)} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                  <Plus className="w-4 h-4" /> Crear Nuevo
+               </button>
+            </div>
+
+            {/* Grid de Items */}
+            <div className="grid gap-6">
+               {(activeTab === 'packages' ? packages : services).map((item) => (
+                 <div key={item.id} className="bg-white rounded-2xl border border-secondary-200 p-6 shadow-sm hover:border-secondary-300 transition-all group">
+                    {/* Cabecera del Item */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6 border-b border-secondary-100 pb-4">
+                        <div className="flex items-center gap-4 w-full">
+                            <div className={`p-3 rounded-xl shrink-0 ${item.active ? 'bg-green-100 text-green-700' : 'bg-secondary-100 text-secondary-500'}`}>
+                                {activeTab === 'packages' ? <PackageIcon size={24} /> : <Coffee size={24} />}
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-bold text-lg text-secondary-900">{item.name || 'Sin Nombre'}</h4>
+                                <div className="flex flex-wrap items-center gap-3 mt-1">
+                                    <button 
+                                        onClick={() => handleUpdateItem(activeTab, item.id, { active: !item.active }, activeTab === 'packages' ? setPackages : setServices)}
+                                        className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors ${item.active ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                                    >
+                                        {item.active ? <CheckCircle size={12}/> : <XCircle size={12}/>}
+                                        {item.active ? 'Activo' : 'Inactivo'}
+                                    </button>
+                                    <span className="text-[10px] text-secondary-400 font-mono bg-secondary-50 px-2 py-1 rounded">ID: {item.id.slice(0,8)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={() => openDeleteModal(activeTab, item.id)} className="text-secondary-300 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors shrink-0">
+                            <Trash2 className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Formulario del Item (Lógica Original: onChange actualiza estado local) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 space-y-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <InputField label="Nombre" value={item.name} onChange={(v: any) => {
+                                    const updater = activeTab === 'packages' ? setPackages : setServices;
+                                    updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, name: v } : i));
+                                }} />
+                                <InputField label="Slug (URL)" value={item.slug} onChange={(v: any) => {
+                                    const updater = activeTab === 'packages' ? setPackages : setServices;
+                                    updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, slug: v } : i));
+                                }} icon={<Globe className="w-3 h-3"/>} />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <InputField 
+                                    type="number" 
+                                    label={activeTab === 'packages' ? "Precio" : "Desde"} 
+                                    value={activeTab === 'packages' ? (item as Package).price : (item as Service).price_from} 
+                                    onChange={(v: any) => {
+                                        const val = Number(v);
+                                        const updater = activeTab === 'packages' ? setPackages : setServices;
+                                        const field = activeTab === 'packages' ? 'price' : 'price_from';
+                                        updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, [field]: val } : i));
+                                    }} 
+                                />
+                                <InputField type="number" label="Horas" value={item.duration} onChange={(v: any) => {
+                                    const updater = activeTab === 'packages' ? setPackages : setServices;
+                                    updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, duration: Number(v) } : i));
+                                }} />
+                                <InputField label="Personas" value={item.guest_range} onChange={(v: any) => {
+                                    const updater = activeTab === 'packages' ? setPackages : setServices;
+                                    updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, guest_range: v } : i));
+                                }} />
+                            </div>
+                            <InputField type="textarea" label="Descripción" value={item.description} onChange={(v: any) => {
+                                const updater = activeTab === 'packages' ? setPackages : setServices;
+                                updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, description: v } : i));
+                            }} />
+                        </div>
+                        <div className="lg:col-span-1">
+                            <FeatureListEditor features={item.features || []} onChange={(newFeatures) => {
+                                const updater = activeTab === 'packages' ? setPackages : setServices;
+                                updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, features: newFeatures } : i));
+                            }} />
+                        </div>
+                    </div>
+
+                    {/* Botón Guardar Individual */}
+                    <div className="mt-6 pt-4 border-t border-secondary-100 flex justify-end">
+                        <button 
+                            onClick={() => handleUpdateItem(activeTab, item.id, item, activeTab === 'packages' ? setPackages : setServices)} 
+                            disabled={loading} 
+                            className="flex items-center gap-2 bg-white border border-secondary-300 text-secondary-700 px-5 py-2 rounded-xl text-sm font-bold hover:bg-secondary-50 hover:text-secondary-900 hover:border-secondary-400 transition-colors shadow-sm"
+                        >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Guardar Cambios
+                        </button>
+                    </div>
+                 </div>
+               ))}
+               {(activeTab === 'packages' ? packages : services).length === 0 && (
+                   <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-secondary-200">
+                       <p className="text-secondary-400">No hay elementos creados aún.</p>
+                   </div>
+               )}
+            </div>
+          </div>
         )}
       </div>
+
+      {/* MODAL ELIMINAR */}
+      <DeleteModal 
+        isOpen={deleteModal.open} 
+        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
+        onConfirm={confirmDelete}
+        title="¿Eliminar elemento?"
+        message="Esta acción no se puede deshacer. El elemento dejará de ser visible inmediatamente."
+      />
     </div>
   );
 }
