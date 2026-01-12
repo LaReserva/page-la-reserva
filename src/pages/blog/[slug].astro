@@ -1,0 +1,93 @@
+---
+// src/pages/blog/[slug].astro
+export const prerender = false;
+
+import PageLayout from '@/layouts/PageLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import { supabase } from '@/lib/supabase';
+import { Calendar, User, ArrowLeft } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+const { slug } = Astro.params;
+
+// 1. Obtener Post
+const { data: post, error } = await supabase
+  .from('blog_posts')
+  .select('*, author:admin_users(full_name)')
+  .eq('slug', slug)
+  .single();
+
+// 2. Manejo de error 404
+if (error || !post) {
+  return Astro.redirect('/404');
+}
+
+// 3. Incrementar vistas
+// ✅ CORREGIDO: Supabase devuelve { error }, no lanza excepciones. 
+// Usamos await para asegurar que se ejecute, pero ignoramos el resultado.
+await supabase.rpc('increment_post_views', { post_id: post.id });
+
+const formattedDate = format(new Date(post.created_at), 'dd ' + 'MMMM, yyyy', { locale: es });
+---
+
+<PageLayout 
+  title={post.title} 
+  description={post.excerpt} 
+  image={post.image_url} 
+>
+  
+  <article class="min-h-screen bg-white pb-20">
+    {/* Header del Artículo */}
+    <div class="bg-secondary-900 text-white relative py-24 md:py-32">
+        {post.image_url && (
+            <div class="absolute inset-0">
+                <img src={post.image_url} class="w-full h-full object-cover opacity-20" />
+                <div class="absolute inset-0 bg-gradient-to-t from-secondary-900 via-transparent to-transparent"></div>
+            </div>
+        )}
+        <div class="container-custom relative z-10 max-w-4xl mx-auto text-center">
+            <a href="/blog" class="inline-flex items-center gap-2 text-secondary-300 hover:text-white mb-6 transition-colors text-sm font-bold uppercase tracking-widest">
+                {/* ✅ CORREGIDO: class -> className */}
+                <ArrowLeft size={16} className="text-current" /> Volver al Blog
+            </a>
+            <h1 class="text-3xl md:text-5xl font-display font-bold mb-6 leading-tight">
+                {post.title}
+            </h1>
+            <div class="flex items-center justify-center gap-6 text-sm text-secondary-300">
+                <div class="flex items-center gap-2">
+                    {/* ✅ CORREGIDO: class -> className */}
+                    <Calendar size={16} className="text-primary-500" />
+                    <span>{formattedDate}</span>
+                </div>
+                {post.author && (
+                    <div class="flex items-center gap-2">
+                        {/* ✅ CORREGIDO: class -> className */}
+                        <User size={16} className="text-primary-500" />
+                        <span>{post.author.full_name}</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    </div>
+
+    {/* Contenido del Post */}
+    <div class="container-custom max-w-3xl mx-auto -mt-10 relative z-20">
+        <div class="bg-white rounded-2xl p-8 md:p-12 shadow-xl border border-secondary-100">
+            <div class="prose prose-lg prose-headings:font-display prose-headings:font-bold prose-headings:text-secondary-900 prose-p:text-secondary-600 prose-a:text-primary-600 prose-strong:text-secondary-900 max-w-none whitespace-pre-wrap">
+                <Fragment set:html={post.content} />
+            </div>
+        </div>
+
+        {/* Footer del Artículo */}
+        <div class="mt-12 text-center">
+             <h3 class="text-2xl font-display font-bold text-secondary-900 mb-4">¿Te gustó este artículo?</h3>
+             <p class="text-secondary-500 mb-8">Déjanos saber si quieres cotizar un evento similar al que leíste.</p>
+             <Button href="/cotizacion" variant="primary">
+                Cotizar Ahora
+             </Button>
+        </div>
+    </div>
+  </article>
+
+</PageLayout>

@@ -12,7 +12,7 @@ import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js';
 import { cn } from '@/utils/utils';
 
 // --- 1. DEFINICIÓN DE TIPOS LOCALES (Payloads Reales de DB) ---
-// Definimos esto aquí porque database.ts está desactualizado
+// Definimos esto aquí porque database.ts está desactualizado---IMPORTANTE REVISAR
 type TaskPayload = { id: string; content: string; assigned_to: string | null; created_by: string; created_at: string; };
 type MessagePayload = { id: string; name: string; subject: string; created_at: string; status: string; };
 type TestimonialPayload = { id: string; client_name: string; rating: number; created_at: string; };

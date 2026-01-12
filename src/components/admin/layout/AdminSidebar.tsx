@@ -41,10 +41,10 @@ interface SidebarItemProps {
 }
 
 function SidebarItem({ item, currentPath, onClick }: SidebarItemProps) {
-  // Lógica de "Activo": Coincidencia exacta para root, o startsWith para subrutas
+  // MEJORA: Lógica de "Activo" más estricta para evitar falsos positivos en subrutas parecidas
   const isActive = item.href === '/admin' 
     ? currentPath === '/admin' || currentPath === '/admin/'
-    : currentPath.startsWith(item.href);
+    : currentPath.startsWith(item.href) && (currentPath.length === item.href.length || currentPath[item.href.length] === '/');
 
   return (
     <li>
@@ -66,7 +66,6 @@ function SidebarItem({ item, currentPath, onClick }: SidebarItemProps) {
         />
         <span className="relative z-10">{item.name}</span>
         
-        {/* Decoración sutil en hover si no está activo */}
         {!isActive && (
           <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
         )}
@@ -83,9 +82,9 @@ export function AdminSidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
-    // 1. Gestión de Rutas (Compatible con Astro View Transitions)
+    // 1. Gestión de Rutas
     const updatePath = () => typeof window !== 'undefined' && setCurrentPath(window.location.pathname);
-    updatePath();
+    updatePath(); // Ejecutar al montar
     document.addEventListener('astro:page-load', updatePath);
 
     // 2. Gestión de Toggle Móvil
@@ -97,13 +96,17 @@ export function AdminSidebar() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          // MEJORA: Tipado explícito en la respuesta
           const { data } = await supabase
             .from('admin_users')
             .select('role')
             .eq('id', user.id)
             .maybeSingle();
             
-          if (data) setRole((data as any).role);
+          if (data) {
+             // Asumimos que data tiene la forma { role: string } compatible con AdminUser['role']
+             setRole(data.role as AdminUser['role']);
+          }
         }
       } catch (e) {
         console.error("Auth error", e);
@@ -111,13 +114,19 @@ export function AdminSidebar() {
         setLoading(false);
       }
     };
-    fetchRole();
+    
+    // Solo hacemos fetch si no tenemos rol aún (útil si usas transition:persist)
+    if (!role) {
+        fetchRole();
+    } else {
+        setLoading(false);
+    }
 
     return () => {
       document.removeEventListener('astro:page-load', updatePath);
       document.removeEventListener('toggle-sidebar', handleToggle);
     };
-  }, []);
+  }, []); // Dependencia vacía está bien si el componente persiste
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -134,7 +143,7 @@ export function AdminSidebar() {
 
   return (
     <>
-      {/* 1. Backdrop Móvil con Transición */}
+      {/* 1. Backdrop Móvil */}
       <Transition
         show={isMobileOpen}
         as={Fragment}
@@ -155,10 +164,10 @@ export function AdminSidebar() {
       <aside 
         className={cn(
           "bg-secondary-900 text-white flex-col h-screen border-r border-secondary-800 shadow-2xl lg:shadow-none",
-          "fixed top-0 left-0 z-50 transition-transform duration-300 ease-in-out", // Comportamiento Móvil
-          "w-64", // Ancho fijo
-          "lg:sticky lg:top-0 lg:flex lg:translate-x-0", // Comportamiento Desktop
-          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0" // Toggle
+          "fixed top-0 left-0 z-50 transition-transform duration-300 ease-in-out",
+          "w-64",
+          "lg:sticky lg:top-0 lg:flex lg:translate-x-0",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Header Logo */}
@@ -172,7 +181,7 @@ export function AdminSidebar() {
           </button>
         </div>
 
-        {/* Navigation - Scrollbar oculta */}
+        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-6 px-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {role ? (
             <ul className="space-y-1.5">

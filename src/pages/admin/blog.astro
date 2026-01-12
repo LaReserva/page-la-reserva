@@ -1,0 +1,34 @@
+---
+// src/pages/admin/blog.astro
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import BlogManager from '@/components/admin/blog/BlogManager';
+
+// Recuperamos el usuario desde el middleware
+const { user } = Astro.locals;
+
+// Redirección de seguridad por si acaso
+if (!user) {
+  return Astro.redirect('/admin/login');
+}
+---
+
+<AdminLayout title="Gestión de Blog">
+  <div class="mb-8">
+    <div class="flex items-center gap-2 text-sm text-secondary-500 mb-2">
+      <span>Admin</span>
+      <span>/</span>
+      <span class="text-primary-600 font-bold">Blog</span>
+    </div>
+    <h1 class="text-3xl font-display font-bold text-secondary-900">
+      Artículos & Noticias
+    </h1>
+    <p class="text-secondary-500 mt-1">
+      Crea contenido de valor para mejorar el SEO y atraer clientes.
+    </p>
+  </div>
+
+  {/* Cargamos la App de React */}
+  <BlogManager client:load currentUserId={user.id} />
+</AdminLayout>

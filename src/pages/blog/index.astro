@@ -1,69 +1,96 @@
 ---
 // src/pages/blog/index.astro
+export const prerender = false; // SSR para que se actualice al instante al publicar
+
 import PageLayout from '@/layouts/PageLayout.astro';
+import Card from '@/components/ui/Card.astro';
 import Button from '@/components/ui/Button.astro';
-import { PenTool, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/lib/supabase'; // Cliente público
+import { Calendar, ArrowRight, User } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+// Fetch de posts PUBLICADOS
+const { data: posts } = await supabase
+  .from('blog_posts')
+  .select('*')
+  .eq('published', true)
+  .order('created_at', { ascending: false });
+
+const title = "Blog & Novedades | La Reserva";
+const description = "Descubre consejos de coctelería, tendencias para eventos y el detrás de escena de nuestros servicios.";
 ---
 
-<PageLayout 
-  title="Blog" 
-  description="Artículos sobre mixología, tendencias y consejos para eventos. Próximamente."
-  noindex={true} 
-  >
-  <!-- Importante: noindex={true} No indexar en Google hasta que esté listo -->
-  
-  <section class="relative min-h-[70vh] flex items-center justify-center bg-secondary-50 overflow-hidden">
-    
-    {/* Decoración de fondo */}
-    <div class="absolute inset-0 opacity-5 pointer-events-none">
-      <div class="absolute top-0 left-0 w-64 h-64 bg-primary-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-      <div class="absolute bottom-0 right-0 w-64 h-64 bg-accent-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-    </div>
-
-    <div class="container-custom relative z-10 text-center px-4">
-      
-      {/* Icono animado */}
-      <div class="mb-8 inline-flex p-6 rounded-full bg-white shadow-xl border border-secondary-100">
-        <PenTool className="w-12 h-12 text-primary-500" />
-      </div>
-
-      <h1 class="text-4xl md:text-6xl font-display font-bold text-secondary-900 mb-6">
-        Historias en Preparación
+<PageLayout title={title} description={description}>
+  {/* Hero Simple */}
+  <section class="bg-secondary-900 text-white py-20 relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10 bg-[url('/images/pattern.png')]"></div>
+    <div class="container-custom relative z-10 text-center max-w-3xl mx-auto">
+      <span class="text-primary-500 font-bold tracking-widest uppercase text-sm mb-4 block animate-fade-in-up">
+        La Reserva Journal
+      </span>
+      <h1 class="text-4xl md:text-5xl font-display font-bold mb-6 animate-fade-in-up delay-100">
+        Historias detrás de <br/><span class="text-primary-500">cada copa</span>
       </h1>
-      
-      <p class="text-lg text-secondary-500 max-w-xl mx-auto mb-10 leading-relaxed">
-        Estamos mezclando los mejores artículos sobre mixología, tendencias y consejos para tus eventos. <br/>
-        Muy pronto podrás disfrutar de nuestro contenido exclusivo.
+      <p class="text-secondary-300 text-lg leading-relaxed animate-fade-in-up delay-200">
+        Explora nuestro mundo de mixología, consejos para organizar tu boda perfecta y las últimas tendencias en barras móviles.
       </p>
-
-      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <Button href="/" variant="outline" class="border-secondary-300 text-secondary-600 hover:border-secondary-900 hover:text-secondary-900 gap-2">
-          <ArrowLeft className="w-4 h-4" />
-          Volver al Inicio
-        </Button>
-        
-        <Button href="/contacto" variant="primary">
-          Contáctanos mientras tanto
-        </Button>
-      </div>
-
     </div>
   </section>
 
-</PageLayout>
+  {/* Grid de Artículos */}
+  <section class="py-16 bg-secondary-50 min-h-[50vh]">
+    <div class="container-custom">
+      {!posts || posts.length === 0 ? (
+        <div class="text-center py-20">
+          <p class="text-secondary-400 text-lg">Aún no hay artículos publicados. Vuelve pronto.</p>
+        </div>
+      ) : (
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {posts.map((post) => (
+            <Card hover class="flex flex-col h-full border-t-4 border-t-transparent hover:border-t-primary-500 transition-all duration-300 group">
+              {/* Imagen */}
+              <div class="aspect-video bg-secondary-200 overflow-hidden relative">
+                {post.image_url ? (
+                  <img 
+                    src={post.image_url} 
+                    alt={post.title} 
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="w-full h-full flex items-center justify-center text-secondary-300 bg-secondary-100">
+                    <span class="font-display italic">La Reserva</span>
+                  </div>
+                )}
+                {/* Fecha Badge */}
+                <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-secondary-900 shadow-sm flex items-center gap-1">
+                  <Calendar size={12} className="text-primary-500" />
+                  {format(new Date(post.created_at), 'd MMM yyyy', { locale: es })}
+                </div>
+              </div>
 
-<style>
-  /* Animación suave para las manchas de fondo */
-  @keyframes blob {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-    100% { transform: translate(0px, 0px) scale(1); }
-  }
-  .animate-blob {
-    animation: blob 7s infinite;
-  }
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-</style>
+              {/* Contenido */}
+              <div class="p-6 flex-1 flex flex-col">
+                <h3 class="text-xl font-display font-bold text-secondary-900 mb-3 leading-tight group-hover:text-primary-600 transition-colors">
+                  <a href={`/blog/${post.slug}`}>
+                    {post.title}
+                  </a>
+                </h3>
+                <p class="text-secondary-500 text-sm leading-relaxed mb-6 line-clamp-3 flex-1">
+                  {post.excerpt}
+                </p>
+                <div class="pt-4 border-t border-secondary-100 flex items-center justify-between">
+                  <span class="text-xs font-bold text-primary-600 uppercase tracking-wider">Leer artículo</span>
+                  <div class="w-8 h-8 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-400 group-hover:bg-primary-500 group-hover:text-white transition-all">
+                    <ArrowRight size={16} />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+</PageLayout>

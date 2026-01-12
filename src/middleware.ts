@@ -19,7 +19,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (publicAdminRoutes.some(route => url.pathname.startsWith(route))) return next();
 
     // 2. Configuración de Supabase (Igual que antes)
-    const cookieAdapter: CookiesHandler = {
+const cookieAdapter: CookiesHandler = {
       getAll() {
         const parsed = parseCookieHeader(request.headers.get('Cookie') ?? '');
         return parsed.map((cookie) => ({
@@ -30,7 +30,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
           const astroOptions: AstroCookieSetOptions = {
-            path: options.path,
+            // ✅ CORRECCIÓN CLAVE: Si no viene path, forzamos la raíz '/'
+            path: options.path ?? '/', 
             domain: options.domain,
             maxAge: options.maxAge,
             httpOnly: options.httpOnly,
@@ -52,6 +53,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // 3. Verificar Autenticación (¿Está logueado?)
     const { data: { user }, error } = await supabase.auth.getUser();
 
+
+    // 🚨 LOGS DE DEBUG (Muévelos aquí arriba) 🚨
+    if (url.pathname.startsWith('/admin/blog')) {
+        console.log("--- DEBUG BLOG ---");
+        console.log("Ruta:", url.pathname);
+        console.log("User encontrado:", !!user);
+        console.log("Error Supabase:", error?.message);
+        console.log("Cookies recibidas:", request.headers.get('Cookie'));
+        console.log("------------------");
+    }
     if (!user || error) {
       return redirect('/admin/login');
     }
@@ -66,6 +77,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (!adminUser) {
       return redirect('/admin/login?error=unauthorized');
     }
+  // 🚨 AGREGA ESTOS LOGS TEMPORALES 🚨
+    console.log("--- DEBUG MIDDLEWARE ---");
+    console.log("Ruta intentada:", url.pathname);
+    console.log("Usuario ID:", user.id);
+    console.log("Rol en DB:", adminUser.role);
+    console.log("¿Es super_admin?:", adminUser.role === 'super_admin');
+    console.log("Largo del string:", adminUser.role.length);
+    console.log("------------------------");
 
     // Guardamos info en locals para usar en las páginas
     locals.user = user;
@@ -98,7 +117,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
           '/admin/perfil',
           '/admin/cocteles',
           '/admin/documentos',
-          '/admin/testimonios'
+          '/admin/testimonios',
+          '/admin/blog'
         ],
       };
 
