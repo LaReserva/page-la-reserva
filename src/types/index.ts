@@ -385,3 +385,14 @@ export interface RecipeItem {
 export interface CocktailWithRecipe extends Cocktail {
   recipe: RecipeItem[];
 }
+
+// ============================================
+// 3. TIPOS EXTENDIDOS (Frontend UI)
+// ============================================
+
+// Extendemos el tipo base Cocktail para incluir metadatos de búsqueda
+// Esto evita tener que hacer consultas extra para filtrar en el cliente
+export interface CocktailWithTags extends Cocktail {
+  search_tags: string[]; // Ej: ['ron', 'limon', 'azucar', 'hierbabuena']
+  main_liquor?: string;  // Ej: 'Ron Cartavio', 'Vodka', 'Gin'
+}

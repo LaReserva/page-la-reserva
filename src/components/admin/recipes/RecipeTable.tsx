@@ -1,3 +1,21 @@
+// src/components/admin/recipes/RecipeTable.tsx
+
+interface RecipeTableProps {
+  cocktail: Cocktail | undefined;
+  recipe: RecipeItem[];
+  loadingRecipe: boolean;
+  isAdmin: boolean;
+  ingredients: Ingredient[];
+  testQty: number;
+  onTestQtyChange: (n: number) => void;
+  onUpdateQty: (id: string, qty: number) => void;
+  onUpdateUnit: (id: string, unit: string) => void;
+  onDeleteFromRecipe: (id: string) => void;
+  onAddToRecipe: (ingId: string) => void;
+  onOpenCatalog: () => void;
+  onOpenInstructions: () => void;
+  onEditCocktail: () => void; // 👈 ¡ESTA LÍNEA ES LA QUE FALTA!
+}
 import { useState, useEffect, useRef } from 'react';
 import { Loader2, Trash2, Package, Wine, GlassWater, ScrollText, Search, Plus, X } from 'lucide-react';
 import type { Cocktail, Ingredient, RecipeItem } from '@/types';
@@ -16,12 +34,29 @@ interface RecipeTableProps {
   onDeleteFromRecipe: (id: string) => void;
   onAddToRecipe: (ingId: string) => void;
   onOpenCatalog: () => void;
-  onOpenInstructions: () => void; // ✅ NUEVO: Abrir modal de receta
+  onOpenInstructions: () => void;
+  
+  // 👇👇👇 AGREGA ESTA LÍNEA OBLIGATORIAMENTE 👇👇👇
+  onEditCocktail: () => void; 
 }
 
 export function RecipeTable({
-  cocktail, recipe, loadingRecipe, isAdmin, ingredients,
-  testQty, onTestQtyChange, onUpdateQty, onUpdateUnit, onDeleteFromRecipe, onAddToRecipe, onOpenCatalog, onOpenInstructions
+  cocktail, 
+  recipe, 
+  loadingRecipe, 
+  isAdmin, 
+  ingredients,
+  testQty, 
+  onTestQtyChange, 
+  onUpdateQty, 
+  onUpdateUnit, 
+  onDeleteFromRecipe, 
+  onAddToRecipe, 
+  onOpenCatalog, 
+  onOpenInstructions,
+  
+  // 👇👇👇 Y AGREGA ESTO AQUÍ TAMBIÉN 👇👇👇
+  onEditCocktail 
 }: RecipeTableProps) {
 
   // Estado para el buscador de ingredientes
