@@ -2,14 +2,13 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition, Switch, Menu } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
-import type { BlogPost } from '@/types/index'; // Usamos tus tipos existentes
+import type { BlogPost } from '@/types/index';
 import { 
   Plus, Search, MoreVertical, Edit3, Trash2, Eye, 
-  Image as ImageIcon, Loader2, Save, ArrowLeft, CheckCircle 
+  Image as ImageIcon, Loader2, Save, ArrowLeft
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { cn } from '@/utils/utils';
 
 // --- UTILIDAD: Slugify ---
 const slugify = (text: string) => {
@@ -155,7 +154,7 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
               <input 
                 type="text" 
                 required
-                className="w-full px-4 py-3 text-lg font-bold text-secondary-900 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full px-4 py-3 text-lg font-bold text-secondary-900 border border-secondary-200 rounded-xl resize-none focus:ring-primary-500 focus:border-primary-500 outline-none"
                 placeholder="Ej: Tendencias de Coctelería 2026"
                 value={editingPost.title}
                 onChange={(e) => {
@@ -177,7 +176,7 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
                 <input 
                   type="text" 
                   required
-                  className="bg-transparent w-full outline-none font-medium text-secondary-900"
+                  className="bg-transparent w-full outline-none font-medium text-secondary-900 rounded-xl resize-none focus:ring-primary-500 focus:border-primary-500"
                   value={editingPost.slug}
                   onChange={(e) => setEditingPost({ ...editingPost, slug: slugify(e.target.value) })}
                 />
@@ -189,7 +188,7 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
               <textarea 
                 required
                 rows={3}
-                className="w-full px-4 py-3 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                className="w-full px-4 py-3 border border-secondary-200 rounded-xl resize-none focus:ring-primary-500 focus:border-primary-500 outline-none text-sm"
                 placeholder="Breve descripción que aparecerá en Google y en las tarjetas..."
                 value={editingPost.excerpt}
                 onChange={(e) => setEditingPost({ ...editingPost, excerpt: e.target.value })}
@@ -201,7 +200,7 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
               <textarea 
                 required
                 rows={15}
-                className="w-full px-4 py-3 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none font-mono text-sm bg-secondary-50 whitespace-pre-wrap"
+                className="w-full px-4 py-3 border border-secondary-200 rounded-xl resize-none focus:ring-primary-500 focus:border-primary-500 outline-none font-mono text-sm bg-secondary-50 whitespace-pre-wrap"
                 placeholder="Escribe aquí el contenido de tu artículo..."
                 value={editingPost.content}
                 onChange={(e) => setEditingPost({ ...editingPost, content: e.target.value })}
@@ -293,7 +292,7 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
           <input 
             type="text" 
             placeholder="Buscar artículos..." 
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-secondary-200 rounded-xl resize-none focus:ring-primary-500 focus:border-primary-500 outline-none text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -309,8 +308,8 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
         </button>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-2xl border border-secondary-200 shadow-sm overflow-hidden">
+      {/* ✅ CORRECCIÓN: Quitamos 'overflow-hidden' para que el Menú se vea */}
+      <div className="bg-white rounded-2xl border border-secondary-200 shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-secondary-50 border-b border-secondary-200 text-xs uppercase font-bold text-secondary-500">
             <tr>

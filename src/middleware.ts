@@ -54,15 +54,6 @@ const cookieAdapter: CookiesHandler = {
     const { data: { user }, error } = await supabase.auth.getUser();
 
 
-    // 🚨 LOGS DE DEBUG (Muévelos aquí arriba) 🚨
-    if (url.pathname.startsWith('/admin/blog')) {
-        console.log("--- DEBUG BLOG ---");
-        console.log("Ruta:", url.pathname);
-        console.log("User encontrado:", !!user);
-        console.log("Error Supabase:", error?.message);
-        console.log("Cookies recibidas:", request.headers.get('Cookie'));
-        console.log("------------------");
-    }
     if (!user || error) {
       return redirect('/admin/login');
     }
@@ -77,14 +68,6 @@ const cookieAdapter: CookiesHandler = {
     if (!adminUser) {
       return redirect('/admin/login?error=unauthorized');
     }
-  // 🚨 AGREGA ESTOS LOGS TEMPORALES 🚨
-    console.log("--- DEBUG MIDDLEWARE ---");
-    console.log("Ruta intentada:", url.pathname);
-    console.log("Usuario ID:", user.id);
-    console.log("Rol en DB:", adminUser.role);
-    console.log("¿Es super_admin?:", adminUser.role === 'super_admin');
-    console.log("Largo del string:", adminUser.role.length);
-    console.log("------------------------");
 
     // Guardamos info en locals para usar en las páginas
     locals.user = user;

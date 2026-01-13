@@ -1,16 +1,14 @@
 ---
 // src/pages/blog/index.astro
-export const prerender = false; // SSR para que se actualice al instante al publicar
+export const prerender = false;
 
 import PageLayout from '@/layouts/PageLayout.astro';
 import Card from '@/components/ui/Card.astro';
-import Button from '@/components/ui/Button.astro';
-import { supabase } from '@/lib/supabase'; // Cliente público
-import { Calendar, ArrowRight, User } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Calendar, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// Fetch de posts PUBLICADOS
 const { data: posts } = await supabase
   .from('blog_posts')
   .select('*')
@@ -22,14 +20,14 @@ const description = "Descubre consejos de coctelería, tendencias para eventos y
 ---
 
 <PageLayout title={title} description={description}>
-  {/* Hero Simple */}
+  {/* Hero Section */}
   <section class="bg-secondary-900 text-white py-20 relative overflow-hidden">
     <div class="absolute inset-0 opacity-10 bg-[url('/images/pattern.png')]"></div>
     <div class="container-custom relative z-10 text-center max-w-3xl mx-auto">
       <span class="text-primary-500 font-bold tracking-widest uppercase text-sm mb-4 block animate-fade-in-up">
         La Reserva Journal
       </span>
-      <h1 class="text-4xl md:text-5xl font-display font-bold mb-6 animate-fade-in-up delay-100">
+      <h1 class="text-4xl md:text-5xl font-display font-bold mb-6 animate-fade-in-up delay-100 text-white">
         Historias detrás de <br/><span class="text-primary-500">cada copa</span>
       </h1>
       <p class="text-secondary-300 text-lg leading-relaxed animate-fade-in-up delay-200">
@@ -49,8 +47,9 @@ const description = "Descubre consejos de coctelería, tendencias para eventos y
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.map((post) => (
             <Card hover class="flex flex-col h-full border-t-4 border-t-transparent hover:border-t-primary-500 transition-all duration-300 group">
-              {/* Imagen */}
-              <div class="aspect-video bg-secondary-200 overflow-hidden relative">
+              
+              {/* ✅ 1. IMAGEN CLICABLE: Envolvemos la imagen en un enlace */}
+              <a href={`/blog/${post.slug}`} class="aspect-video bg-secondary-200 overflow-hidden relative block cursor-pointer">
                 {post.image_url ? (
                   <img 
                     src={post.image_url} 
@@ -68,7 +67,7 @@ const description = "Descubre consejos de coctelería, tendencias para eventos y
                   <Calendar size={12} className="text-primary-500" />
                   {format(new Date(post.created_at), 'd MMM yyyy', { locale: es })}
                 </div>
-              </div>
+              </a>
 
               {/* Contenido */}
               <div class="p-6 flex-1 flex flex-col">
@@ -80,12 +79,17 @@ const description = "Descubre consejos de coctelería, tendencias para eventos y
                 <p class="text-secondary-500 text-sm leading-relaxed mb-6 line-clamp-3 flex-1">
                   {post.excerpt}
                 </p>
-                <div class="pt-4 border-t border-secondary-100 flex items-center justify-between">
-                  <span class="text-xs font-bold text-primary-600 uppercase tracking-wider">Leer artículo</span>
-                  <div class="w-8 h-8 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-400 group-hover:bg-primary-500 group-hover:text-white transition-all">
-                    <ArrowRight size={16} />
-                  </div>
+                
+                {/* ✅ 2. FOOTER CLICABLE: Envolvemos "Leer artículo" y la flecha */}
+                <div class="pt-4 border-t border-secondary-100">
+                  <a href={`/blog/${post.slug}`} class="flex items-center justify-between group/link cursor-pointer">
+                    <span class="text-xs font-bold text-primary-600 uppercase tracking-wider group-hover/link:underline">Leer artículo</span>
+                    <div class="w-8 h-8 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-400 group-hover:bg-primary-500 group-hover:text-white transition-all">
+                      <ArrowRight size={16} />
+                    </div>
+                  </a>
                 </div>
+
               </div>
             </Card>
           ))}

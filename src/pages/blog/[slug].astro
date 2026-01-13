@@ -23,14 +23,16 @@ if (error || !post) {
   return Astro.redirect('/404');
 }
 
-// 3. Incrementar vistas
-// ✅ CORREGIDO: Supabase devuelve { error }, no lanza excepciones. 
-// Usamos await para asegurar que se ejecute, pero ignoramos el resultado.
+// 3. Incrementar vistas 
+// ✅ CORRECCIÓN TÉCNICA: Eliminamos .catch() que daba error en TS.
+// Simplemente esperamos la promesa. Si falla, no bloquea la página.
 await supabase.rpc('increment_post_views', { post_id: post.id });
 
 const formattedDate = format(new Date(post.created_at), 'dd ' + 'MMMM, yyyy', { locale: es });
 ---
 
+{/* ✅ CORRECCIÓN TÉCNICA: Movimos el comentario fuera del tag para evitar errores */}
+{/* Importante para compartir en WhatsApp */}
 <PageLayout 
   title={post.title} 
   description={post.excerpt} 
@@ -48,21 +50,22 @@ const formattedDate = format(new Date(post.created_at), 'dd ' + 'MMMM, yyyy', { 
         )}
         <div class="container-custom relative z-10 max-w-4xl mx-auto text-center">
             <a href="/blog" class="inline-flex items-center gap-2 text-secondary-300 hover:text-white mb-6 transition-colors text-sm font-bold uppercase tracking-widest">
-                {/* ✅ CORREGIDO: class -> className */}
+                {/* ✅ CORRECCIÓN TÉCNICA: className */}
                 <ArrowLeft size={16} className="text-current" /> Volver al Blog
             </a>
-            <h1 class="text-3xl md:text-5xl font-display font-bold mb-6 leading-tight">
+            {/* ✅ CORRECCIÓN VISUAL: text-white explícito */}
+            <h1 class="text-3xl md:text-5xl font-display font-bold mb-6 leading-tight text-white">
                 {post.title}
             </h1>
             <div class="flex items-center justify-center gap-6 text-sm text-secondary-300">
                 <div class="flex items-center gap-2">
-                    {/* ✅ CORREGIDO: class -> className */}
+                    {/* ✅ CORRECCIÓN TÉCNICA: className */}
                     <Calendar size={16} className="text-primary-500" />
                     <span>{formattedDate}</span>
                 </div>
                 {post.author && (
                     <div class="flex items-center gap-2">
-                        {/* ✅ CORREGIDO: class -> className */}
+                        {/* ✅ CORRECCIÓN TÉCNICA: className */}
                         <User size={16} className="text-primary-500" />
                         <span>{post.author.full_name}</span>
                     </div>
@@ -74,6 +77,7 @@ const formattedDate = format(new Date(post.created_at), 'dd ' + 'MMMM, yyyy', { 
     {/* Contenido del Post */}
     <div class="container-custom max-w-3xl mx-auto -mt-10 relative z-20">
         <div class="bg-white rounded-2xl p-8 md:p-12 shadow-xl border border-secondary-100">
+            {/* Contenido renderizado */}
             <div class="prose prose-lg prose-headings:font-display prose-headings:font-bold prose-headings:text-secondary-900 prose-p:text-secondary-600 prose-a:text-primary-600 prose-strong:text-secondary-900 max-w-none whitespace-pre-wrap">
                 <Fragment set:html={post.content} />
             </div>
