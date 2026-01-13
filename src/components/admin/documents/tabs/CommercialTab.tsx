@@ -1,3 +1,4 @@
+// src/components/admin/documents/tabs/CommercialTab.tsx
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 

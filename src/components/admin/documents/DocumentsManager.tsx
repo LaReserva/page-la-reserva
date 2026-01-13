@@ -1,119 +1,112 @@
+// src/components/admin/documents/DocumentsManager.tsx
 import { useState, useEffect } from 'react';
+import { Tab } from '@headlessui/react'; // ✅ Headless UI
 import { supabase } from '@/lib/supabase';
+import { FileText, Truck, Lock, Loader2 } from 'lucide-react';
 
-// CORRECCIÓN: Separamos los iconos (valores) del tipo (LucideIcon)
-import { FileText, Truck, Loader2, Lock } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react'; 
+// Importamos los nuevos Shells sectorizados (que crearemos a continuación)
+import { CommercialShell } from './commercial/CommercialShell';
+import { OperationsShell } from './operations/OperationsShell';
 
-import { CommercialTab } from './tabs/CommercialTab';
-import { OperationsTab } from './tabs/OperationsTab';
-
-// 1. INTERFAZ PARA TIPADO FUERTE (Soluciona el error del .includes)
-interface TabItem {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  component: React.ComponentType<{ userRole: string }>;
-  allowedRoles: string[]; // Definimos explícitamente como array de strings
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(' ');
 }
 
-// 2. CONFIGURACIÓN TIPADA
-const TABS_CONFIG: TabItem[] = [
-  {
-    id: 'commercial',
-    label: 'Comercial',
-    icon: FileText,
-    component: CommercialTab,
-    allowedRoles: ['sales', 'superadmin', 'super_admin']
-  },
-  {
-    id: 'operations',
-    label: 'Operaciones',
-    icon: Truck,
-    component: OperationsTab,
-    allowedRoles: ['operations', 'superadmin', 'super_admin']
-  }
-];
-
 export function DocumentsManager() {
-  const [activeTab, setActiveTab] = useState<string>('');
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>('');
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     checkPermissions();
   }, []);
 
   async function checkPermissions() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { data } = await supabase.from('admin_users').select('role').eq('id', user.id).single();
-        const role = data?.role || '';
-        setUserRole(role);
-
-        const allowed = TABS_CONFIG.filter(tab => tab.allowedRoles.includes(role));
-        
-        if (allowed.length > 0) {
-          setActiveTab(allowed[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Error verificando permisos:', error);
-    } finally {
-      setLoading(false);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from('admin_users').select('role').eq('id', user.id).single();
+      const role = data?.role || '';
+      setUserRole(role);
+      setHasAccess(['super_admin', 'sales', 'operations'].includes(role));
     }
+    setIsLoading(false);
   }
 
-  const allowedTabs = TABS_CONFIG.filter(tab => tab.allowedRoles.includes(userRole));
-  const ActiveComponent = TABS_CONFIG.find(t => t.id === activeTab)?.component;
+  if (isLoading) return <div className="h-96 flex justify-center items-center"><Loader2 className="animate-spin text-primary-600" size={32}/></div>;
 
-  if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary-600" /></div>;
-
-  if (allowedTabs.length === 0) {
+  if (!hasAccess) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-gray-400">
         <Lock size={48} className="mb-4 opacity-20" />
         <h3 className="text-lg font-medium text-gray-600">Acceso Restringido</h3>
-        <p className="text-sm">Tu usuario ({userRole || 'sin rol'}) no tiene permisos para ver documentos.</p>
       </div>
     );
   }
 
+  // Definición de Tabs según permisos
+  const tabs = [
+    {
+      key: 'commercial',
+      name: 'Gestión Comercial',
+      icon: FileText,
+      component: <CommercialShell userRole={userRole} />,
+      show: ['super_admin', 'sales'].includes(userRole)
+    },
+    {
+      key: 'operations',
+      name: 'Operaciones y Logística',
+      icon: Truck,
+      component: <OperationsShell userRole={userRole} />, // ✅ Uso del nuevo componente
+      show: ['super_admin', 'operations'].includes(userRole)
+    }
+  ].filter(t => t.show);
+
   return (
-    <div className="flex flex-col h-[130vh] gap-6">
+    // ✅ LAYOUT FIX: Altura calculada para ocupar pantalla menos el header del layout principal
+    // Asumimos que el AdminLayout tiene un header de unos 64px o similar. Ajustar si es necesario.
+    <div className="flex flex-col h-[calc(100vh-140px)] gap-4">
       
-      {/* Header */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">Generación de Documentos</h2>
-          <p className="text-sm text-gray-500">Crea propuestas, contratos y listas de compras.</p>
+      <Tab.Group>
+        {/* HEADER DE PESTAÑAS */}
+        <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm flex-none">
+          <Tab.List className="flex space-x-1 rounded-lg bg-gray-100/80 p-1">
+            {tabs.map((tab) => (
+              <Tab
+                key={tab.key}
+                className={({ selected }) =>
+                  classNames(
+                    'w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200',
+                    'ring-white ring-opacity-60 ring-offset-2 resize-none',
+                    selected
+                      ? 'bg-white text-primary-700 shadow shadow-gray-200 scale-[1.02]'
+                      : 'text-gray-500 hover:bg-white/[0.12] hover:text-gray-700'
+                  )
+                }
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <tab.icon size={18} />
+                  {tab.name}
+                </div>
+              </Tab>
+            ))}
+          </Tab.List>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex bg-gray-100 p-1 rounded-lg">
-          {allowedTabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-white text-primary-600 shadow-sm' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+        {/* PANELES DE CONTENIDO (Scrollable area) */}
+        <Tab.Panels className="flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm relative">
+          {tabs.map((tab) => (
+            <Tab.Panel
+              key={tab.key}
+              className={classNames(
+                'h-full w-full overflow-hidden', // Importante: overflow hidden aquí, los hijos manejarán el scroll
+                'ring-white ring-opacity-60 ring-offset-2 resize-none'
+              )}
             >
-              <tab.icon size={16} />
-              {tab.label}
-            </button>
+              {tab.component}
+            </Tab.Panel>
           ))}
-        </div>
-      </div>
-
-      {/* Content Area */}
-      <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm relative">
-        {ActiveComponent && <ActiveComponent userRole={userRole} />}
-      </div>
+        </Tab.Panels>
+      </Tab.Group>
     </div>
   );
 }

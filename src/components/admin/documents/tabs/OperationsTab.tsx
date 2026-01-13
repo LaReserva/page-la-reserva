@@ -1,3 +1,4 @@
+// src/components/admin/documents/tabs/OperationsTab.tsx
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Search, Calculator, Download, Calendar, Users, List, X, FileText, Snowflake, ChevronDown, ChevronUp, PlusCircle, Clock } from 'lucide-react';
