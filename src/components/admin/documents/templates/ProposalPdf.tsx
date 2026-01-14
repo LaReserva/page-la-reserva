@@ -1,162 +1,233 @@
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
+
+// 1. Registramos explícitamente la familia Helvetica para evitar cualquier duda del renderizador
+Font.register({
+  family: 'Helvetica',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/helveticaneue/v1/HelveticaNeue-Regular.ttf' },
+    { src: 'https://fonts.gstatic.com/s/helveticaneue/v1/HelveticaNeue-Bold.ttf', fontWeight: 'bold' },
+  ]
+});
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#333' },
+  page: {
+    paddingTop: 40,
+    paddingHorizontal: 40,
+    paddingBottom: 90,
+    fontFamily: 'Helvetica',
+    fontSize: 10,
+    color: '#333',
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 30,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingBottom: 20,
+  },
+  logo: {
+    width: 200,
+    height: 'auto',
+    objectFit: 'contain'
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
   
-  // Estructura general para empujar el footer al final
-  contentWrapper: { flex: 1 },
-
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  logo: { width: 120, objectFit: 'contain' },
-  headerRight: { alignItems: 'flex-end' },
-  mainTitle: { fontSize: 20, fontWeight: 'bold', color: '#C47E09', textTransform: 'uppercase' },
-  docNumber: { fontSize: 10, color: '#666', marginTop: 2 },
-
-  // Info Cliente
-  clientBox: { 
-    marginBottom: 25, 
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 4,
-    backgroundColor: '#f9fafb'
+  // ✅ CORRECCIÓN: Estilo específico y único para el Título Dorado
+  titleGold: {
+    fontSize: 20,
+    fontFamily: 'Helvetica', // Usamos la familia base
+    fontWeight: 'bold',      // Aplicamos el peso aquí
+    color: '#D4AF37',        // Color dorado explícito
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
-  clientTitle: { fontSize: 11, fontWeight: 'bold', color: '#C47E09', marginBottom: 5, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 3 },
-  infoGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  infoCol: { width: '50%', marginBottom: 4 },
-  label: { fontWeight: 'bold', color: '#555', fontSize: 9 },
-  value: { color: '#222', fontSize: 9 },
-
-  sectionTitle: { fontSize: 12, fontWeight: 'bold', marginBottom: 10, color: '#C47E09', textTransform: 'uppercase', letterSpacing: 1, marginTop: 10 },
-  includesContainer: { marginTop: 5, marginBottom: 20 },
-  includeItem: { flexDirection: 'row', marginBottom: 8, paddingLeft: 5 },
-  bullet: { width: 15, color: '#C47E09', fontSize: 14, lineHeight: 1 },
-  includeText: { fontSize: 10, color: '#444', lineHeight: 1.4 },
-
-  totalsSection: { marginTop: 20, alignItems: 'flex-end', marginBottom: 40 },
-  totalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4, width: '40%' },
-  totalLabel: { width: '50%', textAlign: 'right', paddingRight: 10, color: '#666', fontWeight: 'bold' },
-  totalValue: { width: '50%', textAlign: 'right', fontWeight: 'bold', color: '#C47E09', fontSize: 14 },
-
-  // Footer Area
-  footerSection: { 
-    position: 'absolute', 
-    bottom: 30, 
-    left: 40, 
-    right: 40 
-  },
-  disclaimerBox: { 
-    paddingTop: 10,
-    borderTopWidth: 1, 
-    borderTopColor: '#eee', 
-    marginBottom: 10
-  },
-  disclaimerText: { fontSize: 8, color: '#888', fontStyle: 'italic', textAlign: 'justify', lineHeight: 1.3 },
   
-  contactInfo: { textAlign: 'center', marginTop: 5 },
-  footerText: { fontSize: 8, color: '#999' }
+  refNumber: { fontSize: 10, color: '#555', marginBottom: 2 },
+  date: { fontSize: 10, color: '#555' },
+
+  sectionTitle: {
+    fontSize: 12,
+    fontFamily: 'Helvetica',
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 10,
+    marginTop: 20,
+    textTransform: 'uppercase',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    paddingBottom: 4,
+  },
+  
+  // Grid
+  grid: { flexDirection: 'row', marginBottom: 10 },
+  col: { flex: 1, marginRight: 10 },
+  label: { fontSize: 9, color: '#666', marginBottom: 2, textTransform: 'uppercase' },
+  value: { fontSize: 11, color: '#000', marginBottom: 8 },
+
+  // Items
+  itemsContainer: { marginTop: 5 },
+  itemRow: { flexDirection: 'row', marginBottom: 6, alignItems: 'flex-start' },
+  bullet: { marginRight: 8, fontSize: 12, lineHeight: 1 },
+  itemText: { fontSize: 10, color: '#000', flex: 1, lineHeight: 1.3 },
+
+  // Total
+  totalContainer: {
+    marginTop: 30,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#000',
+    wrap: false,
+  },
+  totalLabel: {
+    fontSize: 12,
+    fontFamily: 'Helvetica',
+    fontWeight: 'bold',
+    color: '#000',
+    marginRight: 15,
+    textTransform: 'uppercase',
+  },
+  
+  // ✅ CORRECCIÓN: Estilo específico para el Precio Dorado
+  totalValueGold: {
+    fontSize: 18,
+    fontFamily: 'Helvetica',
+    fontWeight: 'bold',
+    color: '#D4AF37', // Color dorado explícito
+  },
+
+  // Footer
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 15,
+  },
+  footerText: { fontSize: 8, color: '#777', marginBottom: 4, lineHeight: 1.4 },
+  footerContact: { 
+    fontSize: 9, 
+    color: '#000', 
+    fontFamily: 'Helvetica', 
+    fontWeight: 'bold', 
+    marginTop: 4 
+  },
 });
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return "por definir";
+  const date = new Date(dateString.includes('T') ? dateString : dateString + 'T12:00:00');
+  return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+};
+
+const getTodayDate = () => {
+  return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date());
+};
 
 interface ProposalPdfProps {
   clientName: string;
-  clientPhone?: string;
-  clientEmail?: string;
+  clientPhone: string;
+  clientEmail: string;
   eventType: string;
   eventDate: string;
   guestCount: number;
   items: string[];
   totalCost: number;
+  logoUrl?: string; 
 }
 
-export const ProposalPdf = ({ 
-  clientName, clientPhone, clientEmail, 
-  eventType, eventDate, guestCount, 
-  items, totalCost 
-}: ProposalPdfProps) => {
-
-  const formatCurrency = (amount: number) => 
-    `S/ ${amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function ProposalPdf({
+  clientName,
+  clientPhone,
+  clientEmail,
+  eventType,
+  eventDate,
+  guestCount,
+  items,
+  totalCost,
+  logoUrl = "/logo.png"
+}: ProposalPdfProps) {
+  
+  const refNumber = Math.floor(100000 + Math.random() * 900000);
+  const today = getTodayDate();
+  const absoluteLogoUrl = typeof window !== 'undefined' ? `${window.location.origin}${logoUrl}` : logoUrl;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         
-        {/* WRAPPER PRINCIPAL */}
-        <View style={styles.contentWrapper}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <Image src={absoluteLogoUrl} style={styles.logo} />
           
-          {/* HEADER */}
-          <View style={styles.header}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src="/logo.png" style={styles.logo} />
-            <View style={styles.headerRight}>
-              <Text style={styles.mainTitle}>PROPUESTA</Text>
-              <Text style={styles.docNumber}>Ref: {new Date().getTime().toString().slice(-6)}</Text>
-              <Text style={styles.docNumber}>{new Date().toLocaleDateString()}</Text>
-            </View>
+          <View style={styles.headerRight}>
+            {/* Usamos el estilo dedicado 'titleGold' */}
+            <Text style={styles.titleGold}>COTIZACIÓN</Text> 
+            <Text style={styles.refNumber}>Ref: {refNumber}</Text>
+            <Text style={styles.date}>{today}</Text>
           </View>
-
-          {/* CLIENTE */}
-          <View style={styles.clientBox}>
-            <Text style={styles.clientTitle}>DATOS DEL CLIENTE Y EVENTO</Text>
-            <View style={styles.infoGrid}>
-              <View style={styles.infoCol}>
-                <Text style={styles.label}>Cliente:</Text>
-                <Text style={styles.value}>{clientName || '--'}</Text>
-              </View>
-              <View style={styles.infoCol}>
-                <Text style={styles.label}>Tipo de Evento:</Text>
-                <Text style={styles.value}>{eventType.toUpperCase()} ({guestCount} pax)</Text>
-              </View>
-              
-              {(clientPhone || clientEmail) && (
-                <View style={{...styles.infoCol, width: '100%', marginTop: 5, flexDirection: 'row', gap: 20}}>
-                   {clientPhone && <Text style={styles.value}>Telf: {clientPhone}</Text>}
-                   {clientEmail && <Text style={styles.value}>Email: {clientEmail}</Text>}
-                </View>
-              )}
-
-              <View style={{...styles.infoCol, marginTop: 5}}>
-                <Text style={styles.label}>Fecha Tentativa:</Text>
-                <Text style={styles.value}>{eventDate || 'Por definir'}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* DETALLES */}
-          <Text style={styles.sectionTitle}>Detalles del Servicio</Text>
-          <View style={styles.includesContainer}>
-            {items.map((item, index) => (
-              <View key={index} style={styles.includeItem}>
-                <Text style={styles.bullet}>•</Text>
-                <Text style={styles.includeText}>{item}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* PRECIO */}
-          {totalCost > 0 && (
-            <View style={styles.totalsSection}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>PRECIO TOTAL:</Text>
-                <Text style={styles.totalValue}>{formatCurrency(totalCost)}</Text>
-              </View>
-            </View>
-          )}
         </View>
 
-        {/* FOOTER FIXED AL FONDO */}
-        <View style={styles.footerSection}>
-          <View style={styles.disclaimerBox}>
-            <Text style={styles.disclaimerText}>
-              Nota: La presente es una propuesta preliminar de servicios, sujeta a cambios, personalizaciones y sugerencias por parte del cliente para asegurar el éxito de su evento. Los precios mostrados tienen una validez de 15 días calendario.
-            </Text>
+        {/* DATOS */}
+        <Text style={styles.sectionTitle}>Datos del Cliente y Evento</Text>
+        <View style={styles.grid}>
+          <View style={styles.col}>
+            <Text style={styles.label}>Cliente</Text>
+            <Text style={styles.value}>{clientName}</Text>
+            <Text style={styles.label}>Email</Text>
+            <Text style={styles.value}>{clientEmail || '--'}</Text>
           </View>
-          <View style={styles.contactInfo}>
-            <Text style={styles.footerText}>LA RESERVA BARTENDING | contacto@lareserva.pe | +51 999 999 999</Text>
+          <View style={styles.col}>
+            <Text style={styles.label}>Fecha del Evento</Text>
+            <Text style={styles.value}>{formatDate(eventDate)}</Text>
+            <Text style={styles.label}>Tipo / Invitados</Text>
+            <Text style={styles.value}>{eventType} ({guestCount} pax)</Text>
           </View>
+          <View style={styles.col}>
+             <Text style={styles.label}>Teléfono</Text>
+             <Text style={styles.value}>{clientPhone || '--'}</Text>
+          </View>
+        </View>
+
+        {/* ITEMS */}
+        <Text style={styles.sectionTitle}>Detalles del Servicio</Text>
+        <View style={styles.itemsContainer}>
+          {items.map((item, index) => (
+            <View key={index} style={styles.itemRow}>
+              <Text style={styles.bullet}>•</Text>
+              <Text style={styles.itemText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* TOTAL */}
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalLabel}>PRECIO TOTAL:</Text>
+          {/* Usamos el estilo dedicado 'totalValueGold' */}
+          <Text style={styles.totalValueGold}>S/ {totalCost.toFixed(2)}</Text>
+        </View>
+
+        {/* FOOTER */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>
+            Nota: La presente es una cotización preliminar de servicios, sujeta a cambios, personalizaciones y sugerencias por parte del cliente para asegurar el éxito de su evento. Los precios mostrados tienen una validez de 15 días calendario.
+          </Text>
+          <Text style={styles.footerContact}>
+            LA RESERVA BARTENDING  |  contacto@lareserva.pe  |  +51 999 999 999
+          </Text>
         </View>
 
       </Page>
     </Document>
   );
-};
+}

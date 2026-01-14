@@ -80,21 +80,31 @@ export interface Proposal {
   user_id: string;
 }
 
+export interface ContractMetadata {
+  guaranteeDeposit: number;
+  extraHourCost: number;
+  setupHours: number;
+  serviceHours: number;
+  supplyType: 'provider' | 'client_all' | 'client_partial';
+  clientItems: { qty: number; description: string }[];
+}
+
 export interface Contract {
   id: string;
   created_at: string;
   proposal_id: string;
-  
   client_name: string;
   client_email: string;
   client_phone: string;
   event_date: string;
   event_type: string;
   total_amount: number;
-  items: string[];
-  
-  contract_status: 'created' | 'signed' | 'cancelled';
+  items: string[]; // O string[] | string dependiendo de cómo lo manejes
+  contract_status: 'created' | 'signed' | 'completed';
   user_id: string;
+  
+  // ✅ AQUÍ ESTÁ LA ACTUALIZACIÓN:
+  metadata?: ContractMetadata | null; 
 }
 export interface Event {
   id: string;
