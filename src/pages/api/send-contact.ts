@@ -61,7 +61,7 @@ export const POST: APIRoute = async ({ request }) => {
       subject: `Nuevo Contacto: ${subject}`,
       html: `
         <div style="font-family: sans-serif; color: #333;">
-          <h2 style="color: #d97706;">Nuevo Lead Recibido</h2>
+          <h2 style="color: #D4AF37;">Nuevo Lead Recibido</h2>
           <p><strong>De:</strong> ${name} (${email})</p>
           <p><strong>Teléfono:</strong> ${phone || 'No especificado'}</p>
           <hr />
@@ -80,7 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; color: #333333; line-height: 1.6;">
           
           <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
-            <h1 style="color: #d97706; margin: 0; font-size: 24px;">LA RESERVA</h1>
+            <h1 style="color: #D4AF37; margin: 0; font-size: 24px;">LA RESERVA</h1>
             <p style="color: #ffffff; margin: 5px 0 0; font-size: 14px;">Bartending & Coctelería</p>
           </div>
 
@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ request }) => {
             
             <p>Nuestro equipo ya está revisando tu mensaje y nos pondremos en contacto contigo a la brevedad posible para conversar sobre los detalles de tu evento.</p>
             
-            <div style="background-color: #f9fafb; border-left: 4px solid #d97706; padding: 15px; margin: 20px 0;">
+            <div style="background-color: #f9fafb; border-left: 4px solid #D4AF37; padding: 15px; margin: 20px 0;">
               <p style="margin: 0; font-size: 14px; color: #555;">
                 <strong>Tu mensaje:</strong><br/>
                 "${message}"
