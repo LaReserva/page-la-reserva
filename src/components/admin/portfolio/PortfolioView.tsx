@@ -358,7 +358,14 @@ export default function PortfolioView() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] uppercase font-bold text-secondary-400 tracking-wider">Descripción</label>
-                    <input type="text" defaultValue={img.caption || ''} placeholder="Descripción..." className="w-full text-xs border-secondary-200 rounded-lg px-2 py-1.5 resize-none focus:ring-primary-500 focus:border-primary-500 outline-none border transition-all" onBlur={(e) => updateCaption(img.id, e.target.value)}/>
+                    <input 
+                      type="text" 
+                      defaultValue={img.caption || ''} 
+                      disabled={!isSuperAdmin}
+                      placeholder="Descripción..." 
+                      className="w-full text-xs border-secondary-200 rounded-lg px-2 py-1.5 resize-none focus:ring-primary-500 focus:border-primary-500 outline-none border transition-all" 
+                      onBlur={(e) => updateCaption(img.id, e.target.value)}
+                    />
                   </div>
                   
                   {/* FOOTER ACTIONS */}

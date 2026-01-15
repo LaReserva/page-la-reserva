@@ -1,11 +1,11 @@
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { startOfMonth, endOfMonth } from 'date-fns';
 
 export async function getEventsThisMonth() {
   const start = startOfMonth(new Date());
   const end = endOfMonth(new Date());
   
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabase
     .from('events')
     .select(`
       *,
