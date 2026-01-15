@@ -196,16 +196,28 @@ export function getDaysBetween(date1: Date, date2: Date): number {
 }
 
 /**
- * Obtiene el saludo apropiado según la hora.
- * Acepta una fecha opcional para facilitar las pruebas.
+ * Obtiene el saludo apropiado según la hora en Perú.
+ * Considera "Noche" hasta las 6:00 AM para evitar "Buenos días" en la madrugada.
  * * @param date - Fecha a evaluar (opcional, por defecto es ahora)
  * @returns Saludo del día
  */
 export function getGreeting(date: Date = new Date()): string {
-  const hour = date.getHours();
+  // Obtenemos la hora actual específicamente en la zona horaria de Perú
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    hour12: false, // Formato 24 horas (0-23)
+    timeZone: 'America/Lima'
+  });
 
-  if (hour < 12) return 'Buenos días';
-  if (hour < 19) return 'Buenas tardes';
+  const hour = parseInt(formatter.format(date));
+
+  // Lógica ajustada:
+  // 06:00 a 11:59 -> Buenos días
+  // 12:00 a 18:59 -> Buenas tardes
+  // 19:00 a 05:59 -> Buenas noches
+  
+  if (hour >= 6 && hour < 12) return 'Buenos días';
+  if (hour >= 12 && hour < 19) return 'Buenas tardes';
   return 'Buenas noches';
 }
 
