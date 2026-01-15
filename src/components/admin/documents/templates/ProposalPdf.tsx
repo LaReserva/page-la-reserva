@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import type { Event } from '@/types';
 
 // 1. Registramos explícitamente la familia Helvetica para evitar cualquier duda del renderizador
 Font.register({
@@ -223,7 +224,7 @@ export function ProposalPdf({
             Nota: La presente es una cotización preliminar de servicios, sujeta a cambios, personalizaciones y sugerencias por parte del cliente para asegurar el éxito de su evento. Los precios mostrados tienen una validez de 15 días calendario.
           </Text>
           <Text style={styles.footerContact}>
-            LA RESERVA BARTENDING  |  contacto@lareserva.pe  |  +51 999 999 999
+            LA RESERVA BARTENDING  |  contacto@lareserva.pe  |  +51 989 245 091
           </Text>
         </View>
 

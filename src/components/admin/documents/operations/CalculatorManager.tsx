@@ -4,7 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { Search, ChevronUp, Plus, X, Download, FileText, Settings2, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import type { Event, Ingredient, RecipeItem, Cocktail } from '@/types';
 import { generateShoppingList, type CalculationResult } from '@/utils/calculator';
-import { BarChecklistPdf } from '../templates/BarChecklistPdf';
+// Ajusta esta ruta si tu archivo está en otra carpeta
+import { BarChecklistPdf } from '@/components/admin/documents/templates/BarChecklistPdf'; 
 
 interface CalculatorManagerProps {
   initialEvent: Event | null;
@@ -35,6 +36,7 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // --- INITIAL LOAD ---
   useEffect(() => {
     fetchCatalogs();
   }, []);
@@ -50,7 +52,7 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
     }
   }, [initialEvent, isFreeMode]);
 
-  // Recalcular Distribución Automática al AGREGAR cocteles
+  // Recalcular Distribución Automática
   useEffect(() => {
     if (selectedCocktails.length > 0) {
       const newCocktails = selectedCocktails.filter(id => distribution[id] === undefined);
@@ -62,6 +64,7 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
     }
   }, [selectedCocktails.length]);
 
+  // --- CALCULATOR ENGINE ---
   useEffect(() => {
     if (recipes.length > 0 && ingredients.length > 0 && selectedCocktails.length > 0) {
       const mockEvent: Event = {
@@ -153,6 +156,7 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
 
   const totalDist = Object.values(distribution).reduce((a, b) => a + b, 0);
 
+  // --- EXPORTS ---
   const handleExportExcel = async () => {
     if (shoppingList.length === 0) return;
     setIsProcessing(true);
@@ -187,14 +191,27 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
     try {
       const { pdf } = await import('@react-pdf/renderer');
       const FileSaver = (await import('file-saver')).default;
+      
+      // ✅ FIX 1 (ERROR PDF): Usamos .toISOString() en modo libre
+      // Esto asegura que la fecha siempre tenga el formato 'YYYY-MM-DDTHH:mm...' 
+      // que la función formatDate() del PDF puede leer sin explotar.
       const eventData = {
         ...(initialEvent || {} as Event),
         event_type: isFreeMode ? 'Cálculo Manual' : initialEvent?.event_type || 'Evento',
-        event_date: isFreeMode ? new Date().toLocaleDateString() : initialEvent?.event_date || '',
+        event_date: isFreeMode ? new Date().toISOString() : initialEvent?.event_date || '',
         guest_count: settings.guestCount
       } as Event;
+
       const cocktailNames = selectedCocktails.map(id => allCocktails.find(c => c.id === id)?.name || 'Desconocido');
-      const blob = await pdf(<BarChecklistPdf event={eventData} shoppingList={shoppingList} cocktailNames={cocktailNames} />).toBlob();
+      
+      const blob = await pdf(
+        <BarChecklistPdf 
+           event={eventData} 
+           shoppingList={shoppingList} 
+           cocktailNames={cocktailNames} 
+        />
+      ).toBlob();
+
       FileSaver.saveAs(blob, `Checklist_${isFreeMode ? 'Manual' : eventData.event_date}.pdf`);
       setSuccessMsg("PDF descargado correctamente.");
     } catch (e) {
@@ -225,8 +242,7 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
         </Dialog>
       </Transition>
 
-      {/* --- HEADER CONFIGURACIÓN --- */}
-      {/* ✅ FIX CLAVE: 'z-30' aquí asegura que este bloque (y el dropdown hijo) estén ENCIMA de la tabla (z-10) */}
+      {/* HEADER CONFIGURACIÓN */}
       <div className="bg-white border-b border-gray-200 p-4 lg:p-6 shadow-sm z-30">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
           <div>
@@ -283,11 +299,13 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
               </Disclosure.Button>
               <Disclosure.Panel className="p-4 bg-white rounded-b-xl">
                  <div className="flex flex-col lg:flex-row gap-6">
-                    
-                    {/* DROPDOWN CONTAINER */}
                     <div className="w-full lg:w-1/3 space-y-2 relative z-50">
                        <label className="text-xs font-bold text-gray-400 uppercase">Agregar Coctel</label>
-                       <Combobox value={null} onChange={addCocktail}>
+                       
+                       {/* ✅ FIX 2 (TYPESCRIPT ERROR): 
+                           Cambiamos addCocktail por una función flecha con (val: any).
+                           Esto evita que TS se queje de que 'value={null}' hace incompatible la función. */}
+                       <Combobox value={null} onChange={(val: any) => addCocktail(val)}>
                           <div className="relative">
                              <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-primary-500 sm:text-sm">
                                 <Combobox.Input className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0" onChange={(event) => setQuery(event.target.value)} placeholder="Escribe para buscar..."/>
@@ -344,7 +362,6 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                     {/* Sticky z-10 (Menor que el z-30 del header de configuración) */}
                      <thead className="bg-gray-100 text-gray-600 font-bold uppercase text-xs sticky top-0 z-10 shadow-sm">
                         <tr>
                            <th className="px-6 py-3">Insumo</th>
