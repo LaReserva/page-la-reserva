@@ -5,6 +5,11 @@ import { Dialog, Transition } from '@headlessui/react';
 import { ProposalPdf } from '../templates/ProposalPdf';
 import type { Proposal } from '@/types';
 import { QUOTE_DOC_STATUSES } from '@/utils/constants';
+import { Buffer } from 'buffer';
+
+if (typeof window !== 'undefined' && !window.Buffer) {
+  window.Buffer = Buffer;
+}
 
 // Componente visual para el estado (Status Badge)
 const StatusBadge = ({ status }: { status: string }) => {

@@ -2,7 +2,8 @@ import { useState, useEffect, Fragment } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Search, Trash2, FileSignature, Loader2, Calendar, AlertTriangle } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
-import type { Contract } from '@/types';
+// ✅ IMPORTANTE: Agregamos ContractMetadata para el tipado fuerte
+import type { Contract, ContractMetadata } from '@/types';
 
 export function ContractList({ userRole }: { userRole: string }) {
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -33,18 +34,48 @@ export function ContractList({ userRole }: { userRole: string }) {
     }
   }
 
+  // ✅ LÓGICA CORREGIDA (Sin tocar diseño)
   const handleDownloadPdf = async (contract: Contract) => {
     setIsGenerating(contract.id);
     try {
       const FileSaver = (await import('file-saver')).default;
       const { generateContractWord } = await import('@/utils/ContractGenerator');
 
-      const blob = await generateContractWord({
-        ...contract,
-        total_price: contract.total_amount,
+      // 1. Reconstruimos el objeto 'proposal' para asegurar que 'items' no sea undefined
+      const mockProposal = {
+        id: contract.proposal_id,
+        client_name: contract.client_name,
+        client_email: contract.client_email || '',
         client_phone: contract.client_phone || '',
-        client_email: contract.client_email || ''
-      } as any);
+        event_date: contract.event_date,
+        event_type: contract.event_type,
+        total_price: contract.total_amount,
+        items: contract.items || [], // <--- ESTO EVITA EL ERROR CRÍTICO
+        guest_count: 0, 
+        status: 'accepted'
+      };
+
+      // 2. Extraemos metadata con tipado fuerte (Partial<ContractMetadata>)
+      const meta = (contract.metadata || {}) as Partial<ContractMetadata>;
+
+      const config = {
+        guaranteeDeposit: meta.guaranteeDeposit || 0,
+        extraHourCost: meta.extraHourCost || 0,
+        setupHours: meta.setupHours || 0,
+        serviceHours: meta.serviceHours || 5,
+      };
+
+      const supplies = {
+        type: meta.supplyType || 'provider',
+        items: meta.clientItems || []
+      };
+
+      // 3. Generamos el documento pasando la estructura correcta
+      const blob = await generateContractWord({
+        proposal: mockProposal as any,
+        config: config,
+        supplies: supplies as any
+      });
 
       const folio = contract.id.slice(0, 8).toUpperCase();
       FileSaver.saveAs(blob, `Contrato_${contract.client_name.replace(/\s+/g, '_')}_${folio}.docx`);
@@ -183,7 +214,6 @@ export function ContractList({ userRole }: { userRole: string }) {
                       </button>
                       
                       {['super_admin'].includes(userRole) && (
-                        // ✅ LLAMADA AL NUEVO MODAL
                         <button onClick={() => requestDelete(c.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                           <Trash2 size={16}/>
                         </button>

@@ -62,6 +62,9 @@ importers:
       astro:
         specifier: ^5.15.4
         version: 5.16.6(@types/node@25.0.3)(@vercel/functions@2.2.13)(jiti@1.21.7)(lightningcss@1.29.3)(rollup@4.54.0)(terser@5.39.0)(typescript@5.9.3)(yaml@2.8.2)
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1874,6 +1877,9 @@ packages:
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
 
+  buffer@6.0.3:
+    resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
+
   camel-case@4.1.2:
     resolution: {integrity: sha512-gxGWBrTT1JuMx6R+o5PTXMmUnhnVzLQ9SNutD4YqKtI6ap897t3tKECYla6gCWEkplXnlNybEkZg9GEGxKFCgw==}
 
@@ -2402,6 +2408,9 @@ packages:
   iceberg-js@0.8.1:
     resolution: {integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==}
     engines: {node: '>=20.0.0'}
+
+  ieee754@1.2.1:
+    resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
   immediate@3.0.6:
     resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
@@ -5916,6 +5925,11 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
+  buffer@6.0.3:
+    dependencies:
+      base64-js: 1.5.1
+      ieee754: 1.2.1
+
   camel-case@4.1.2:
     dependencies:
       pascal-case: 3.1.2
@@ -6470,6 +6484,8 @@ snapshots:
   hyphen@1.13.0: {}
 
   iceberg-js@0.8.1: {}
+
+  ieee754@1.2.1: {}
 
   immediate@3.0.6: {}
 
