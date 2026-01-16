@@ -1,26 +1,26 @@
-// src/components/admin/FinanceView.tsx
+// src/components/admin/finance/FinanceView.tsx
 import React, { useState, useEffect, useMemo, Fragment } from 'react';
 import { Dialog, Transition, Listbox } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
 import type { Event } from '@/types/index';
-// --- IMPORTACIÓN XLSX ---
-import * as XLSX from 'xlsx';
-// -----------------------
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths, addMonths, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns';
+// ✅ PERFORMANCE: Eliminamos el import estático de XLSX
+import { 
+  format, parseISO, startOfMonth, endOfMonth, isWithinInterval, 
+  subMonths, addMonths, startOfDay, endOfDay, eachDayOfInterval, 
+  differenceInDays, isValid 
+} from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-  DollarSign, TrendingUp, TrendingDown, Wallet, Download, Plus, X,
-  Calendar as CalendarIcon, ArrowUpRight, ArrowDownLeft, Loader2, Minus, Search, RefreshCw,
-  Check, ChevronDown, Filter, FileSpreadsheet
+  DollarSign, TrendingUp, TrendingDown, Wallet, Plus, X,
+  Calendar as CalendarIcon, ArrowUpRight, ArrowDownLeft, Loader2, Minus, 
+  Filter, FileSpreadsheet, Check, ChevronDown, RefreshCw
 } from 'lucide-react';
-import { cn } from '@/utils/utils'; 
 
 // --- TIPOS ---
 type FinanceTransaction = 
-  | { type: 'income'; date: string; amount: number; description: string; category: string; id: string; reference?: string; clientId?: string }
-  | { type: 'expense'; date: string; amount: number; description: string; category: string; id: string; reference?: string; clientId?: string };
-
-// --- COMPONENTE LISTBOX (Select Personalizado y Responsivo) ---
+  | { type: 'income'; date: string; amount: number; description: string; category: string; id: string; reference?: string; clientId?: string; created_at: string }
+  | { type: 'expense'; date: string; amount: number; description: string; category: string; id: string; reference?: string; clientId?: string; created_at: string };
+// --- COMPONENTE LISTBOX ---
 interface FinanceListboxProps {
   value: any;
   onChange: (value: any) => void;
@@ -52,6 +52,7 @@ function FinanceListbox({ value, onChange, options, label, placeholder = "Selecc
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
+          {/* ✅ UI FIX: z-50 asegura que se vea por encima, pero dependía del overflow del padre (corregido abajo) */}
           <Listbox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl bg-white py-1 text-base shadow-xl ring-1 ring-black/5 focus:outline-none sm:text-sm border border-secondary-100">
             {options.map((option, optionIdx) => (
               <Listbox.Option
@@ -144,15 +145,24 @@ export default function FinanceView() {
 
   // --- CÁLCULOS (useMemo) ---
   const { kpi, chartData, transactions, dateRangeLabel } = useMemo(() => {
-    let start, end;
-    if (filterStartDate && filterEndDate) {
+    let start: Date, end: Date;
+
+    // Validación de fechas
+    const isValidRange = filterStartDate && filterEndDate && isValid(parseISO(filterStartDate)) && isValid(parseISO(filterEndDate));
+    
+    if (isValidRange) {
       start = startOfDay(parseISO(filterStartDate));
       end = endOfDay(parseISO(filterEndDate));
+      if (differenceInDays(end, start) > 365 || differenceInDays(end, start) < 0) {
+        start = startOfMonth(currentDate);
+        end = endOfMonth(currentDate);
+      }
     } else {
       start = startOfMonth(currentDate);
       end = endOfMonth(currentDate);
     }
 
+    // Filtrado inicial
     let filteredPayments = payments.filter(p => isWithinInterval(parseISO(p.payment_date), { start, end }));
     let filteredExpenses = expenses.filter(e => isWithinInterval(parseISO(e.date), { start, end }));
     let filteredEvents = events.filter(e => isWithinInterval(parseISO(e.event_date), { start, end }));
@@ -163,6 +173,7 @@ export default function FinanceView() {
         filteredEvents = filteredEvents.filter((e: any) => (e as any).client?.id === filterClient);
     }
 
+    // Cálculos KPI
     const refunds = filteredExpenses.filter(e => e.category === 'devolucion');
     const refundAmount = refunds.reduce((sum, e) => sum + (e.amount || 0), 0);
     const operationalExpensesList = filteredExpenses.filter(e => e.category !== 'devolucion');
@@ -179,35 +190,53 @@ export default function FinanceView() {
         return acc + (balance > 0 ? balance : 0);
     }, 0);
 
+    // ✅ Mapeo incluyendo created_at para el ordenamiento
     const incomeItems: FinanceTransaction[] = filteredPayments.map(p => ({
         type: 'income', id: p.id, date: p.payment_date, amount: p.amount,
         description: p.notes || (p.is_deposit ? 'Adelanto' : 'Ingreso'),
         category: p.payment_method || 'Transferencia',
         reference: (p as any).event?.client?.name ? `Evento: ${(p as any).event.client.name}` : 'Ingreso Manual',
-        clientId: (p as any).event?.client?.id
+        clientId: (p as any).event?.client?.id,
+        created_at: p.created_at // Importante para desempate
     }));
 
     const expenseItems: FinanceTransaction[] = filteredExpenses.map(e => ({
         type: 'expense', id: e.id, date: e.date, amount: e.amount,
         description: e.description, category: e.category,
         reference: (e as any).event?.client?.name ? `Evento: ${(e as any).event.client.name}` : 'Gasto General',
-        clientId: (e as any).event?.client?.id
+        clientId: (e as any).event?.client?.id,
+        created_at: e.created_at // Importante para desempate
     }));
 
-    const allTransactions = [...incomeItems, ...expenseItems].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    const intervalDays = eachDayOfInterval({ start, end });
-    const chart = intervalDays.map(date => {
-        const dayStr = format(date, 'yyyy-MM-dd');
-        const dayLabel = format(date, 'd');
-        const dayRawIncome = filteredPayments.filter(p => p.payment_date === dayStr).reduce((s, p) => s + p.amount, 0);
-        const dayRefunds = filteredExpenses.filter(e => e.category === 'devolucion' && e.date === dayStr).reduce((s, e) => s + e.amount, 0);
-        const dayIncome = Math.max(0, dayRawIncome - dayRefunds); 
-        const dayExpense = filteredExpenses.filter(e => e.category !== 'devolucion' && e.date === dayStr).reduce((s, e) => s + e.amount, 0);
-        return { date: dayStr, label: dayLabel, income: dayIncome, expense: dayExpense };
+    // ✅ LOGIC FIX: Ordenamiento Descendente (Fecha > Hora de Creación)
+    const allTransactions = [...incomeItems, ...expenseItems].sort((a, b) => {
+      // 1. Comparar Fechas del movimiento
+      const dateA = parseISO(a.date).getTime();
+      const dateB = parseISO(b.date).getTime();
+      if (dateA !== dateB) return dateB - dateA; // Si son fechas distintas, gana la más reciente
+      
+      // 2. Desempate: Si es el mismo día, usar created_at (el último registrado va arriba)
+      const createdA = a.created_at ? parseISO(a.created_at).getTime() : 0;
+      const createdB = b.created_at ? parseISO(b.created_at).getTime() : 0;
+      return createdB - createdA; 
     });
+
+    // Generación del gráfico
+    let chart: { date: string; label: string; income: number; expense: number }[] = [];
+    try {
+        const intervalDays = eachDayOfInterval({ start, end });
+        chart = intervalDays.map(date => {
+            const dayStr = format(date, 'yyyy-MM-dd');
+            const dayLabel = format(date, 'd');
+            const dayRawIncome = filteredPayments.filter(p => p.payment_date === dayStr).reduce((s, p) => s + p.amount, 0);
+            const dayRefunds = filteredExpenses.filter(e => e.category === 'devolucion' && e.date === dayStr).reduce((s, e) => s + e.amount, 0);
+            const dayIncome = Math.max(0, dayRawIncome - dayRefunds); 
+            const dayExpense = filteredExpenses.filter(e => e.category !== 'devolucion' && e.date === dayStr).reduce((s, e) => s + e.amount, 0);
+            return { date: dayStr, label: dayLabel, income: dayIncome, expense: dayExpense };
+        });
+    } catch (e) {
+        chart = [];
+    }
 
     const label = filterStartDate && filterEndDate 
         ? `${format(parseISO(filterStartDate), 'dd MMM')} - ${format(parseISO(filterEndDate), 'dd MMM')}`
@@ -217,39 +246,47 @@ export default function FinanceView() {
   }, [events, expenses, payments, currentDate, filterStartDate, filterEndDate, filterClient]);
 
   // ==========================================
-  // ✅ EXPORTAR XLSX (Legible y Anchos Ajustados)
+  // ✅ PERFORMANCE: Importación dinámica de XLSX (Lazy Load)
   // ==========================================
-  const handleExportXLSX = () => {
+  const handleExportXLSX = async () => {
     if (transactions.length === 0) return alert("No hay datos para exportar");
 
-    // 1. Mapeo de datos para legibilidad
-    const dataToExport = transactions.map(t => ({
-      FECHA: format(parseISO(t.date), 'dd/MM/yyyy'),
-      TIPO: t.type === 'income' ? 'INGRESO' : 'GASTO',
-      DESCRIPCIÓN: t.description,
-      REFERENCIA: t.reference || '-',
-      CATEGORÍA: t.category.toUpperCase(),
-      MONTO: t.type === 'income' ? t.amount : -t.amount, // Monto numérico para que Excel pueda sumar
-    }));
+    try {
+        // Importación dinámica: Solo carga la librería cuando se hace click
+        const XLSX = await import('xlsx');
 
-    // 2. Crear Hoja de Trabajo
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        // 1. Mapeo de datos para legibilidad
+        const dataToExport = transactions.map(t => ({
+        FECHA: format(parseISO(t.date), 'dd/MM/yyyy'),
+        TIPO: t.type === 'income' ? 'INGRESO' : 'GASTO',
+        DESCRIPCIÓN: t.description,
+        REFERENCIA: t.reference || '-',
+        CATEGORÍA: t.category.toUpperCase(),
+        MONTO: t.type === 'income' ? t.amount : -t.amount,
+        }));
 
-    // 3. Ajustar Ancho de Columnas (Clave para legibilidad)
-    const wscols = [
-      { wch: 12 }, // A: Fecha
-      { wch: 10 }, // B: Tipo
-      { wch: 40 }, // C: Descripción (Ancho grande)
-      { wch: 30 }, // D: Referencia
-      { wch: 20 }, // E: Categoría
-      { wch: 15 }, // F: Monto
-    ];
-    worksheet['!cols'] = wscols;
+        // 2. Crear Hoja de Trabajo
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
 
-    // 4. Crear Libro y Descargar
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzas");
-    XLSX.writeFile(workbook, `Finanzas_LaReserva_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+        // 3. Ajustar Ancho de Columnas
+        const wscols = [
+        { wch: 12 }, // A: Fecha
+        { wch: 10 }, // B: Tipo
+        { wch: 40 }, // C: Descripción
+        { wch: 30 }, // D: Referencia
+        { wch: 20 }, // E: Categoría
+        { wch: 15 }, // F: Monto
+        ];
+        worksheet['!cols'] = wscols;
+
+        // 4. Crear Libro y Descargar
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzas");
+        XLSX.writeFile(workbook, `Finanzas_LaReserva_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+    } catch (e) {
+        console.error("Error al exportar Excel:", e);
+        alert("Hubo un error al generar el Excel.");
+    }
   };
 
   // --- HANDLERS (Guardar Transacción) ---
@@ -300,14 +337,13 @@ export default function FinanceView() {
   return (
     <div className="p-4 md:p-6 space-y-6 md:space-y-8 min-h-screen font-sans text-secondary-900 animate-in fade-in duration-500">
       
-      {/* Header & Controles (Responsivo) */}
+      {/* Header & Controles */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className="text-2xl font-display font-bold text-secondary-900">Finanzas</h1>
               <p className="text-sm text-secondary-500">Flujo de caja y control financiero</p>
             </div>
-            {/* Botones de Acción (Scroll horizontal en móvil si es necesario) */}
             <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
                 <button onClick={handleExportXLSX} className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-secondary-700 bg-white border border-secondary-200 rounded-xl hover:bg-secondary-50 hover:border-secondary-300 transition-all shadow-sm whitespace-nowrap">
                   <FileSpreadsheet size={18} className="text-green-600"/> 
@@ -322,7 +358,7 @@ export default function FinanceView() {
             </div>
         </div>
 
-        {/* BARRA DE FILTROS (Stackeada en móvil) */}
+        {/* BARRA DE FILTROS */}
         <div className="bg-white p-4 rounded-2xl border border-secondary-200 shadow-sm flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
             <div className="flex flex-col md:flex-row gap-4 w-full items-start md:items-center">
                 
@@ -338,7 +374,7 @@ export default function FinanceView() {
 
                 <div className="h-8 w-px bg-secondary-200 hidden lg:block"></div>
 
-                {/* Filtro Rango Fechas (Grid en móvil) */}
+                {/* Filtro Rango Fechas */}
                 <div className="grid grid-cols-2 gap-2 w-full md:w-auto">
                     <div className="flex flex-col">
                         <span className="text-[10px] uppercase font-bold text-secondary-400 mb-1">Desde</span>
@@ -365,7 +401,7 @@ export default function FinanceView() {
         </div>
       </div>
 
-      {/* KPI Cards (Grid responsivo) */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Ingreso Real (Neto)" value={kpi.netRealIncome} icon={DollarSign} color="bg-green-50 text-green-700 border-green-100" subText={kpi.refundAmount > 0 ? `-${formatMoney(kpi.refundAmount)} dev.` : "Limpio en caja"} />
         <KpiCard title="Proyectado" value={kpi.totalProjectedIncome} icon={TrendingUp} color="bg-blue-50 text-blue-700 border-blue-100" subText="Eventos activos del periodo" />
@@ -373,7 +409,7 @@ export default function FinanceView() {
         <KpiCard title="Utilidad Neta" value={kpi.netProfit} icon={Wallet} color={kpi.netProfit >= 0 ? "bg-indigo-50 text-indigo-700 border-indigo-100" : "bg-orange-50 text-orange-700 border-orange-100"} isBold subText="Real - Gastos" />
       </div>
 
-      {/* Gráfico y Balance (Columna única en móvil/tablet, 2 columnas en desktop) */}
+      {/* Gráfico y Balance */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-6">
@@ -383,7 +419,7 @@ export default function FinanceView() {
           <div className="flex-1 flex items-end gap-1 h-64 pb-6 relative border-b border-dashed border-secondary-200">
               {chartData.map((d, i) => {
                   const max = Math.max(...chartData.map(x => Math.max(x.income, x.expense))) || 1;
-                  const showLabel = chartData.length > 20 ? i % 5 === 0 : true; // Menos etiquetas en móvil
+                  const showLabel = chartData.length > 20 ? i % 5 === 0 : true;
                   return (
                       <div key={d.date} className="flex-1 flex flex-col justify-end gap-1 group relative h-full cursor-pointer">
                           <div className="w-full flex gap-[2px] items-end justify-center h-full">
@@ -420,7 +456,7 @@ export default function FinanceView() {
         </div>
       </div>
 
-      {/* Tabla Movimientos (Scroll horizontal para móvil) */}
+      {/* Tabla Movimientos */}
       <div className="bg-white rounded-2xl border border-secondary-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-secondary-200 bg-secondary-50 flex justify-between items-center">
           <h3 className="font-bold text-secondary-900">Movimientos Detallados</h3>
@@ -455,7 +491,7 @@ export default function FinanceView() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto ${t.type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                         {t.type === 'income' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                          {t.type === 'income' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                       </div>
                     </td>
                 </tr>
@@ -465,7 +501,7 @@ export default function FinanceView() {
         </div>
       </div>
 
-      {/* --- MODAL UNIFICADO (Centrado y márgenes para móvil) --- */}
+      {/* --- MODAL UNIFICADO --- */}
       <Transition appear show={modalState.isOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => setModalState({ ...modalState, isOpen: false })}>
           <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
@@ -475,14 +511,15 @@ export default function FinanceView() {
           <div className="fixed inset-0 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center">
               <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all border border-secondary-100">
+                {/* ✅ UI FIX: Eliminado 'overflow-hidden' para permitir que el Listbox salga del contenedor */}
+                <Dialog.Panel className="w-full max-w-md transform rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all border border-secondary-100">
                   <div className="flex justify-between items-center mb-6 border-b border-secondary-100 pb-4">
                     <Dialog.Title as="h3" className="text-lg font-bold text-secondary-900 flex items-center gap-2">
-                       {modalState.type === 'income' ? (
-                         <span className="flex items-center gap-2 text-green-700"><div className="p-1 bg-green-100 rounded-lg"><Plus size={18}/></div> Nuevo Ingreso</span>
-                       ) : (
-                         <span className="flex items-center gap-2 text-red-700"><div className="p-1 bg-red-100 rounded-lg"><Minus size={18}/></div> Nueva Salida</span>
-                       )}
+                        {modalState.type === 'income' ? (
+                          <span className="flex items-center gap-2 text-green-700"><div className="p-1 bg-green-100 rounded-lg"><Plus size={18}/></div> Nuevo Ingreso</span>
+                        ) : (
+                          <span className="flex items-center gap-2 text-red-700"><div className="p-1 bg-red-100 rounded-lg"><Minus size={18}/></div> Nueva Salida</span>
+                        )}
                     </Dialog.Title>
                     <button onClick={() => setModalState({ ...modalState, isOpen: false })} className="text-secondary-400 hover:bg-secondary-100 p-1.5 rounded-lg transition-colors"><X size={20} /></button>
                   </div>
@@ -501,8 +538,8 @@ export default function FinanceView() {
                         <input type="number" required min="0" step="0.01" className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl font-mono font-bold text-secondary-900 focus:ring-2 focus:ring-primary-500 outline-none text-sm" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
                       </div>
                       <div>
-                         <label className="block text-xs font-bold text-secondary-500 uppercase mb-1">Fecha</label>
-                         <input type="date" required className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                          <label className="block text-xs font-bold text-secondary-500 uppercase mb-1">Fecha</label>
+                          <input type="date" required className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                       </div>
                     </div>
                     <div>

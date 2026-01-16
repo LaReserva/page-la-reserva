@@ -417,7 +417,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
                                 <UserCog className="w-4 h-4 text-secondary-400" />
                                 <input 
                                   type="number" 
-                                  value={formData.guest_count} 
+                                  value={formData.guest_count || ''} 
                                   onChange={(e) => handleInputChange('guest_count', parseInt(e.target.value))}
                                   disabled={!canEdit}
                                   className="w-16 text-right font-bold text-lg border-none bg-transparent focus:ring-0 p-0 text-secondary-900"
@@ -479,7 +479,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
                                       <span className="text-secondary-400 font-bold mr-1 text-sm">S/</span>
                                       <input 
                                         type="number" 
-                                        value={formData.total_price} 
+                                        value={formData.total_price || ''} 
                                         onChange={(e) => setFormData(prev => ({ ...prev, total_price: parseFloat(e.target.value) }))}
                                         className="w-full border-none bg-transparent font-bold text-2xl text-secondary-900 focus:outline-none focus:ring-0 p-0"
                                       />
