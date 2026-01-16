@@ -222,6 +222,13 @@ export function TeamTasks() {
                     <span className="flex items-center gap-1 text-secondary-400">
                       <Calendar className="w-3 h-3" /> {formatDate(task.created_at)}
                     </span>
+                    
+                    {/* --- LÓGICA DE CREADOR AÑADIDA AQUÍ --- */}
+                    <span className="text-secondary-300 ml-auto flex items-center gap-1" title={`Creado por: ${task.creator?.full_name}`}>
+                       Por: {task.creator?.full_name?.split(' ')[0] || 'Sistema'}
+                    </span>
+                    {/* --------------------------------------- */}
+                  
                   </div>
                 </div>
 

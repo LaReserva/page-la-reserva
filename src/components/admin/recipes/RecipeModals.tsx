@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Loader2, Package, Trash2, CheckCircle2, AlertCircle, 
-  XCircle, ChevronDown, HelpCircle, Save, ScrollText, Upload, Image as ImageIcon, Pencil 
+  XCircle, ChevronDown, HelpCircle, Save, ScrollText, Upload, Image as ImageIcon 
 } from 'lucide-react';
 import type { Ingredient, Cocktail, RecipeItem } from '@/types';
 import { BaseModal } from '@/components/admin/ui/BaseModal';
 
 // 1. FEEDBACK MODAL
 interface FeedbackModalProps {
-  isOpen: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string; onClose: () => void;
+  isOpen: boolean; 
+  type: 'success' | 'error' | 'warning'; 
+  title: string; 
+  message: string; 
+  onClose: () => void;
 }
 export function FeedbackModal({ isOpen, type, title, message, onClose }: FeedbackModalProps) {
   const config = {
@@ -58,7 +62,7 @@ export function ConfirmationModal({ isOpen, title, message, onConfirm, onClose, 
   );
 }
 
-// 3. COCKTAIL FORM MODAL (CREAR / EDITAR + IMAGEN)
+// 3. COCKTAIL FORM MODAL
 interface CocktailFormModalProps {
   isOpen: boolean; onClose: () => void; onSave: (e: React.FormEvent, data: any, file: File | null) => Promise<void>; isSaving: boolean; initialData?: Cocktail | null;
 }
@@ -206,15 +210,17 @@ export function IngredientManagerModal({ isOpen, onClose, ingredients, onAdd, on
   );
 }
 
-// 5. INSTRUCTIONS MODAL
+// 5. INSTRUCTIONS MODAL (✅ CORREGIDO - Hooks estables)
 interface CocktailInstructionsModalProps {
-  isOpen: boolean; onClose: () => void; cocktail: Cocktail | null; recipe: RecipeItem[]; isAdmin: boolean; onSaveInstructions: (instructions: string) => Promise<void>;
+  isOpen: boolean; onClose: () => void; cocktail: Cocktail; recipe: RecipeItem[]; isAdmin: boolean; onSaveInstructions: (instructions: string) => Promise<void>;
 }
 export function CocktailInstructionsModal({ isOpen, onClose, cocktail, recipe, isAdmin, onSaveInstructions }: CocktailInstructionsModalProps) {
-  if (!cocktail) return null;
+  // 🛑 YA NO HACEMOS RETURN NULL AQUÍ, LOS HOOKS SIEMPRE SE EJECUTAN
   const [instructions, setInstructions] = useState(cocktail.instructions || '');
   const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => { setInstructions(cocktail.instructions || ''); }, [cocktail, isOpen]);
+
   const handleSave = async () => { setIsSaving(true); await onSaveInstructions(instructions); setIsSaving(false); };
 
   return (
@@ -230,4 +236,9 @@ export function CocktailInstructionsModal({ isOpen, onClose, cocktail, recipe, i
         {isAdmin && (<div className="px-6 py-4 border-t border-secondary-100 bg-gray-50 flex justify-end"><button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-bold shadow-lg shadow-primary-600/20 transition-all active:scale-95 disabled:opacity-70">{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar Cambios</button></div>)}
     </BaseModal>
   );
+}
+
+// Icono Pencil faltante
+function Pencil({ className }: { className?: string }) {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>;
 }
