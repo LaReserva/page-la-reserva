@@ -103,9 +103,21 @@ export function CocktailManager() {
     setLoadingRecipe(false);
   }
 
+// Reemplaza tu función uploadImage actual por esta:
   const uploadImage = async (file: File, cocktailName: string) => {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${cocktailName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.${fileExt}`;
+    
+    // 1. Limpiamos el nombre: quitamos tildes y caracteres especiales
+    const cleanName = cocktailName
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Convierte 'á' en 'a'
+      .replace(/[^a-z0-9]/g, "-") // Convierte símbolos a guiones
+      .replace(/-+/g, "-")        // Evita guiones dobles
+      .replace(/^-|-$/g, "");     // Quita guiones al inicio/final
+
+    // 2. Generamos el nombre final seguro
+    const fileName = `${cleanName}-${Date.now()}.${fileExt}`;
+    
     const { error: uploadError } = await supabase.storage.from('cocktails').upload(fileName, file);
     if (uploadError) throw uploadError;
     const { data: { publicUrl } } = supabase.storage.from('cocktails').getPublicUrl(fileName);
