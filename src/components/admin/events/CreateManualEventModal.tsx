@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition, Combobox, Listbox } from '@headlessui/react';
 import { 
-  X, CalendarPlus, Loader2, User, Calendar, DollarSign, 
+  X, CalendarPlus, Loader2, User, Calendar, 
   AlertCircle, Search, AlertTriangle, Check, ChevronDown, CheckCircle2 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -452,7 +452,6 @@ export function CreateManualEventModal({ isOpen, onClose, onCreated, initialClie
                            <div className="relative">
                              <label className="text-xs text-secondary-500 mb-1 block">Presupuesto *</label>
                              <div className="relative">
-                               <span className="absolute left-3 top-2.5 text-secondary-400"><DollarSign className="w-4 h-4"/></span>
                                {/* Input con Padding Left Extra para el símbolo de dólar */}
                                <input 
                                  required 

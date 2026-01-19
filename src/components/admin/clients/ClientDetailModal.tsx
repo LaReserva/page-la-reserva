@@ -10,6 +10,8 @@ import { supabase } from '@/lib/supabase';
 import type { Client } from '@/types';
 import { useUserRole } from '@/hooks/useUserRole'; 
 import { CreateManualEventModal } from '../events/CreateManualEventModal'; 
+// IMPORTAMOS EL VALIDADOR
+import { isValidPeruvianPhone } from '@/utils/utils';
 
 // ==========================================
 // COMPONENTE: MODAL DE FEEDBACK (HEADLESS UI)
@@ -122,8 +124,18 @@ export function ClientDetailModal({ client, isOpen, onClose, onUpdate }: ClientD
     }
   }, [client, isOpen]);
 
+  // MEJORA: Sanitización centralizada
   const handleChange = (field: keyof Client, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let processedValue = value;
+
+    // Solo números para campos específicos
+    if (field === 'phone' || field === 'second_phone' || field === 'document_id') {
+      processedValue = value.replace(/\D/g, '');
+    }
+
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
+    
+    // Limpiar error al escribir
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -135,12 +147,26 @@ export function ClientDetailModal({ client, isOpen, onClose, onUpdate }: ClientD
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+    
     if (!formData.name?.trim()) newErrors.name = "El nombre es obligatorio.";
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) newErrors.email = "Ingresa un correo válido.";
-    const phoneRegex = /^\d{9}$/; 
-    if (!formData.phone) newErrors.phone = "El teléfono es obligatorio.";
-    else if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) newErrors.phone = "El celular debe contener 9 dígitos.";
+    
+    // VALIDACIÓN TELÉFONO (Usando utils)
+    if (!formData.phone) {
+        newErrors.phone = "El teléfono es obligatorio.";
+    } else if (!isValidPeruvianPhone(formData.phone)) {
+        newErrors.phone = "El celular debe ser válido (9 dígitos).";
+    }
+
+    // VALIDACIÓN DOCUMENTO (DNI o RUC)
+    if (formData.document_id) {
+        const len = formData.document_id.length;
+        if (len !== 8 && len !== 11) {
+             newErrors.document_id = "El documento debe tener 8 (DNI) u 11 (RUC) dígitos.";
+        }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -278,8 +304,18 @@ export function ClientDetailModal({ client, isOpen, onClose, onUpdate }: ClientD
                              <label className="text-xs text-secondary-500 font-medium block mb-1">DNI / RUC</label>
                              <div className="relative">
                                <CreditCard className="absolute left-3 top-2.5 w-4 h-4 text-secondary-400" />
-                               <input type="text" value={formData.document_id || ''} onChange={e => handleChange('document_id', e.target.value)} disabled={!isEditable} className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" placeholder="00000000" />
+                               <input 
+                                 type="text" 
+                                 inputMode="numeric"
+                                 maxLength={11}
+                                 value={formData.document_id || ''} 
+                                 onChange={e => handleChange('document_id', e.target.value)} 
+                                 disabled={!isEditable} 
+                                 className={`w-full pl-9 p-2 border rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50 ${errors.document_id ? 'border-red-500 focus:ring-red-200' : 'border-secondary-200'}`}
+                                 placeholder="DNI (8) o RUC (11)" 
+                               />
                              </div>
+                             {errors.document_id && <p className="text-red-500 text-xs mt-1 font-medium">{errors.document_id}</p>}
                           </div>
                         </div>
                         {/* Email y Empresa */}
@@ -304,49 +340,67 @@ export function ClientDetailModal({ client, isOpen, onClose, onUpdate }: ClientD
 
                       {/* Sección Contacto */}
                       <div className="space-y-4">
-                         <h3 className="text-xs font-bold text-secondary-400 uppercase tracking-wider border-b pb-2">Contacto & Redes</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <div>
-                             <label className="text-xs text-secondary-500 font-medium block mb-1">Teléfono Principal *</label>
-                             <div className="relative">
-                               <Phone className="absolute left-3 top-2.5 w-4 h-4 text-secondary-400" />
-                               <input required type="tel" value={formData.phone || ''} onChange={e => handleChange('phone', e.target.value)} disabled={!isEditable} className={`w-full pl-9 p-2 border rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50 ${errors.phone ? 'border-red-500 focus:ring-red-200' : 'border-secondary-200'}`} />
-                             </div>
-                             {errors.phone && <p className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>}
-                           </div>
-                           <div>
+                          <h3 className="text-xs font-bold text-secondary-400 uppercase tracking-wider border-b pb-2">Contacto & Redes</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-xs text-secondary-500 font-medium block mb-1">Teléfono Principal *</label>
+                              <div className="relative">
+                                <Phone className="absolute left-3 top-2.5 w-4 h-4 text-secondary-400" />
+                                <input 
+                                  required 
+                                  type="tel" 
+                                  inputMode="tel"
+                                  maxLength={9}
+                                  value={formData.phone || ''} 
+                                  onChange={e => handleChange('phone', e.target.value)} 
+                                  disabled={!isEditable} 
+                                  className={`w-full pl-9 p-2 border rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50 ${errors.phone ? 'border-red-500 focus:ring-red-200' : 'border-secondary-200'}`} 
+                                />
+                              </div>
+                              {errors.phone && <p className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>}
+                            </div>
+                            <div>
                               <label className="text-xs text-secondary-500 font-medium block mb-1">Teléfono Secundario</label>
                               <div className="relative">
                                 <Phone className="absolute left-3 top-2.5 w-4 h-4 text-secondary-400" />
-                                <input type="tel" value={formData.second_phone || ''} onChange={e => handleChange('second_phone', e.target.value)} disabled={!isEditable} placeholder="(Opcional)" className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" />
+                                <input 
+                                  type="tel" 
+                                  inputMode="tel"
+                                  maxLength={9}
+                                  value={formData.second_phone || ''} 
+                                  onChange={e => handleChange('second_phone', e.target.value)} 
+                                  disabled={!isEditable} 
+                                  placeholder="(Opcional)" 
+                                  className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" 
+                                />
                               </div>
-                           </div>
-                         </div>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2">
-                               <label className="text-xs text-secondary-500 font-medium block mb-1">Dirección</label>
-                               <div className="relative">
-                                 <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-secondary-400" />
-                                 <input type="text" value={formData.address || ''} onChange={e => handleChange('address', e.target.value)} disabled={!isEditable} className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" />
-                               </div>
                             </div>
-                            <div>
-                               <label className="text-xs text-secondary-500 font-medium block mb-1">Instagram</label>
-                               <div className="relative">
-                                 <Instagram className="absolute left-3 top-2.5 w-4 h-4 text-secondary-400" />
-                                 <input type="text" value={formData.instagram || ''} onChange={e => handleChange('instagram', e.target.value)} disabled={!isEditable} placeholder="@usuario" className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" />
-                               </div>
-                            </div>
-                         </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="md:col-span-2">
+                                <label className="text-xs text-secondary-500 font-medium block mb-1">Dirección</label>
+                                <div className="relative">
+                                  <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-secondary-400" />
+                                  <input type="text" value={formData.address || ''} onChange={e => handleChange('address', e.target.value)} disabled={!isEditable} className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" />
+                                </div>
+                             </div>
+                             <div>
+                                <label className="text-xs text-secondary-500 font-medium block mb-1">Instagram</label>
+                                <div className="relative">
+                                  <Instagram className="absolute left-3 top-2.5 w-4 h-4 text-secondary-400" />
+                                  <input type="text" value={formData.instagram || ''} onChange={e => handleChange('instagram', e.target.value)} disabled={!isEditable} placeholder="@usuario" className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" />
+                                </div>
+                             </div>
+                          </div>
                       </div>
 
                       {/* Notas */}
                       <div className="space-y-2">
-                         <h3 className="text-xs font-bold text-secondary-400 uppercase tracking-wider border-b pb-2">Notas Internas</h3>
-                         <div className="relative">
-                           <FileText className="absolute left-3 top-3 w-4 h-4 text-secondary-400" />
-                           <textarea value={formData.notes || ''} onChange={e => handleChange('notes', e.target.value)} disabled={!isEditable} rows={3} className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" placeholder="Información adicional relevante..." />
-                         </div>
+                          <h3 className="text-xs font-bold text-secondary-400 uppercase tracking-wider border-b pb-2">Notas Internas</h3>
+                          <div className="relative">
+                            <FileText className="absolute left-3 top-3 w-4 h-4 text-secondary-400" />
+                            <textarea value={formData.notes || ''} onChange={e => handleChange('notes', e.target.value)} disabled={!isEditable} rows={3} className="w-full pl-9 p-2 border border-secondary-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-secondary-50" placeholder="Información adicional relevante..." />
+                          </div>
                       </div>
                     </div>
                   </form>

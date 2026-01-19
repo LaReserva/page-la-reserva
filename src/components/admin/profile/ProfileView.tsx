@@ -8,6 +8,8 @@ import {
   Eye, EyeOff, XCircle, CheckCircle
 } from 'lucide-react';
 import type { AdminUser } from '@/types';
+// IMPORTAMOS EL VALIDADOR EXISTENTE
+import { isValidPeruvianPhone } from '@/utils/utils';
 
 // --- COMPONENTE INTERNO: FEEDBACK MODAL ---
 interface FeedbackModalProps {
@@ -155,6 +157,31 @@ export function ProfileView() {
   async function handleUpdateProfile(e: React.FormEvent) {
     e.preventDefault();
     if (!profile) return;
+
+    // --- 1. VALIDACIONES PREVIAS AL GUARDADO ---
+    
+    // Validación DNI (Debe tener 8 dígitos exactos)
+    if (profile.dni && profile.dni.length !== 8) {
+      setFeedback({ 
+        isOpen: true, 
+        type: 'error', 
+        title: 'DNI Inválido', 
+        message: 'El DNI debe tener exactamente 8 dígitos.' 
+      });
+      return;
+    }
+
+    // Validación Teléfono (Usando utils.ts)
+    if (profile.phone && !isValidPeruvianPhone(profile.phone)) {
+      setFeedback({ 
+        isOpen: true, 
+        type: 'error', 
+        title: 'Teléfono Inválido', 
+        message: 'Por favor, ingrese un número de celular válido (9 dígitos, formato Perú).' 
+      });
+      return;
+    }
+
     try {
       setSavingProfile(true);
       const { error } = await supabase.from('admin_users').update({
@@ -193,8 +220,6 @@ export function ProfileView() {
       
       setPasswordMsg({ type: 'success', text: 'Contraseña actualizada correctamente.' });
       setPasswords({ new: '', confirm: '' });
-      // Opcional: Mostrar también modal si prefieres confirmación fuerte
-      // setFeedback({ isOpen: true, type: 'success', title: 'Seguridad', message: 'Tu contraseña ha sido cambiada.' }); 
     } catch (error: any) {
       setPasswordMsg({ type: 'error', text: error.message });
     } finally {
@@ -226,7 +251,6 @@ export function ProfileView() {
                   ) : (
                     <span className="text-3xl font-bold text-secondary-400">{profile.full_name?.charAt(0).toUpperCase()}</span>
                   )}
-                  {/* Overlay Hover */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                     <Camera className="text-white w-8 h-8" />
                   </div>
@@ -266,10 +290,18 @@ export function ProfileView() {
                 <label className="block text-xs font-bold text-secondary-500 uppercase mb-1.5">DNI / Documento</label>
                 <div className="relative">
                   <CreditCard className="absolute left-3.5 top-2.5 w-5 h-5 text-secondary-400" />
+                  {/* --- VALIDACIÓN INPUT DNI --- */}
                   <input 
                     type="text" 
+                    maxLength={8} // Límite visual HTML
+                    inputMode="numeric" // Teclado numérico en móviles
                     value={profile.dni || ''} 
-                    onChange={(e) => setProfile({ ...profile, dni: e.target.value })} 
+                    onChange={(e) => {
+                      // Sanitización: Solo permite números
+                      const val = e.target.value.replace(/\D/g, '');
+                      setProfile({ ...profile, dni: val });
+                    }} 
+                    placeholder="8 dígitos"
                     className="w-full pl-11 pr-4 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium text-secondary-900" 
                   />
                 </div>
@@ -285,10 +317,18 @@ export function ProfileView() {
                 <label className="block text-xs font-bold text-secondary-500 uppercase mb-1.5">Teléfono</label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-2.5 w-5 h-5 text-secondary-400" />
+                  {/* --- VALIDACIÓN INPUT TELÉFONO --- */}
                   <input 
-                    type="text" 
+                    type="tel" // Semántica para móviles
+                    maxLength={9} // Estándar Perú celular
+                    inputMode="tel"
                     value={profile.phone || ''} 
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })} 
+                    onChange={(e) => {
+                      // Sanitización: Solo permite números
+                      const val = e.target.value.replace(/\D/g, '');
+                      setProfile({ ...profile, phone: val });
+                    }} 
+                    placeholder="999 888 777"
                     className="w-full pl-11 pr-4 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium text-secondary-900" 
                   />
                 </div>
