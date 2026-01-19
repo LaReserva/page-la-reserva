@@ -1,9 +1,11 @@
 import { useEffect, useState, Fragment } from 'react';
+import type { ElementType } from 'react'; // Importación para tipado estricto
 import { Transition } from '@headlessui/react';
 import { 
   LayoutDashboard, MessageSquare, CalendarDays, Users, 
   Settings, LogOut, Image as ImageIcon, DollarSign, 
-  Loader2, UserCog, PenTool, FileText, X, Martini, Mail, AlertCircle
+  Loader2, UserCog, PenTool, FileText, X, Martini, Mail, AlertCircle,
+  type LucideIcon // Importamos el tipo específico de Lucide
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { AdminUser } from '@/types';
@@ -13,7 +15,7 @@ import { cn } from '@/utils/utils';
 interface MenuItem {
   name: string;
   href: string;
-  icon: any;
+  icon: LucideIcon | ElementType; // Corrección de tipado: Evitamos 'any'
   roles: Array<AdminUser['role']>;
 }
 
@@ -41,7 +43,6 @@ interface SidebarItemProps {
 }
 
 function SidebarItem({ item, currentPath, onClick }: SidebarItemProps) {
-  // MEJORA: Lógica de "Activo" más estricta para evitar falsos positivos en subrutas parecidas
   const isActive = item.href === '/admin' 
     ? currentPath === '/admin' || currentPath === '/admin/'
     : currentPath.startsWith(item.href) && (currentPath.length === item.href.length || currentPath[item.href.length] === '/');
@@ -84,7 +85,7 @@ export function AdminSidebar() {
   useEffect(() => {
     // 1. Gestión de Rutas
     const updatePath = () => typeof window !== 'undefined' && setCurrentPath(window.location.pathname);
-    updatePath(); // Ejecutar al montar
+    updatePath(); 
     document.addEventListener('astro:page-load', updatePath);
 
     // 2. Gestión de Toggle Móvil
@@ -96,7 +97,6 @@ export function AdminSidebar() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          // MEJORA: Tipado explícito en la respuesta
           const { data } = await supabase
             .from('admin_users')
             .select('role')
@@ -104,7 +104,6 @@ export function AdminSidebar() {
             .maybeSingle();
             
           if (data) {
-             // Asumimos que data tiene la forma { role: string } compatible con AdminUser['role']
              setRole(data.role as AdminUser['role']);
           }
         }
@@ -115,7 +114,6 @@ export function AdminSidebar() {
       }
     };
     
-    // Solo hacemos fetch si no tenemos rol aún (útil si usas transition:persist)
     if (!role) {
         fetchRole();
     } else {
@@ -126,7 +124,7 @@ export function AdminSidebar() {
       document.removeEventListener('astro:page-load', updatePath);
       document.removeEventListener('toggle-sidebar', handleToggle);
     };
-  }, []); // Dependencia vacía está bien si el componente persiste
+  }, []); 
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -172,7 +170,19 @@ export function AdminSidebar() {
       >
         {/* Header Logo */}
         <div className="p-6 flex items-center justify-between border-b border-secondary-800 shrink-0">
-          <img src="/logo.svg" alt="La Reserva Admin" className="h-8 w-auto brightness-0 invert opacity-90" />
+          {/* MEJORA: Logo ahora es un enlace a la raíz pública */}
+          <a 
+            href="/" 
+            className="block hover:opacity-80 transition-opacity focus:outline-none"
+            aria-label="Volver al inicio público"
+          >
+            <img 
+              src="/logo.svg" 
+              alt="La Reserva Admin" 
+              className="h-8 w-auto brightness-0 invert opacity-90" 
+            />
+          </a>
+
           <button 
             onClick={() => setIsMobileOpen(false)} 
             className="lg:hidden text-secondary-400 hover:text-white transition-colors"
