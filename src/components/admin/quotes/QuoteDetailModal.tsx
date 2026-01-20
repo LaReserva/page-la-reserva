@@ -1,9 +1,9 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition, Listbox } from '@headlessui/react';
 import { 
-  X, Save, User, Calendar, DollarSign, FileText, Clock, Package, 
+  X, Save, User, Calendar, DollarSign, FileText, Clock, 
   CalendarCheck, Loader2, AlertTriangle, Ban, Trash2, AlertCircle, 
-  UserCog, Check, ChevronDown 
+  UserCog, Check, ChevronDown, XCircle, CheckCircle 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Quote } from '@/types';
@@ -22,6 +22,81 @@ const AVAILABLE_PACKAGES = [
 ];
 
 const INPUT_STYLES = "w-full p-2.5 border border-secondary-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-secondary-50 disabled:text-secondary-400 disabled:cursor-not-allowed";
+
+// --- FEEDBACK MODAL COMPONENT ---
+interface FeedbackModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  type?: 'success' | 'error' | 'warning';
+}
+
+function FeedbackModal({ isOpen, onClose, title, message, type = 'success' }: FeedbackModalProps) {
+  const colors = {
+    success: { bg: 'bg-green-100', text: 'text-green-600', button: 'bg-green-600 hover:bg-green-700 shadow-green-200' },
+    error: { bg: 'bg-red-100', text: 'text-red-600', button: 'bg-red-600 hover:bg-red-700 shadow-red-200' },
+    warning: { bg: 'bg-yellow-100', text: 'text-yellow-600', button: 'bg-yellow-600 hover:bg-yellow-700 shadow-yellow-200' }
+  };
+
+  const Icon = type === 'success' ? CheckCircle : (type === 'error' ? XCircle : AlertTriangle);
+  const theme = colors[type];
+
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-[100]" onClose={onClose}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-secondary-900/60 backdrop-blur-sm" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 text-center shadow-xl transition-all border border-secondary-100">
+                <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${theme.bg}`}>
+                   <Icon className={`h-8 w-8 ${theme.text}`} />
+                </div>
+                <Dialog.Title as="h3" className="text-xl font-bold text-secondary-900 mb-2">
+                  {title}
+                </Dialog.Title>
+                <div className="mt-2">
+                  <p className="text-sm text-secondary-500 mb-6">
+                    {message}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className={`w-full inline-flex justify-center rounded-xl shadow-lg px-4 py-3 text-base font-bold text-white focus:outline-none transition-all transform active:scale-95 ${theme.button}`}
+                >
+                  Entendido
+                </button>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+}
+
+// --- MAIN COMPONENT ---
 interface QuoteDetailModalProps {
   quote: Quote | null;
   isOpen: boolean;
@@ -45,6 +120,10 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
   
   const [showConfirm, setShowConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  const [feedback, setFeedback] = useState<{ isOpen: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string }>({
+    isOpen: false, type: 'success', title: '', message: ''
+  });
   
   const [eventExists, setEventExists] = useState(false);
   const [checkingEvent, setCheckingEvent] = useState(false);
@@ -126,9 +205,18 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
   };
 
   const initiateConversion = () => {
-    if (!price || parseFloat(price) <= 0) return alert("Ingresa un presupuesto estimado.");
-    if (dateError) return alert("Corrige la fecha pasada.");
-    if (!guestCount) return alert("Ingresa cantidad de invitados.");
+    if (!price || parseFloat(price) <= 0) {
+        setFeedback({ isOpen: true, type: 'warning', title: 'Falta Presupuesto', message: 'Por favor, ingresa un presupuesto estimado válido antes de convertir.' });
+        return;
+    }
+    if (dateError) {
+        setFeedback({ isOpen: true, type: 'warning', title: 'Fecha Inválida', message: 'La fecha seleccionada es pasada. Por favor corrígela.' });
+        return;
+    }
+    if (!guestCount) {
+        setFeedback({ isOpen: true, type: 'warning', title: 'Falta Invitados', message: 'Ingresa la cantidad estimada de invitados.' });
+        return;
+    }
     setShowConfirm(true);
   };
 
@@ -207,11 +295,17 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
       if (updatedQuote) onUpdate(updatedQuote as Quote);
       setEventExists(true);
       setShowConfirm(false);
-      alert(`¡Evento y Adelanto (${formatCurrency(depositAmount)}) registrado con éxito!`);
+      
+      setFeedback({ 
+        isOpen: true, 
+        type: 'success', 
+        title: '¡Conversión Exitosa!', 
+        message: `Evento y Adelanto (${formatCurrency(depositAmount)}) registrados correctamente.` 
+      });
       
     } catch (error: any) {
       console.error(error);
-      alert(`Error al convertir: ${error.message}`);
+      setFeedback({ isOpen: true, type: 'error', title: 'Error', message: `No se pudo convertir: ${error.message}` });
     } finally {
       setIsProcessing(false);
     }
@@ -238,7 +332,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
       setShowDeleteConfirm(false);
       
     } catch (error: any) {
-      alert(`Error: ${error.message}`);
+      setFeedback({ isOpen: true, type: 'error', title: 'Error', message: error.message });
     } finally {
       setIsProcessing(false);
     }
@@ -247,8 +341,16 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      if (guestCount === '' || Number(guestCount) <= 0) { alert("Invitados obligatorio."); setIsSaving(false); return; }
-      if (!eventDate) { alert("Fecha obligatoria."); setIsSaving(false); return; }
+      if (guestCount === '' || Number(guestCount) <= 0) { 
+        setFeedback({ isOpen: true, type: 'warning', title: 'Campo Faltante', message: 'El número de invitados es obligatorio.' });
+        setIsSaving(false); 
+        return; 
+      }
+      if (!eventDate) { 
+        setFeedback({ isOpen: true, type: 'warning', title: 'Campo Faltante', message: 'La fecha del evento es obligatoria.' });
+        setIsSaving(false); 
+        return; 
+      }
 
       const updates = {
         admin_notes: notes,
@@ -268,7 +370,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
       if (error) throw error;
       if (data) { onUpdate(data as Quote); onClose(); }
     } catch (error) {
-      alert('Error al guardar cambios');
+      setFeedback({ isOpen: true, type: 'error', title: 'Error', message: 'Ocurrió un error al guardar los cambios.' });
     } finally {
       setIsSaving(false);
     }
@@ -516,6 +618,21 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
           </div>
         </Dialog>
       </Transition>
+
+      {/* FEEDBACK MODAL: CIERRA EL MODAL PRINCIPAL AL CONFIRMAR ÉXITO */}
+      <FeedbackModal 
+        isOpen={feedback.isOpen}
+        type={feedback.type}
+        title={feedback.title}
+        message={feedback.message}
+        onClose={() => {
+          setFeedback(prev => ({ ...prev, isOpen: false }));
+          // CAMBIO CLAVE: Cierra el modal padre si la acción fue exitosa
+          if (feedback.type === 'success') {
+            onClose();
+          }
+        }}
+      />
     </>
   );
 }

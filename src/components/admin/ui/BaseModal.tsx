@@ -1,3 +1,4 @@
+// src/components/admin/ui/BaseModal.tsx
 import { Fragment, type ReactNode } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X } from 'lucide-react';
@@ -9,6 +10,7 @@ interface BaseModalProps {
   title?: string;
   children: ReactNode;
   maxWidth?: string;
+  // Eliminamos initialFocus para simplificar y evitar conflictos de tipos
 }
 
 export function BaseModal({ 
@@ -16,11 +18,16 @@ export function BaseModal({
   onClose, 
   title, 
   children, 
-  maxWidth = 'max-w-md' 
+  maxWidth = 'max-w-md',
 }: BaseModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog 
+        as="div" 
+        className="relative z-50" 
+        onClose={onClose}
+        // Headless UI buscará automáticamente un elemento con autoFocus dentro del children
+      >
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"

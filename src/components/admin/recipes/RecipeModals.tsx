@@ -52,7 +52,14 @@ export function ConfirmationModal({ isOpen, title, message, onConfirm, onClose, 
         <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
         <p className="text-sm text-gray-500 mb-6">{message}</p>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-secondary-200 text-secondary-600 rounded-xl font-bold hover:bg-secondary-50 transition-colors">Cancelar</button>
+          {/* USO DE autoFocus: Esto le dice al modal que ponga el foco aquí automáticamente */}
+          <button 
+            autoFocus 
+            onClick={onClose} 
+            className="flex-1 py-2.5 border border-secondary-200 text-secondary-600 rounded-xl font-bold hover:bg-secondary-50 transition-colors outline-none focus:ring-2 focus:ring-secondary-200"
+          >
+            Cancelar
+          </button>
           <button onClick={() => { onConfirm(); onClose(); }} className={`flex-1 py-2.5 text-white rounded-xl font-bold shadow-lg transition-transform active:scale-95 ${isDangerous ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-500/20'}`}>
             {confirmText}
           </button>
@@ -143,79 +150,117 @@ interface IngredientManagerModalProps {
 export function IngredientManagerModal({ isOpen, onClose, ingredients, onAdd, onEdit, onDelete }: IngredientManagerModalProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newData, setNewData] = useState({ name: '', category: 'licor', estimated_price: 0, purchase_unit: 'botella', package_volume: 750, measurement_unit: 'ml', yield_pieces: 0 });
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const handleStartEdit = (ing: Ingredient) => {
     setNewData({ name: ing.name, category: ing.category, estimated_price: ing.estimated_price, purchase_unit: ing.purchase_unit, package_volume: ing.package_volume, measurement_unit: ing.measurement_unit, yield_pieces: ing.yield_pieces || 0 });
     setEditingId(ing.id);
   };
+  
   const handleCancelEdit = () => { setEditingId(null); setNewData({ name: '', category: 'licor', estimated_price: 0, purchase_unit: 'botella', package_volume: 750, measurement_unit: 'ml', yield_pieces: 0 }); };
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if(!newData.name) return;
     if (editingId) { onEdit(e, newData, editingId); handleCancelEdit(); } else { onAdd(e, newData); setNewData({ name: '', category: 'licor', estimated_price: 0, purchase_unit: 'botella', package_volume: 750, measurement_unit: 'ml', yield_pieces: 0 }); }
   };
+
+  const handleConfirmDelete = () => {
+    if (itemToDelete) {
+      onDelete(itemToDelete);
+      setItemToDelete(null);
+    }
+  };
+
   const isGarnish = newData.category === 'garnish' || newData.category === 'fruta';
 
   return (
-    <BaseModal isOpen={isOpen} onClose={onClose} maxWidth="max-w-5xl">
-       <div className="flex flex-col h-[80vh] md:h-[85vh]">
-          <div className="px-6 py-4 border-b border-secondary-100 flex justify-between items-center bg-gradient-to-r from-white to-secondary-50/50">
-             <h3 className="font-bold text-xl text-secondary-900 flex items-center gap-2.5"><div className="p-2 bg-primary-50 rounded-lg text-primary-600"><Package className="w-5 h-5" /></div>Catálogo de Insumos</h3>
-             <button onClick={onClose} className="p-2 rounded-full hover:bg-secondary-100 text-secondary-400 hover:text-red-500 transition-all"><XCircle className="w-6 h-6" /></button>
-          </div>
-          <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-              <div className={`p-6 md:w-5/12 border-r border-secondary-100 overflow-y-auto custom-scrollbar transition-colors duration-300 ${editingId ? 'bg-primary-50/30' : 'bg-secondary-50/50'}`}>
-                 <div className="flex justify-between items-center mb-5">
-                  <h4 className="text-xs font-bold text-secondary-500 uppercase tracking-wider flex items-center gap-2"><span className={`w-2 h-2 rounded-full shadow-sm ${editingId ? 'bg-primary-600' : 'bg-green-500'}`}></span> {editingId ? 'Editando Insumo' : 'Agregar Nuevo Item'}</h4>
-                  {editingId && <button onClick={handleCancelEdit} type="button" className="text-[10px] bg-white border border-secondary-200 px-2 py-1 rounded shadow-sm hover:bg-secondary-50 text-secondary-600 font-medium transition-all">Cancelar</button>}
-                </div>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                   <div className="col-span-2"><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Nombre</label><input required value={newData.name} onChange={e => setNewData({...newData, name: e.target.value})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500/20 outline-none bg-white transition-all shadow-sm" /></div>
-                   <div className="grid grid-cols-2 gap-4">
-                      <div><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Categoría</label><div className="relative"><select value={newData.category} onChange={e => setNewData({...newData, category: e.target.value})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl bg-white outline-none appearance-none pr-8 cursor-pointer shadow-sm">{['licor', 'mixer', 'fruta', 'garnish', 'otro'].map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none" /></div></div>
-                      <div><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Costo (S/)</label><input type="number" step="0.1" min="0" value={newData.estimated_price} onChange={e => setNewData({...newData, estimated_price: parseFloat(e.target.value)})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl bg-white outline-none" /></div>
+    <>
+      <BaseModal isOpen={isOpen} onClose={onClose} maxWidth="max-w-5xl">
+         <div className="flex flex-col h-[80vh] md:h-[85vh]">
+            <div className="px-6 py-4 border-b border-secondary-100 flex justify-between items-center bg-gradient-to-r from-white to-secondary-50/50">
+               <h3 className="font-bold text-xl text-secondary-900 flex items-center gap-2.5"><div className="p-2 bg-primary-50 rounded-lg text-primary-600"><Package className="w-5 h-5" /></div>Catálogo de Insumos</h3>
+               <button onClick={onClose} className="p-2 rounded-full hover:bg-secondary-100 text-secondary-400 hover:text-red-500 transition-all"><XCircle className="w-6 h-6" /></button>
+            </div>
+            <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                <div className={`p-6 md:w-5/12 border-r border-secondary-100 overflow-y-auto custom-scrollbar transition-colors duration-300 ${editingId ? 'bg-primary-50/30' : 'bg-secondary-50/50'}`}>
+                   <div className="flex justify-between items-center mb-5">
+                    <h4 className="text-xs font-bold text-secondary-500 uppercase tracking-wider flex items-center gap-2"><span className={`w-2 h-2 rounded-full shadow-sm ${editingId ? 'bg-primary-600' : 'bg-green-500'}`}></span> {editingId ? 'Editando Insumo' : 'Agregar Nuevo Item'}</h4>
+                    {editingId && <button onClick={handleCancelEdit} type="button" className="text-[10px] bg-white border border-secondary-200 px-2 py-1 rounded shadow-sm hover:bg-secondary-50 text-secondary-600 font-medium transition-all">Cancelar</button>}
                    </div>
-                   <div className="bg-white p-5 rounded-xl border border-secondary-200 shadow-sm relative group hover:border-primary-200 transition-colors">
-                      <h5 className="text-xs font-bold text-secondary-800 mb-4 uppercase flex items-center gap-2"><Package className="w-4 h-4" /> Presentación</h5>
+                   <form onSubmit={handleSubmit} className="space-y-5">
+                      <div className="col-span-2"><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Nombre</label><input required value={newData.name} onChange={e => setNewData({...newData, name: e.target.value})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500/20 outline-none bg-white transition-all shadow-sm" /></div>
                       <div className="grid grid-cols-2 gap-4">
-                          <div><label className="text-[10px] font-bold text-secondary-400 uppercase mb-1 block">Envase</label><input list="unit-suggestions" value={newData.purchase_unit} onChange={e => setNewData({...newData, purchase_unit: e.target.value})} className="w-full px-3 py-2 text-sm border border-secondary-200 rounded-lg outline-none bg-secondary-50/30" /><datalist id="unit-suggestions"><option value="botella" /><option value="kg" /><option value="paquete" /><option value="lata" /></datalist></div>
-                          <div><label className="text-[10px] font-bold text-secondary-400 uppercase mb-1 block">Contenido</label><div className="flex relative shadow-sm rounded-lg"><input type="number" min="0" value={newData.package_volume} onChange={e => setNewData({...newData, package_volume: parseFloat(e.target.value)})} className="w-full px-3 py-2 text-sm border border-secondary-200 border-r-0 rounded-l-lg outline-none z-10" /><select value={newData.measurement_unit} onChange={e => setNewData({...newData, measurement_unit: e.target.value})} className="bg-secondary-50 border border-secondary-200 rounded-r-lg text-xs pl-2 pr-1 font-bold outline-none"><option value="ml">ml</option><option value="gr">gr</option><option value="und">und</option></select></div></div>
+                        <div><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Categoría</label><div className="relative"><select value={newData.category} onChange={e => setNewData({...newData, category: e.target.value})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl bg-white outline-none appearance-none pr-8 cursor-pointer shadow-sm">{['licor', 'mixer', 'fruta', 'garnish', 'otro'].map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none" /></div></div>
+                        <div><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Costo (S/)</label><input type="number" step="0.1" min="0" value={newData.estimated_price} onChange={e => setNewData({...newData, estimated_price: parseFloat(e.target.value)})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl bg-white outline-none" /></div>
                       </div>
-                   </div>
-                   {isGarnish && (<div className="bg-green-50/50 p-4 rounded-xl border border-green-200 shadow-sm"><label className="text-[10px] font-bold text-green-700 uppercase mb-1 block">Piezas por {newData.purchase_unit}</label><input type="number" min="0" value={newData.yield_pieces} onChange={e => setNewData({...newData, yield_pieces: parseFloat(e.target.value)})} className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg outline-none bg-white/80" /></div>)}
-                   <button type="submit" className={`w-full py-3.5 text-white font-bold rounded-xl hover:shadow-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center gap-2 items-center ${editingId ? 'bg-primary-600 hover:bg-primary-700' : 'bg-secondary-900 hover:bg-black'}`}>
-                       {editingId ? <Save className="w-4 h-4" /> : <Package className="w-4 h-4" />} {editingId ? 'Actualizar Insumo' : 'Guardar Insumo'}
-                   </button>
-                </form>
-              </div>
-              <div className="flex-1 overflow-y-auto bg-white p-0 custom-scrollbar relative">
-                   <table className="w-full text-sm text-left">
-                    <thead className="bg-white/95 backdrop-blur-sm border-b border-secondary-200 sticky top-0 z-20 shadow-sm">
-                        <tr><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider">Insumo</th><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider">Presentación</th><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider text-right">Acción</th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-secondary-50">
-                        {ingredients.map(ing => (
-                            <tr key={ing.id} className={`transition-colors group ${editingId === ing.id ? 'bg-primary-50 border-l-4 border-primary-500' : 'hover:bg-secondary-50/80'}`}>
-                                <td className="px-6 py-4"><div className={`font-bold text-sm ${editingId === ing.id ? 'text-primary-900' : 'text-secondary-900'}`}>{ing.name}</div><div className="flex gap-2 mt-1.5"><span className="text-[10px] px-2 py-0.5 rounded-md uppercase font-bold tracking-wide border bg-white border-secondary-200 text-secondary-500">{ing.category}</span>{ing.estimated_price > 0 && <span className="text-[10px] px-2 py-0.5 rounded-md bg-secondary-100 text-secondary-600 font-medium border border-secondary-200">S/ {ing.estimated_price}</span>}</div></td>
-                                <td className="px-6 py-4"><div className="text-secondary-600 text-xs font-medium">1 {ing.purchase_unit} = {ing.package_volume} {ing.measurement_unit}</div>{ing.yield_pieces ? <div className="mt-1 text-[10px] text-green-700 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Rinde: {ing.yield_pieces}</div> : null}</td>
-                                <td className="px-6 py-4 text-right"><div className="flex items-center justify-end gap-1"><button onClick={() => handleStartEdit(ing)} className="text-secondary-400 hover:text-primary-600 p-2 hover:bg-primary-50 rounded-lg transition-all"><Pencil className="w-4 h-4" /></button><button onClick={() => onDelete(ing.id)} className="text-secondary-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button></div></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-              </div>
-          </div>
-       </div>
-    </BaseModal>
+                      <div className="bg-white p-5 rounded-xl border border-secondary-200 shadow-sm relative group hover:border-primary-200 transition-colors">
+                        <h5 className="text-xs font-bold text-secondary-800 mb-4 uppercase flex items-center gap-2"><Package className="w-4 h-4" /> Presentación</h5>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-[10px] font-bold text-secondary-400 uppercase mb-1 block">Envase</label><input list="unit-suggestions" value={newData.purchase_unit} onChange={e => setNewData({...newData, purchase_unit: e.target.value})} className="w-full px-3 py-2 text-sm border border-secondary-200 rounded-lg outline-none bg-secondary-50/30" /><datalist id="unit-suggestions"><option value="botella" /><option value="kg" /><option value="paquete" /><option value="lata" /></datalist></div>
+                            <div><label className="text-[10px] font-bold text-secondary-400 uppercase mb-1 block">Contenido</label><div className="flex relative shadow-sm rounded-lg"><input type="number" min="0" value={newData.package_volume} onChange={e => setNewData({...newData, package_volume: parseFloat(e.target.value)})} className="w-full px-3 py-2 text-sm border border-secondary-200 border-r-0 rounded-l-lg outline-none z-10" /><select value={newData.measurement_unit} onChange={e => setNewData({...newData, measurement_unit: e.target.value})} className="bg-secondary-50 border border-secondary-200 rounded-r-lg text-xs pl-2 pr-1 font-bold outline-none"><option value="ml">ml</option><option value="gr">gr</option><option value="und">und</option></select></div></div>
+                        </div>
+                      </div>
+                      {isGarnish && (<div className="bg-green-50/50 p-4 rounded-xl border border-green-200 shadow-sm"><label className="text-[10px] font-bold text-green-700 uppercase mb-1 block">Piezas por {newData.purchase_unit}</label><input type="number" min="0" value={newData.yield_pieces} onChange={e => setNewData({...newData, yield_pieces: parseFloat(e.target.value)})} className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg outline-none bg-white/80" /></div>)}
+                      <button type="submit" className={`w-full py-3.5 text-white font-bold rounded-xl hover:shadow-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center gap-2 items-center ${editingId ? 'bg-primary-600 hover:bg-primary-700' : 'bg-secondary-900 hover:bg-black'}`}>
+                          {editingId ? <Save className="w-4 h-4" /> : <Package className="w-4 h-4" />} {editingId ? 'Actualizar Insumo' : 'Guardar Insumo'}
+                      </button>
+                   </form>
+                </div>
+                <div className="flex-1 overflow-y-auto bg-white p-0 custom-scrollbar relative">
+                      <table className="w-full text-sm text-left">
+                       <thead className="bg-white/95 backdrop-blur-sm border-b border-secondary-200 sticky top-0 z-20 shadow-sm">
+                           <tr><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider">Insumo</th><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider">Presentación</th><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider text-right">Acción</th></tr>
+                       </thead>
+                       <tbody className="divide-y divide-secondary-50">
+                           {ingredients.map(ing => (
+                               <tr key={ing.id} className={`transition-colors group ${editingId === ing.id ? 'bg-primary-50 border-l-4 border-primary-500' : 'hover:bg-secondary-50/80'}`}>
+                                   <td className="px-6 py-4"><div className={`font-bold text-sm ${editingId === ing.id ? 'text-primary-900' : 'text-secondary-900'}`}>{ing.name}</div><div className="flex gap-2 mt-1.5"><span className="text-[10px] px-2 py-0.5 rounded-md uppercase font-bold tracking-wide border bg-white border-secondary-200 text-secondary-500">{ing.category}</span>{ing.estimated_price > 0 && <span className="text-[10px] px-2 py-0.5 rounded-md bg-secondary-100 text-secondary-600 font-medium border border-secondary-200">S/ {ing.estimated_price}</span>}</div></td>
+                                   <td className="px-6 py-4"><div className="text-secondary-600 text-xs font-medium">1 {ing.purchase_unit} = {ing.package_volume} {ing.measurement_unit}</div>{ing.yield_pieces ? <div className="mt-1 text-[10px] text-green-700 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Rinde: {ing.yield_pieces}</div> : null}</td>
+                                   <td className="px-6 py-4 text-right">
+                                     <div className="flex items-center justify-end gap-1">
+                                       <button onClick={() => handleStartEdit(ing)} className="text-secondary-400 hover:text-primary-600 p-2 hover:bg-primary-50 rounded-lg transition-all"><Pencil className="w-4 h-4" /></button>
+                                       
+                                       {/* SOLUCIÓN AL WARNING ARIA-HIDDEN: .blur() antes de abrir el modal */}
+                                       <button 
+                                         onClick={(e) => {
+                                           e.currentTarget.blur();
+                                           setItemToDelete(ing.id);
+                                         }} 
+                                         className="text-secondary-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-all"
+                                       >
+                                         <Trash2 className="w-4 h-4" />
+                                       </button>
+
+                                     </div>
+                                   </td>
+                               </tr>
+                           ))}
+                       </tbody>
+                   </table>
+                </div>
+            </div>
+         </div>
+      </BaseModal>
+
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Insumo"
+        message="¿Estás seguro de que deseas eliminar este insumo? Esta acción podría afectar a las recetas que lo utilizan."
+        confirmText="Sí, Eliminar"
+        isDangerous={true}
+      />
+    </>
   );
 }
 
-// 5. INSTRUCTIONS MODAL (✅ CORREGIDO - Hooks estables)
+// 5. INSTRUCTIONS MODAL
 interface CocktailInstructionsModalProps {
   isOpen: boolean; onClose: () => void; cocktail: Cocktail; recipe: RecipeItem[]; isAdmin: boolean; onSaveInstructions: (instructions: string) => Promise<void>;
 }
 export function CocktailInstructionsModal({ isOpen, onClose, cocktail, recipe, isAdmin, onSaveInstructions }: CocktailInstructionsModalProps) {
-  // 🛑 YA NO HACEMOS RETURN NULL AQUÍ, LOS HOOKS SIEMPRE SE EJECUTAN
   const [instructions, setInstructions] = useState(cocktail.instructions || '');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -238,7 +283,6 @@ export function CocktailInstructionsModal({ isOpen, onClose, cocktail, recipe, i
   );
 }
 
-// Icono Pencil faltante
 function Pencil({ className }: { className?: string }) {
   return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>;
 }
