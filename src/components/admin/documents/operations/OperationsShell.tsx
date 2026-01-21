@@ -6,9 +6,18 @@ import type { Event } from '@/types';
 import { EventSelector } from './EventSelector';
 import { CalculatorManager } from './CalculatorManager';
 
+// 1. EXTENSIÓN DE INTERFAZ
+// Definimos este tipo local para manejar el dato extra que viene del JOIN con 'clients'
+interface EventWithData extends Event {
+  clients?: { name: string } | null;
+  client_name?: string; // Por si acaso tienes un view que lo devuelva plano
+}
+
 export function OperationsShell({ userRole }: { userRole: string }) {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  // 2. ESTADO TIPADO CON LA EXTENSIÓN
+  // Usamos EventWithData[] en lugar de Event[] para que el estado acepte la estructura con clientes
+  const [events, setEvents] = useState<EventWithData[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<EventWithData | null>(null);
   const [isFreeMode, setIsFreeMode] = useState(false);
   
   // Mobile Sidebar State
@@ -19,18 +28,30 @@ export function OperationsShell({ userRole }: { userRole: string }) {
   }, []);
 
   async function fetchEvents() {
-    const { data } = await supabase
+    // 3. CONSULTA ACTUALIZADA (JOIN)
+    const { data, error } = await supabase
       .from('events')
-      .select('*')
-      .in('status', ['confirmed', 'completed']) // Solo eventos relevantes
+      // Solicitamos todas las columnas (*) Y el nombre de la tabla relacionada 'clients'
+      .select('*, clients(name)') 
+      .in('status', ['confirmed', 'completed']) 
       .order('event_date', { ascending: false });
-    if (data) setEvents(data);
+
+    if (error) {
+      console.error("Error al cargar eventos:", error);
+      return;
+    }
+
+    if (data) {
+      // Casteamos a nuestro tipo extendido para que TS esté feliz
+      setEvents(data as unknown as EventWithData[]);
+    }
   }
 
   const handleEventSelect = (event: Event | null) => {
     setIsFreeMode(false);
-    setSelectedEvent(event);
-    setIsMobileMenuOpen(false); // Cerrar menú en móvil
+    // Aseguramos el tipo al guardar en el estado
+    setSelectedEvent(event as EventWithData | null);
+    setIsMobileMenuOpen(false); 
   };
 
   const handleToggleFreeMode = () => {
@@ -58,19 +79,18 @@ export function OperationsShell({ userRole }: { userRole: string }) {
          <div className="md:hidden flex justify-end p-2"><button onClick={() => setIsMobileMenuOpen(false)}><X className="text-gray-400"/></button></div>
          
          <EventSelector 
-            events={events} 
-            selectedEventId={isFreeMode ? 'free' : selectedEvent?.id || null} 
-            onSelect={handleEventSelect}
-            onToggleFreeMode={handleToggleFreeMode}
-            isFreeMode={isFreeMode}
+           events={events} 
+           selectedEventId={isFreeMode ? 'free' : selectedEvent?.id || null} 
+           onSelect={handleEventSelect}
+           onToggleFreeMode={handleToggleFreeMode}
+           isFreeMode={isFreeMode}
          />
       </aside>
 
-      {/* ✅ CORRECCIÓN AQUÍ: 'overflow-y-auto' permite que el contenido hijo crezca y scrollee */}
       <main className="flex-1 w-full bg-gray-50 relative overflow-y-auto">
          {selectedEvent || isFreeMode ? (
             <CalculatorManager 
-               key={isFreeMode ? 'free' : selectedEvent?.id} // Forzar re-render al cambiar evento
+               key={isFreeMode ? 'free' : selectedEvent?.id}
                initialEvent={selectedEvent} 
                isFreeMode={isFreeMode}
             />
