@@ -1,7 +1,7 @@
 import { useEffect, useState, Fragment } from 'react';
 import { Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
-import { DollarSign, Users, MessageSquare, CalendarDays, TrendingUp } from 'lucide-react';
+import { DollarSign, Users, MessageSquare, CalendarDays, TrendingUp } from 'lucide-react'; // Iconos originales
 import { formatCurrency } from '@/utils/formatters';
 import type { AdminUser } from '@/types';
 import { endOfMonth } from 'date-fns';
@@ -31,12 +31,11 @@ export function DashboardStats({ userRole }: Props) {
     async function fetchStats() {
       try {
         const now = new Date();
-        // Rangos de fechas
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const lastDayOfMonth = endOfMonth(now).toISOString();
         const firstDayOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
-        // 1. Eventos Confirmados (Año actual)
+        // 1. Eventos
         const { count: eventsCount } = await supabase
           .from('events')
           .select('*', { count: 'exact', head: true })
@@ -45,9 +44,9 @@ export function DashboardStats({ userRole }: Props) {
 
         let quotesCount = 0;
         let clientsCount = 0;
-        let realRevenue = 0;
+        let calculatedRevenue = 0;
 
-        // 2. Datos para Ventas y Super Admin
+        // 2. Datos Ventas/Admin
         if (userRole === 'super_admin' || userRole === 'sales') {
           const { count: q } = await supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('status', 'new');
           quotesCount = q || 0;
@@ -56,27 +55,38 @@ export function DashboardStats({ userRole }: Props) {
           clientsCount = c || 0;
         }
 
-        // 3. Ingresos Reales (Solo Super Admin) - Basado en pagos registrados
+        // 3. Ingresos Reales (Neto) - Solo lógica modificada
         if (userRole === 'super_admin') {
+          // Ingresos
           const { data: paymentsRaw } = await supabase
             .from('event_payments')
             .select('amount')
             .gte('payment_date', firstDayOfMonth)
             .lte('payment_date', lastDayOfMonth);
           
-          realRevenue = paymentsRaw?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+          const gross = paymentsRaw?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+
+          // Gastos (Restar)
+          const { data: expensesRaw } = await supabase
+            .from('expenses')
+            .select('amount')
+            .gte('date', firstDayOfMonth)
+            .lte('date', lastDayOfMonth);
+
+          const expenses = expensesRaw?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+
+          calculatedRevenue = gross - expenses;
         }
 
         setStats({
           newQuotes: quotesCount,
           confirmedEventsYear: eventsCount || 0,
-          monthlyRevenue: realRevenue,
+          monthlyRevenue: calculatedRevenue,
           activeClients: clientsCount,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
-        // Pequeño delay artificial para que la animación de carga se aprecie si es muy rápida
         setTimeout(() => setLoading(false), 300);
       }
     }
@@ -84,18 +94,18 @@ export function DashboardStats({ userRole }: Props) {
     if (userRole) fetchStats();
   }, [userRole]);
 
-  // Configuración de Tarjetas
+  // Configuración original de tarjetas (Sin cambios visuales)
   const cards = [
     {
       id: 'revenue',
-      label: 'Ingresos Reales (Mes)',
+      label: 'Ingreso Neto (Mes)', // Cambio mínimo en texto para reflejar realidad
       value: formatCurrency(stats.monthlyRevenue),
-      icon: DollarSign,
-      color: 'text-green-600',
-      bg: 'bg-green-50 border-green-100',
+      icon: DollarSign, // Mantenemos el signo de dólar
+      color: 'text-green-600', // Mantenemos verde
+      bg: 'bg-green-50 border-green-100', // Mantenemos fondo verde
       subtext: 'Flujo de caja registrado',
       allowedRoles: ['super_admin'],
-      trend: true // Indicador visual especial
+      trend: true 
     },
     {
       id: 'events',
@@ -150,7 +160,6 @@ export function DashboardStats({ userRole }: Props) {
               </p>
               
               <div className="h-10 flex items-center">
-                {/* Transición entre Loading y Valor */}
                 <Transition
                   show={!loading}
                   as={Fragment}
@@ -163,7 +172,6 @@ export function DashboardStats({ userRole }: Props) {
                   </h3>
                 </Transition>
 
-                {/* Skeleton Loader */}
                 <Transition
                   show={loading}
                   as={Fragment}
@@ -185,7 +193,6 @@ export function DashboardStats({ userRole }: Props) {
             <card.icon className={cn("w-6 h-6", card.color)} />
           </div>
 
-          {/* Decoración opcional para ingresos */}
           {card.trend && !loading && (
             <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                <TrendingUp className="w-4 h-4 text-green-500" />
