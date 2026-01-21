@@ -4,7 +4,7 @@ import { Plus, FileStack, FileSignature, ListPlus, Menu, X } from 'lucide-react'
 import { ProposalEditor } from './ProposalEditor';
 import { ProposalList } from './ProposalList';
 import { ContractGenerator } from './ContractGenerator';
-import { ContractList } from './ContractList'; // ✅ AHORA SÍ, COMPONENTE REAL
+import { ContractList } from './ContractList';
 
 type ViewMode = 'new_proposal' | 'list_proposals' | 'new_contract' | 'list_contracts';
 

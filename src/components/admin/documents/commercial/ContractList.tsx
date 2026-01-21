@@ -2,7 +2,6 @@ import { useState, useEffect, Fragment } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Search, Trash2, FileSignature, Loader2, Calendar, AlertTriangle } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
-// ✅ IMPORTANTE: Agregamos ContractMetadata para el tipado fuerte
 import type { Contract, ContractMetadata } from '@/types';
 
 export function ContractList({ userRole }: { userRole: string }) {
@@ -11,8 +10,9 @@ export function ContractList({ userRole }: { userRole: string }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
 
-  // Estado para Modal de Eliminación
-  const [contractToDelete, setContractToDelete] = useState<string | null>(null);
+  // ✅ NUEVO: Guardamos el contrato entero, no solo el ID, para acceder a 'proposal_id'
+  const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchContracts();
@@ -34,14 +34,12 @@ export function ContractList({ userRole }: { userRole: string }) {
     }
   }
 
-  // ✅ LÓGICA CORREGIDA (Sin tocar diseño)
   const handleDownloadPdf = async (contract: Contract) => {
     setIsGenerating(contract.id);
     try {
       const FileSaver = (await import('file-saver')).default;
       const { generateContractWord } = await import('@/utils/ContractGenerator');
 
-      // 1. Reconstruimos el objeto 'proposal' para asegurar que 'items' no sea undefined
       const mockProposal = {
         id: contract.proposal_id,
         client_name: contract.client_name,
@@ -50,12 +48,11 @@ export function ContractList({ userRole }: { userRole: string }) {
         event_date: contract.event_date,
         event_type: contract.event_type,
         total_price: contract.total_amount,
-        items: contract.items || [], // <--- ESTO EVITA EL ERROR CRÍTICO
+        items: contract.items || [],
         guest_count: 0, 
         status: 'accepted'
       };
 
-      // 2. Extraemos metadata con tipado fuerte (Partial<ContractMetadata>)
       const meta = (contract.metadata || {}) as Partial<ContractMetadata>;
 
       const config = {
@@ -70,7 +67,6 @@ export function ContractList({ userRole }: { userRole: string }) {
         items: meta.clientItems || []
       };
 
-      // 3. Generamos el documento pasando la estructura correcta
       const blob = await generateContractWord({
         proposal: mockProposal as any,
         config: config,
@@ -88,20 +84,44 @@ export function ContractList({ userRole }: { userRole: string }) {
     }
   };
 
-  // Paso 1: Abrir Modal
-  const requestDelete = (id: string) => {
-    setContractToDelete(id);
-  };
+  // --- LÓGICA DE ELIMINACIÓN Y REVERSIÓN DE ESTADO ---
 
-  // Paso 2: Ejecutar Borrado
   const executeDelete = async () => {
     if (!contractToDelete) return;
+    setIsDeleting(true);
     
-    const { error } = await supabase.from('contracts').delete().eq('id', contractToDelete);
-    if (!error) {
-      setContracts(prev => prev.filter(c => c.id !== contractToDelete));
+    try {
+      // PASO 1: Eliminar el Contrato
+      const { error: deleteError } = await supabase
+        .from('contracts')
+        .delete()
+        .eq('id', contractToDelete.id);
+
+      if (deleteError) throw deleteError;
+
+      // PASO 2: Revertir la Propuesta a 'pending' (si existe el proposal_id)
+      if (contractToDelete.proposal_id) {
+        const { error: updateError } = await supabase
+          .from('proposals')
+          .update({ status: 'pending' }) // Volvemos al estado inicial
+          .eq('id', contractToDelete.proposal_id);
+
+        if (updateError) {
+          console.warn("Contrato eliminado, pero error al actualizar propuesta:", updateError);
+          // No lanzamos error aquí para no confundir al usuario, ya que el contrato sí se borró
+        }
+      }
+
+      // Actualizar UI
+      setContracts(prev => prev.filter(c => c.id !== contractToDelete.id));
+
+    } catch (error: any) {
+      console.error("Error deleting contract:", error);
+      alert("Error al eliminar el contrato: " + error.message);
+    } finally {
+      setIsDeleting(false);
+      setContractToDelete(null); 
     }
-    setContractToDelete(null); // Cerrar modal
   };
 
   return (
@@ -109,37 +129,44 @@ export function ContractList({ userRole }: { userRole: string }) {
       
       {/* --- MODAL DE ELIMINACIÓN (DESTRUCTIVO) --- */}
       <Transition appear show={!!contractToDelete} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => setContractToDelete(null)}>
-          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
-          </Transition.Child>
-
+        <Dialog as="div" className="relative z-50" onClose={() => !isDeleting && setContractToDelete(null)}>
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="fixed inset-0 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-600">
-                      <AlertTriangle size={30} />
-                    </div>
-                    <Dialog.Title as="h3" className="text-lg font-bold leading-6 text-gray-900">¿Eliminar Contrato?</Dialog.Title>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Esta acción borrará el registro del historial permanentemente. ¿Estás seguro?
-                      </p>
-                    </div>
-
-                    <div className="mt-6 flex gap-3 w-full">
-                      <button type="button" className="flex-1 justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none" onClick={() => setContractToDelete(null)}>
-                        Cancelar
-                      </button>
-                      <button type="button" className="flex-1 justify-center rounded-xl border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none" onClick={executeDelete}>
-                        Sí, Eliminar
-                      </button>
-                    </div>
+              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-600">
+                    <AlertTriangle size={30} />
                   </div>
-                </Dialog.Panel>
-              </Transition.Child>
+                  <Dialog.Title as="h3" className="text-lg font-bold leading-6 text-gray-900">
+                    ¿Eliminar Contrato?
+                  </Dialog.Title>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Esta acción eliminará el contrato y <strong>liberará la propuesta asociada</strong> (volverá a estado "Pendiente").
+                    </p>
+                  </div>
+
+                  <div className="mt-6 flex gap-3 w-full">
+                    <button 
+                      type="button" 
+                      disabled={isDeleting}
+                      className="flex-1 justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 focus:outline-none transition-colors" 
+                      onClick={() => setContractToDelete(null)}
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="button" 
+                      disabled={isDeleting}
+                      className="flex-1 justify-center rounded-xl border border-transparent bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 focus:outline-none transition-colors flex items-center gap-2" 
+                      onClick={executeDelete}
+                    >
+                      {isDeleting ? <Loader2 size={16} className="animate-spin" /> : 'Sí, Eliminar'}
+                    </button>
+                  </div>
+                </div>
+              </Dialog.Panel>
             </div>
           </div>
         </Dialog>
@@ -198,7 +225,11 @@ export function ContractList({ userRole }: { userRole: string }) {
                     <div className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={10}/> {c.event_date}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-green-100 text-green-800 border-green-200">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                      c.contract_status === 'signed' ? 'bg-green-100 text-green-800 border-green-200' : 
+                      c.contract_status === 'completed' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                      'bg-gray-100 text-gray-800 border-gray-200'
+                    }`}>
                       {c.contract_status === 'created' ? 'Generado' : c.contract_status}
                     </span>
                   </td>
@@ -214,7 +245,10 @@ export function ContractList({ userRole }: { userRole: string }) {
                       </button>
                       
                       {['super_admin'].includes(userRole) && (
-                        <button onClick={() => requestDelete(c.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => setContractToDelete(c)} // ✅ Pasamos el objeto completo
+                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
                           <Trash2 size={16}/>
                         </button>
                       )}

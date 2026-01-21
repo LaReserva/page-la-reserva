@@ -1,17 +1,19 @@
 import { useState, useEffect, Fragment } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Eye, Trash2, FileText, Loader2, Calendar, User, AlertTriangle } from 'lucide-react';
+import { Search, Eye, Trash2, FileText, Loader2, Calendar, User, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { ProposalPdf } from '../templates/ProposalPdf';
 import type { Proposal } from '@/types';
 import { QUOTE_DOC_STATUSES } from '@/utils/constants';
 import { Buffer } from 'buffer';
 
+// Polyfill para Buffer si es necesario en el navegador
 if (typeof window !== 'undefined' && !window.Buffer) {
   window.Buffer = Buffer;
 }
 
-// Componente visual para el estado (Status Badge)
+// --- SUB-COMPONENTES UI ---
+
 const StatusBadge = ({ status }: { status: string }) => {
   const config = QUOTE_DOC_STATUSES[status as keyof typeof QUOTE_DOC_STATUSES] || QUOTE_DOC_STATUSES.pending;
   const colors: Record<string, string> = {
@@ -28,14 +30,63 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+// Modal de Feedback Reutilizable
+interface FeedbackModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  type?: 'success' | 'error';
+}
+
+function FeedbackModal({ isOpen, onClose, title, message, type = 'error' }: FeedbackModalProps) {
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-[60]" onClose={onClose}>
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 text-center shadow-xl transition-all border border-gray-100">
+              <div className={`mx-auto flex items-center justify-center h-14 w-14 rounded-full mb-4 ${type === 'error' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                {type === 'error' ? <XCircle size={32} /> : <CheckCircle size={32} />}
+              </div>
+              <Dialog.Title as="h3" className="text-lg font-bold text-gray-900 mb-2">
+                {title}
+              </Dialog.Title>
+              <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                {message}
+              </p>
+              <button
+                type="button"
+                className={`w-full inline-flex justify-center rounded-xl border border-transparent px-4 py-2.5 text-sm font-bold text-white focus:outline-none transition-transform active:scale-95 ${type === 'error' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                onClick={onClose}
+              >
+                Entendido
+              </button>
+            </Dialog.Panel>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+}
+
+// --- COMPONENTE PRINCIPAL ---
+
 export function ProposalList({ userRole, onViewPdf }: { userRole: string, onViewPdf: (p: Proposal) => void }) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
 
-  // ✅ NUEVO: Estado para controlar qué propuesta se va a eliminar
+  // Estados de control
   const [proposalToDelete, setProposalToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Estado para Feedback (Errores/Éxito)
+  const [feedback, setFeedback] = useState<{ show: boolean, title: string, message: string, type: 'success' | 'error' }>({
+    show: false, title: '', message: '', type: 'success'
+  });
 
   useEffect(() => {
     fetchProposals();
@@ -80,82 +131,115 @@ export function ProposalList({ userRole, onViewPdf }: { userRole: string, onView
 
       FileSaver.saveAs(blob, `Propuesta_${proposal.client_name.replace(/\s+/g, '_')}.pdf`);
     } catch (e) {
-      alert("Error al generar PDF");
+      setFeedback({
+        show: true,
+        type: 'error',
+        title: 'Error PDF',
+        message: 'No se pudo generar el PDF. Verifica los datos de la propuesta.'
+      });
     } finally {
       setIsGenerating(null);
     }
   };
 
-  // ✅ PASO 1: Solicitar eliminación (abre modal)
-  const requestDelete = (id: string) => {
-    setProposalToDelete(id);
-  };
-
-  // ✅ PASO 2: Ejecutar eliminación (dentro del modal)
+  // --- LÓGICA DE ELIMINACIÓN CON CONTROL DE ERROR 409 ---
+  
   const executeDelete = async () => {
     if (!proposalToDelete) return;
+    setIsDeleting(true);
 
-    const { error } = await supabase.from('proposals').delete().eq('id', proposalToDelete);
-    
-    if (!error) {
-      setProposals(p => p.filter(x => x.id !== proposalToDelete));
+    try {
+      const { error } = await supabase.from('proposals').delete().eq('id', proposalToDelete);
+      
+      if (error) {
+        // ERROR 409 / 23503: Integridad Referencial
+        if (error.code === '23503') { 
+          setFeedback({
+            show: true,
+            type: 'error',
+            title: 'No se puede eliminar',
+            message: 'Esta propuesta ya ha sido convertida a un contrato o tiene datos vinculados. Debes eliminar el contrato primero para poder borrar esta propuesta.'
+          });
+        } else {
+          throw error; // Lanzar otros errores para el catch genérico
+        }
+      } else {
+        // Éxito
+        setProposals(p => p.filter(x => x.id !== proposalToDelete));
+        setFeedback({
+            show: true,
+            type: 'success',
+            title: 'Eliminado',
+            message: 'La propuesta se ha eliminado correctamente.'
+        });
+      }
+    } catch (error: any) {
+      console.error("Error deleting:", error);
+      setFeedback({
+        show: true,
+        type: 'error',
+        title: 'Error del Sistema',
+        message: error.message || 'Ocurrió un error inesperado al intentar eliminar.'
+      });
+    } finally {
+      setIsDeleting(false);
+      setProposalToDelete(null); // Cerramos el modal de confirmación
     }
-    setProposalToDelete(null); // Cerrar modal
   };
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full animate-in fade-in relative">
       
-      {/* --- MODAL DE ELIMINACIÓN (HEADLESS UI) --- */}
+      {/* 1. MODAL DE CONFIRMACIÓN DE ELIMINACIÓN */}
       <Transition appear show={!!proposalToDelete} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => setProposalToDelete(null)}>
-          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
-          </Transition.Child>
-
+        <Dialog as="div" className="relative z-50" onClose={() => !isDeleting && setProposalToDelete(null)}>
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="fixed inset-0 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <div className="flex flex-col items-center justify-center text-center">
-                    
-                    {/* Icono de Alerta */}
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-600">
-                      <AlertTriangle size={30} />
-                    </div>
-
-                    <Dialog.Title as="h3" className="text-lg font-bold leading-6 text-gray-900">
-                      ¿Eliminar Propuesta?
-                    </Dialog.Title>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Esta acción es irreversible y eliminará el registro del historial. ¿Deseas continuar?
-                      </p>
-                    </div>
-
-                    <div className="mt-6 flex gap-3 w-full">
-                      <button
-                        type="button"
-                        className="flex-1 inline-flex justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2"
-                        onClick={() => setProposalToDelete(null)}
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        className="flex-1 inline-flex justify-center rounded-xl border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                        onClick={executeDelete}
-                      >
-                        Sí, Eliminar
-                      </button>
-                    </div>
+              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-600">
+                    <AlertTriangle size={30} />
                   </div>
-                </Dialog.Panel>
-              </Transition.Child>
+                  <Dialog.Title as="h3" className="text-lg font-bold leading-6 text-gray-900">
+                    ¿Eliminar Propuesta?
+                  </Dialog.Title>
+                  <p className="text-sm text-gray-500 mt-2 mb-6">
+                    Esta acción es irreversible y eliminará el registro del historial.
+                  </p>
+                  <div className="flex gap-3 w-full">
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      className="flex-1 justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 focus:outline-none transition-colors"
+                      onClick={() => setProposalToDelete(null)}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      className="flex-1 justify-center rounded-xl border border-transparent bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 focus:outline-none transition-colors flex items-center  gap-2"
+                      onClick={executeDelete}
+                    >
+                      {isDeleting ? <Loader2 size={16} className="animate-spin" /> : 'Sí, Eliminar'}
+                    </button>
+                  </div>
+                </div>
+              </Dialog.Panel>
             </div>
           </div>
         </Dialog>
       </Transition>
+
+      {/* 2. MODAL DE FEEDBACK (Error 409 o Éxito) */}
+      <FeedbackModal 
+        isOpen={feedback.show}
+        onClose={() => setFeedback(prev => ({ ...prev, show: false }))}
+        title={feedback.title}
+        message={feedback.message}
+        type={feedback.type}
+      />
 
       {/* Toolbar */}
       <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -222,9 +306,8 @@ export function ProposalList({ userRole, onViewPdf }: { userRole: string, onView
                       </button>
                       
                       {['super_admin'].includes(userRole) && (
-                        // ✅ BOTÓN DE ELIMINAR ACTUALIZADO
                         <button 
-                          onClick={() => requestDelete(p.id)} 
+                          onClick={() => setProposalToDelete(p.id)} 
                           className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Eliminar"
                         >
