@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request }) => {
 
       const iconUrls = {
         facebook: 'https://cdn-icons-png.flaticon.com/512/145/145802.png',
-        instagram: 'https://cdn-icons-png.flaticon.com/512/3955/3955024.png',
+        instagram: 'https://cdn-icons-png.flaticon.com/512/174/174855.png',
         tiktok: 'https://cdn-icons-png.flaticon.com/512/3046/3046121.png'
       };
 

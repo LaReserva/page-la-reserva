@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
       // URLs públicas de iconos (puedes cambiarlas por las de tu propio storage si prefieres)
       const iconUrls = {
         facebook: 'https://cdn-icons-png.flaticon.com/512/145/145802.png', // Versión simple
-        instagram: 'https://cdn-icons-png.flaticon.com/512/3955/3955024.png', // Versión cámara
+        instagram: 'https://cdn-icons-png.flaticon.com/512/174/174855.png', // Versión cámara
         tiktok: 'https://cdn-icons-png.flaticon.com/512/3046/3046121.png' // Versión TikTok
       };
 
