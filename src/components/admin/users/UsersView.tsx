@@ -142,14 +142,10 @@ export function UsersView() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Estados para Modal de Edición/Creación
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Estado para Modal de Eliminación (Reemplaza window.confirm)
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
-  // Estado para Feedback
   const [feedback, setFeedback] = useState<{ isOpen: boolean; type: 'success' | 'error'; title: string; message: string }>({
     isOpen: false, type: 'success', title: '', message: ''
   });
@@ -188,8 +184,6 @@ export function UsersView() {
     setFeedback({ isOpen: true, type, title, message });
   };
 
-  // --- HANDLERS ---
-
   const handleCreateUser = () => {
     setSelectedUser(null);
     setIsModalOpen(true);
@@ -200,12 +194,10 @@ export function UsersView() {
     setIsModalOpen(true);
   };
 
-  // Handler para abrir el modal de confirmación
   const requestDeleteUser = (user: AdminUser) => {
     setUserToDelete(user);
   };
 
-  // Handler que ejecuta la eliminación real (llamado desde el modal)
   const executeDeleteUser = async () => {
     if (!userToDelete) return;
 
@@ -223,25 +215,36 @@ export function UsersView() {
       console.error('Error deleting user:', error);
       showFeedback('error', 'Error al eliminar', 'No se pudo eliminar el usuario. Verifica los permisos.');
     } finally {
-      setUserToDelete(null); // Cerrar modal
+      setUserToDelete(null); 
     }
   };
 
+  // --- 🔥 FUNCIÓN CORREGIDA: handleSaveUser ---
   const handleSaveUser = async (userData: Partial<AdminUser>) => {
     try {
       if (selectedUser) {
         // --- ACTUALIZAR ---
-        const { error } = await supabase
+        // IMPORTANTE: No enviamos 'email' en el update.
+        // Si las políticas RLS bloquean update de email, fallaría todo.
+        const { data, error } = await supabase
           .from('admin_users')
           .update({
             full_name: userData.full_name,
             role: userData.role,
-            email: userData.email, 
+            // email: userData.email, <--- ELIMINADO para evitar bloqueos RLS
             updated_at: new Date().toISOString()
           })
-          .eq('id', selectedUser.id);
+          .eq('id', selectedUser.id)
+          .select(); // <--- IMPORTANTE: Solicitar retorno de datos para verificar
 
         if (error) throw error;
+
+        // VERIFICACIÓN DE SEGURIDAD (RLS Silencioso)
+        // Si data está vacío, significa que RLS bloqueó la escritura aunque no dio error 500
+        if (!data || data.length === 0) {
+            throw new Error("No tienes permisos para editar este usuario (Bloqueo RLS).");
+        }
+
         showFeedback('success', 'Usuario Actualizado', 'Los datos del usuario se guardaron correctamente.');
       } else {
         // --- CREAR ---
@@ -259,18 +262,21 @@ export function UsersView() {
       fetchUsers();
     } catch (error: any) {
       console.error('Error saving user:', error);
-      showFeedback('error', 'Error al guardar', error.message || 'Ocurrió un error inesperado.');
+      // Mensaje amigable si es error RLS
+      const msg = error.message === "No tienes permisos para editar este usuario (Bloqueo RLS)." 
+        ? error.message 
+        : 'Ocurrió un error inesperado al guardar.';
+      
+      showFeedback('error', 'Error al guardar', msg);
       throw error; 
     }
   };
 
-  // --- FILTRADO ---
   const filteredUsers = users.filter(user => 
     user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // --- UTILS PARA BADGES ---
   const getRoleBadgeStyle = (role: UserRole) => {
     switch (role) {
       case 'super_admin': return 'bg-purple-50 text-purple-700 border-purple-200';
@@ -299,7 +305,6 @@ export function UsersView() {
 
   return (
     <div className="space-y-6">
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-secondary-200">
         <div className="flex items-center gap-2 text-secondary-500">
           <Users className="w-5 h-5" />
@@ -330,7 +335,6 @@ export function UsersView() {
         </div>
       </div>
 
-      {/* Tabla con Transición */}
       <Transition
         appear
         show={true}
@@ -430,9 +434,6 @@ export function UsersView() {
         </div>
       </Transition>
 
-      {/* --- MODALES --- */}
-      
-      {/* Modal de Creación/Edición (Componente Externo) */}
       <UserModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -440,7 +441,6 @@ export function UsersView() {
         onSave={handleSaveUser}
       />
 
-      {/* Modal de Confirmación de Eliminación */}
       <DeleteConfirmationModal
         isOpen={!!userToDelete}
         onClose={() => setUserToDelete(null)}
@@ -448,7 +448,6 @@ export function UsersView() {
         userName={userToDelete?.full_name || ''}
       />
 
-      {/* Modal de Feedback */}
       <FeedbackModal 
         isOpen={feedback.isOpen}
         type={feedback.type}

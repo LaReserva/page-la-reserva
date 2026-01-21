@@ -1,58 +1,77 @@
-// src/components/admin/users/UserModal.tsx
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Save, Loader2, Shield, Mail, User, Info, ExternalLink } from 'lucide-react';
+import { X, Save, Loader2, Mail, User, Info, ExternalLink, Shield, ChevronDown } from 'lucide-react';
 import type { AdminUser, UserRole } from '@/types';
 
 interface UserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: AdminUser | null; // null = Modo "Instrucciones para Crear"
+  user: AdminUser | null;
   onSave: (userData: Partial<AdminUser>) => Promise<void>;
 }
 
+// Definimos los roles claramente
+const ROLES: { id: UserRole; name: string; description: string }[] = [
+  { id: 'super_admin', name: 'Super Admin', description: 'Acceso total a configuración y finanzas.' },
+  { id: 'sales', name: 'Ventas (Sales)', description: 'Gestión de leads, clientes y cotizaciones.' },
+  { id: 'operations', name: 'Operaciones', description: 'Vista de eventos confirmados y logística.' },
+];
+
 export function UserModal({ isOpen, onClose, user, onSave }: UserModalProps) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  
+  // Estado inicial seguro
+  const [formData, setFormData] = useState<{
+    full_name: string;
+    email: string;
+    role: UserRole;
+  }>({
     full_name: '',
     email: '',
-    role: 'sales' as UserRole,
+    role: 'sales', // Valor por defecto seguro
   });
 
-  // Reset del formulario al abrir/cambiar usuario
+  // Efecto para cargar datos cuando se abre el modal
   useEffect(() => {
-    if (isOpen) {
-      if (user) {
-        setFormData({
-          full_name: user.full_name,
-          email: user.email,
-          role: user.role,
-        });
-      } else {
-        // Reset opcional si quisieras campos limpios, aunque en modo "crear" solo mostramos info
-        setFormData({ full_name: '', email: '', role: 'sales' });
-      }
+    if (isOpen && user) {
+      setFormData({
+        full_name: user.full_name || '',
+        email: user.email || '',
+        role: user.role || 'sales',
+      });
+    } else if (isOpen && !user) {
+      setFormData({ full_name: '', email: '', role: 'sales' });
     }
-  }, [user, isOpen]);
+  }, [isOpen, user?.id]); // Solo se ejecuta al abrir o cambiar de usuario
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    
     try {
-      setLoading(true);
-      await onSave(formData);
+      
+      // Enviamos solo los campos editables
+      await onSave({
+        full_name: formData.full_name,
+        role: formData.role
+      });
+      
       onClose();
     } catch (error) {
-      console.error(error);
+      console.error("Error CRÍTICO al guardar en UserModal:", error);
+      alert("Error al guardar. Revisa la consola (F12) para más detalles.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Helper para mostrar descripción dinámica
+  const currentRoleDescription = ROLES.find(r => r.id === formData.role)?.description;
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
         
-        {/* Backdrop (Fondo oscuro) */}
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -68,7 +87,6 @@ export function UserModal({ isOpen, onClose, user, onSave }: UserModalProps) {
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
             
-            {/* Panel del Modal */}
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-300"
@@ -78,10 +96,10 @@ export function UserModal({ isOpen, onClose, user, onSave }: UserModalProps) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all border border-secondary-100">
+              <Dialog.Panel className="w-full max-w-md transform rounded-2xl bg-white text-left align-middle shadow-xl transition-all border border-secondary-100">
                 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-secondary-100 bg-secondary-50/50">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-secondary-100 bg-secondary-50/50 rounded-t-2xl">
                   <Dialog.Title as="h3" className="text-lg font-bold text-secondary-900 flex items-center gap-2">
                     {user ? (
                       <>
@@ -99,18 +117,14 @@ export function UserModal({ isOpen, onClose, user, onSave }: UserModalProps) {
                       </>
                     )}
                   </Dialog.Title>
-                  <button 
-                    onClick={onClose}
-                    className="p-1.5 text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 rounded-lg transition-colors focus:outline-none"
-                  >
+                  <button onClick={onClose} className="p-1.5 text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 rounded-lg transition-colors focus:outline-none">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Contenido Dinámico */}
+                {/* Contenido */}
                 {user ? (
-                  /* --- MODO EDICIÓN --- */
-                  <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                  <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     
                     {/* Nombre */}
                     <div className="space-y-1.5">
@@ -123,7 +137,6 @@ export function UserModal({ isOpen, onClose, user, onSave }: UserModalProps) {
                           value={formData.full_name}
                           onChange={e => setFormData({...formData, full_name: e.target.value})}
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all text-sm text-secondary-900 placeholder:text-secondary-400"
-                          placeholder="Ej: Juan Pérez"
                         />
                       </div>
                     </div>
@@ -131,66 +144,69 @@ export function UserModal({ isOpen, onClose, user, onSave }: UserModalProps) {
                     {/* Email (Solo lectura) */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-secondary-500 uppercase tracking-wide">Correo Electrónico</label>
-                      <div className="relative group">
+                      <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400" />
                         <input
                           type="email"
                           disabled
                           value={formData.email}
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-secondary-200 bg-secondary-50 text-secondary-500 outline-none text-sm cursor-not-allowed"
-                          title="El correo no se puede cambiar ya que está vinculado al login"
                         />
-                        {/* Tooltip simple nativo o visual */}
                       </div>
-                      <p className="text-[10px] text-secondary-400 italic">El correo está vinculado a la cuenta de acceso y no se puede editar aquí.</p>
+                      <p className="text-[10px] text-secondary-400 italic flex gap-1 items-center">
+                        <Info className="w-3 h-3"/> El correo está vinculado a la cuenta y no se puede editar.
+                      </p>
                     </div>
 
-                    {/* Rol */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-secondary-500 uppercase tracking-wide">Rol de Acceso</label>
+                    {/* SELECT NATIVO PARA EL ROL (Solución al bug visual) */}
+                    <div className="space-y-1.5 relative">
+                      <label className="text-xs font-bold text-secondary-500 uppercase tracking-wide flex items-center gap-2">
+                        Rol de Acceso <Shield className="w-3 h-3 text-secondary-400"/>
+                      </label>
+                      
                       <div className="relative">
-                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400" />
                         <select
                           value={formData.role}
-                          onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all text-sm appearance-none bg-white cursor-pointer"
+                          onChange={(e) => {
+                             // Actualización forzada del estado
+                             const val = e.target.value as UserRole;
+                             setFormData(prev => ({ ...prev, role: val }));
+                          }}
+                          className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-secondary-200 bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all text-sm appearance-none cursor-pointer font-bold text-secondary-900"
                         >
-                          <option value="sales">Ventas (Sales)</option>
-                          <option value="operations">Operaciones</option>
-                          <option value="super_admin">Super Admin</option>
+                          {ROLES.map((role) => (
+                            <option key={role.id} value={role.id}>
+                              {role.name}
+                            </option>
+                          ))}
                         </select>
-                        {/* Flecha custom para el select */}
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                          <svg className="w-4 h-4 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        
+                        {/* Icono de flecha personalizado sobre el select nativo */}
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-secondary-500">
+                          <ChevronDown className="h-4 w-4" />
                         </div>
                       </div>
-                      
-                      {/* Descripción del Rol Seleccionado */}
-                      <div className="bg-secondary-50 p-3 rounded-lg border border-secondary-100 mt-2">
-                        <p className="text-xs text-secondary-600 flex gap-2 items-start">
-                          <Info className="w-3.5 h-3.5 mt-0.5 text-secondary-400 shrink-0" />
-                          <span>
-                            {formData.role === 'super_admin' && 'Tiene acceso total a configuraciones, usuarios y finanzas.'}
-                            {formData.role === 'sales' && 'Puede gestionar leads, crear cotizaciones y administrar clientes.'}
-                            {formData.role === 'operations' && 'Puede ver eventos confirmados, calendario y logística.'}
-                          </span>
+
+                      <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mt-2 transition-all">
+                        <p className="text-xs text-blue-700 leading-relaxed">
+                          {currentRoleDescription}
                         </p>
                       </div>
                     </div>
 
-                    {/* Footer Actions */}
-                    <div className="flex gap-3 pt-4 border-t border-secondary-100 mt-2">
+                    {/* Botones */}
+                    <div className="flex gap-3 pt-4 border-t border-secondary-100 mt-4">
                       <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 py-2.5 text-secondary-600 font-medium hover:bg-secondary-50 rounded-xl transition-colors text-sm"
+                        className="flex-1 py-2.5 text-secondary-600 font-medium hover:bg-secondary-50 rounded-xl transition-colors text-sm border border-secondary-200"
                       >
                         Cancelar
                       </button>
                       <button
                         type="submit"
                         disabled={loading}
-                        className="flex-1 py-2.5 bg-secondary-900 text-white font-bold rounded-xl hover:bg-secondary-800 transition-all shadow-lg shadow-secondary-900/20 flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="flex-1 py-2.5 bg-secondary-900 text-white font-bold rounded-xl hover:bg-black transition-all shadow-lg shadow-secondary-900/20 flex items-center justify-center gap-2 text-sm disabled:opacity-70"
                       >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Guardar Cambios
@@ -199,7 +215,7 @@ export function UserModal({ isOpen, onClose, user, onSave }: UserModalProps) {
                   </form>
 
                 ) : (
-                  /* --- MODO INFORMATIVO (Crear) --- */
+                  /* MODO CREAR (INFO) */
                   <div className="p-8 text-center">
                     <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 ring-4 ring-blue-50/50">
                       <Mail className="w-8 h-8" />
