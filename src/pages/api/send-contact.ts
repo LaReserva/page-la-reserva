@@ -12,10 +12,10 @@ export const POST: APIRoute = async ({ request }) => {
     const data = await request.json();
     const { name, email, phone, subject, message } = data;
     
-    // ✅ 1. Obtener el año actual dinámicamente
+    // 1. Año dinámico
     const currentYear = new Date().getFullYear();
 
-    // 2. Validaciones básicas
+    // 2. Validaciones
     if (!name || !email || !subject || !message) {
       return new Response(
         JSON.stringify({ error: 'Faltan campos obligatorios' }),
@@ -23,8 +23,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // 3. Obtener Redes Sociales desde Supabase
-    // Usamos los nombres exactos que vimos en tu base de datos
+    // 3. Obtener Redes Sociales
     const { data: settingsData, error: settingsError } = await supabase
       .from('site_settings')
       .select('key, value')
@@ -34,90 +33,116 @@ export const POST: APIRoute = async ({ request }) => {
       console.error('Error leyendo configuración:', settingsError);
     }
 
-    // Convertimos a objeto { social_facebook: 'url...', ... }
     const socialLinks = settingsData?.reduce<Record<string, string>>((acc, curr) => {
-      // Verificamos que el valor sea texto para evitar errores
       if (typeof curr.value === 'string') {
         acc[curr.key] = curr.value;
       }
       return acc;
     }, {}) || {};
 
-    // Helper para generar los botones HTML
-    const renderSocialButton = (url: string | undefined, label: string) => {
-      if (!url || url.length < 5) return ''; // Si no hay URL o es muy corta, no mostramos el botón
+    // --- HELPER MEJORADO PARA ICONOS DE REDES SOCIALES ---
+    // Usamos imágenes PNG transparentes (32x32px)
+    const renderSocialIcon = (url: string | undefined, platform: 'facebook' | 'instagram' | 'tiktok') => {
+      if (!url || url.length < 5) return ''; 
+
+      // URLs públicas de iconos (puedes cambiarlas por las de tu propio storage si prefieres)
+      const iconUrls = {
+        facebook: 'https://cdn-icons-png.flaticon.com/512/145/145802.png', // Versión simple
+        instagram: 'https://cdn-icons-png.flaticon.com/512/3955/3955024.png', // Versión cámara
+        tiktok: 'https://cdn-icons-png.flaticon.com/512/3046/3046121.png' // Versión TikTok
+      };
+
+      const labels = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok' };
+
       return `
-        <a href="${url}" target="_blank" style="display: inline-block; background-color: #f3f4f6; color: #1a1a1a; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 0 5px; font-size: 14px; border: 1px solid #e5e7eb;">
-          ${label}
+        <a href="${url}" target="_blank" style="text-decoration: none; display: inline-block; margin: 0 10px;">
+          <img 
+            src="${iconUrls[platform]}" 
+            alt="${labels[platform]}" 
+            width="32" 
+            height="32" 
+            style="display: block; width: 32px; height: 32px; border: 0;" 
+          />
         </a>
       `;
     };
 
-    // 4. Configurar Correo al ADMIN (Tú)
+    // 4. Correo al ADMIN
     const sendToAdmin = resend.emails.send({
       from: 'La Reserva Web <info@lareservabartending.com>',
-      to: ['lareservabartending@gmail.com'], // ⚠️ RECUERDA: Cambia esto por tu email real
+      to: ['lareservabartending@gmail.com'],
       replyTo: email,
-      subject: `Nuevo Contacto: ${subject}`,
+      subject: `Nuevo Lead: ${subject}`,
       html: `
-        <div style="font-family: sans-serif; color: #333;">
-          <h2 style="color: #D4AF37;">Nuevo Lead Recibido</h2>
-          <p><strong>De:</strong> ${name} (${email})</p>
+        <div style="font-family: sans-serif; color: #333; max-width: 600px;">
+          <h2 style="color: #D4AF37; border-bottom: 2px solid #D4AF37; padding-bottom: 10px;">Nuevo Contacto Recibido</h2>
+          <p><strong>Nombre:</strong> ${name}</p>
+          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
           <p><strong>Teléfono:</strong> ${phone || 'No especificado'}</p>
-          <hr />
-          <h3>Mensaje:</h3>
-          <p>${message}</p>
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 20px;">
+            <strong style="display: block; margin-bottom: 5px;">Mensaje:</strong>
+            <p style="margin: 0; white-space: pre-wrap;">${message}</p>
+          </div>
         </div>
       `,
     });
 
-    // 5. Configurar Correo al CLIENTE (Respuesta Automática)
+    // 5. Correo al CLIENTE (Con Iconos)
     const sendToClient = resend.emails.send({
       from: 'La Reserva <info@lareservabartending.com>',
       to: [email],
-      subject: '¡Hemos recibido tu mensaje! - La Reserva',
+      subject: '¡Recibimos tu mensaje! - La Reserva',
       html: `
-        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; color: #333333; line-height: 1.6;">
-          
-          <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
-            <h1 style="color: #D4AF37; margin: 0; font-size: 24px;">LA RESERVA</h1>
-            <p style="color: #ffffff; margin: 5px 0 0; font-size: 14px;">Bartending & Coctelería</p>
-          </div>
-
-          <div style="padding: 30px 20px;">
-            <p style="font-size: 18px;">Hola <strong>${name}</strong>,</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #ffffff; color: #333333; line-height: 1.6; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             
-            <p>Muchas gracias por contactarnos. Hemos recibido tu consulta sobre <strong>"${subject}"</strong> correctamente.</p>
-            
-            <p>Nuestro equipo ya está revisando tu mensaje y nos pondremos en contacto contigo a la brevedad posible para conversar sobre los detalles de tu evento.</p>
-            
-            <div style="background-color: #f9fafb; border-left: 4px solid #D4AF37; padding: 15px; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #555;">
-                <strong>Tu mensaje:</strong><br/>
-                "${message}"
-              </p>
+            <div style="background-color: #111111; padding: 30px 20px; text-align: center;">
+              <h1 style="color: #D4AF37; margin: 0; font-size: 26px; letter-spacing: 2px;">LA RESERVA</h1>
+              <p style="color: #cccccc; margin: 5px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">Bartending & Coctelería Premium</p>
             </div>
 
-            <p>Mientras tanto, te invitamos a revisar nuestras redes sociales para ver nuestros últimos eventos.</p>
+            <div style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-top: 0;">Hola <strong>${name}</strong>,</p>
+              
+              <p>Gracias por escribirnos. Hemos recibido tu consulta sobre <strong>"${subject}"</strong> exitosamente.</p>
+              
+              <p>Nuestro equipo comercial ya está revisando tu solicitud. Nos pondremos en contacto contigo muy pronto (usualmente en menos de 24 horas) para brindarte toda la información para tu evento.</p>
+              
+              <div style="background-color: #f8f9fa; border-left: 4px solid #D4AF37; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                <p style="margin: 0; font-size: 14px; color: #666;">
+                  <strong>Tu mensaje:</strong><br/>
+                  <em style="color: #333;">"${message}"</em>
+                </p>
+              </div>
 
-            <div style="text-align: center;">
-              <p style="margin-bottom: 20px; font-weight: 600;">Síguenos para ver nuestros últimos eventos:</p>
-              
-              ${renderSocialButton(socialLinks['social_facebook'], 'Facebook')}
-              ${renderSocialButton(socialLinks['social_instagram'], 'Instagram')}
-              ${renderSocialButton(socialLinks['social_tiktok'], 'TikTok')}
-              
+              <div style="text-align: center; margin-top: 40px; border-top: 1px solid #eeeeee; padding-top: 30px;">
+                <p style="margin-bottom: 20px; font-weight: 600; color: #555;">Síguenos para inspiración y novedades:</p>
+                
+                <div style="display: inline-block;">
+                  ${renderSocialIcon(socialLinks['social_facebook'], 'facebook')}
+                  ${renderSocialIcon(socialLinks['social_instagram'], 'instagram')}
+                  ${renderSocialIcon(socialLinks['social_tiktok'], 'tiktok')}
+                </div>
+              </div>
+            </div>
+
+            <div style="background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 12px; color: #999999; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 5px 0;">© ${currentYear} La Reserva Bartending. Lima, Perú.</p>
+              <p style="margin: 0;">Este es un correo automático, por favor no respondas directamente a esta dirección si no es necesario.</p>
             </div>
           </div>
-
-          <div style="border-top: 1px solid #eeeeee; padding: 20px; text-align: center; font-size: 12px; color: #999999; margin-top: 20px;">
-            <p>© ${currentYear} La Reserva Bartending. Todos los derechos reservados.</p>
-          </div>
-        </div>
+        </body>
+        </html>
       `,
     });
 
-    // 6. Enviar ambos correos
+    // 6. Enviar
     const [adminResult, clientResult] = await Promise.all([sendToAdmin, sendToClient]);
 
     if (adminResult.error) {

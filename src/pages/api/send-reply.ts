@@ -4,11 +4,10 @@ export const prerender = false;
 import type { APIRoute } from 'astro';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
-import { supabase as supabasePublic } from '@/lib/supabase'; // Cliente público para verificar token
+import { supabase as supabasePublic } from '@/lib/supabase';
 
 const resend = new Resend(import.meta.env.RESEND_API_KEY);
 
-// Cliente ADMIN (Solo se usará si la verificación pasa)
 const supabaseAdmin = createClient(
   import.meta.env.PUBLIC_SUPABASE_URL,
   import.meta.env.SUPABASE_SERVICE_KEY,
@@ -17,25 +16,16 @@ const supabaseAdmin = createClient(
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    // 1. SEGURIDAD: Obtener el token del encabezado
+    // 1. SEGURIDAD
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'No autorizado: Falta token' }), { status: 401 });
-    }
+    if (!token) return new Response(JSON.stringify({ error: 'Falta token' }), { status: 401 });
 
-    // 2. SEGURIDAD: Verificar que el token es válido con Supabase
-    // Usamos el cliente PÚBLICO para esto (no gastamos poder de admin)
     const { data: { user }, error: authError } = await supabasePublic.auth.getUser(token);
+    if (authError || !user) return new Response(JSON.stringify({ error: 'Sesión inválida' }), { status: 401 });
 
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'No autorizado: Sesión inválida' }), { status: 401 });
-    }
-
-    // --- AQUÍ EMPIEZA LA ZONA SEGURA ---
-    // Si llegamos aquí, sabemos que es un usuario real logueado.
-    
+    // 2. DATOS
     const data = await request.json();
     const { id, toEmail, clientName, subject, replyMessage } = data;
 
@@ -43,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ error: 'Faltan datos' }), { status: 400 });
     }
 
-    // 3. Lógica de Redes Sociales
+    // 3. REDES SOCIALES
     const { data: settingsData } = await supabasePublic
       .from('site_settings')
       .select('key, value')
@@ -54,50 +44,87 @@ export const POST: APIRoute = async ({ request }) => {
       return acc;
     }, {}) || {};
 
-    const renderSocialButton = (url: string | undefined, label: string) => {
-      if (!url || url.length < 5) return '';
-      return `<a href="${url}" target="_blank" style="display:inline-block;background:#f3f4f6;color:#1a1a1a;padding:10px 20px;text-decoration:none;border-radius:5px;font-weight:bold;margin:0 5px;font-size:14px;border:1px solid #e5e7eb;">${label}</a>`;
+    // --- HELPER DE ICONOS ---
+    const renderSocialIcon = (url: string | undefined, platform: 'facebook' | 'instagram' | 'tiktok') => {
+      if (!url || url.length < 5) return ''; 
+
+      const iconUrls = {
+        facebook: 'https://cdn-icons-png.flaticon.com/512/145/145802.png',
+        instagram: 'https://cdn-icons-png.flaticon.com/512/3955/3955024.png',
+        tiktok: 'https://cdn-icons-png.flaticon.com/512/3046/3046121.png'
+      };
+
+      const labels = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok' };
+
+      return `
+        <a href="${url}" target="_blank" style="text-decoration: none; display: inline-block; margin: 0 10px;">
+          <img 
+            src="${iconUrls[platform]}" 
+            alt="${labels[platform]}" 
+            width="32" 
+            height="32" 
+            style="display: block; width: 32px; height: 32px; border: 0;" 
+          />
+        </a>
+      `;
     };
 
     const currentYear = new Date().getFullYear();
 
-    // 4. Enviar Correo
+    // 4. ENVIAR CORREO
     const emailResult = await resend.emails.send({
       from: 'La Reserva <info@lareservabartending.com>',
       to: [toEmail],
-      replyTo: 'lareservabartending@gmail.com',
+      replyTo: 'lareservabartending@gmail.com', // Respuestas van a tu Gmail
       subject: `Re: ${subject}`,
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-          <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
-            <h1 style="color: #d97706; margin: 0;">LA RESERVA</h1>
-          </div>
-          <div style="padding: 30px 20px;">
-            <p>Hola <strong>${clientName}</strong>,</p>
-            <div style="white-space: pre-wrap; margin-bottom: 25px;">${replyMessage.replace(/\n/g, '<br/>')}</div>
-            <p>Atentamente,<br/><strong>El equipo de La Reserva</strong></p>
-            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
-              ${renderSocialButton(socialLinks['social_facebook'], 'Facebook')}
-              ${renderSocialButton(socialLinks['social_instagram'], 'Instagram')}
-              ${renderSocialButton(socialLinks['social_tiktok'], 'TikTok')}
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #ffffff; color: #333; line-height: 1.6; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            
+            <div style="background-color: #111; padding: 25px; text-align: center;">
+              <h1 style="color: #D4AF37; margin: 0; font-size: 24px; letter-spacing: 2px;">LA RESERVA</h1>
+            </div>
+            
+            <div style="padding: 30px;">
+              <p style="font-size: 16px;">Hola <strong>${clientName}</strong>,</p>
+              
+              <div style="margin: 20px 0; color: #333; font-size: 15px;">
+                ${replyMessage.replace(/\n/g, '<br/>')}
+              </div>
+              
+              <p style="margin-top: 30px; font-size: 14px; color: #666;">
+                Atentamente,<br/>
+                <strong style="color: #D4AF37;">El equipo de La Reserva</strong>
+              </p>
+            </div>
+
+            <div style="background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="margin-bottom: 15px; font-weight: 600; color: #888; font-size: 13px;">Síguenos en nuestras redes:</p>
+              
+              <div style="margin-bottom: 20px;">
+                ${renderSocialIcon(socialLinks['social_facebook'], 'facebook')}
+                ${renderSocialIcon(socialLinks['social_instagram'], 'instagram')}
+                ${renderSocialIcon(socialLinks['social_tiktok'], 'tiktok')}
+              </div>
+
+              <p style="font-size: 11px; color: #aaaaaa; margin: 0;">© ${currentYear} La Reserva Bartending.</p>
             </div>
           </div>
-          <div style="border-top: 1px solid #eee; padding: 20px; text-align: center; font-size: 12px; color: #999;">
-            © ${currentYear} La Reserva Bartending.
-          </div>
-        </div>
+        </body>
+        </html>
       `,
     });
 
     if (emailResult.error) throw new Error(emailResult.error.message);
 
-    // 5. Actualizar DB (Usando Admin Client, pero ahora es SEGURO porque verificamos al user)
-    const { error: updateError } = await supabaseAdmin
+    // 5. ACTUALIZAR ESTADO EN DB
+    await supabaseAdmin
       .from('contact_messages')
       .update({ status: 'replied' })
       .eq('id', id);
-
-    if (updateError) console.error('Error DB:', updateError);
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
 
