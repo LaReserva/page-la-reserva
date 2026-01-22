@@ -9,7 +9,7 @@ import {
 import { pdf } from '@react-pdf/renderer';
 import FileSaver from 'file-saver';
 import { ProposalPdf } from '../templates/ProposalPdf';
-import { generateContractWord } from '@/utils/ContractGenerator'; // ✅ IMPORTANTE: Importar el generador
+import { generateContractWord } from '@/utils/ContractGenerator';
 import { QUOTE_DOC_STATUSES } from '@/utils/constants';
 import type { Proposal, Contract } from '@/types';
 
@@ -255,8 +255,19 @@ export function CommercialTab({ userRole }: { userRole: string }) {
 
       await supabase.from('proposals').update({ status: 'accepted' }).eq('id', selectedProposal.id);
 
-      // GENERAR WORD
-      const blob = await generateContractWord(selectedProposal);
+      // ✅ FIX: LLAMADA CORREGIDA A GENERATE CONTRACT WORD
+      // Pasamos un objeto con valores por defecto para 'config' y 'supplies'
+      const blob = await generateContractWord({
+        proposal: selectedProposal,
+        config: { 
+            guaranteeDeposit: 0, 
+            extraHourCost: 300, 
+            setupHours: 2,
+            serviceHours: 5 // Valor por defecto
+        },
+        supplies: { type: 'provider', items: [] } // Valor por defecto
+      });
+
       const folio = contract.id.slice(0, 8).toUpperCase();
       const fileName = `Contrato_${selectedProposal.client_name.replace(/\s+/g, '_')}_${folio}.docx`;
       
@@ -284,7 +295,6 @@ export function CommercialTab({ userRole }: { userRole: string }) {
   const handleViewPdf = async (doc: any, type: 'proposal' | 'contract') => {
     try {
       setIsGenerating(true);
-      // Para visualización rápida, usamos el PDF (incluso para contratos)
       const itemsArray = typeof doc.items === 'string' ? JSON.parse(doc.items) : doc.items || [];
       const isContract = type === 'contract';
       const blob = await pdf(
@@ -426,11 +436,11 @@ export function CommercialTab({ userRole }: { userRole: string }) {
                                 </div>
                                 {creationSource === 'web' && showSuggestions && (
                                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50">
-                                        {webLeads.length > 0 ? webLeads.map(lead => (
-                                            <div key={lead.id} onClick={() => selectWebLead(lead)} className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b flex justify-between group">
-                                                <div><span className="font-bold block text-sm">{lead.client_name}</span><span className="text-xs text-gray-500">{lead.event_type}</span></div>
-                                            </div>
-                                        )) : (!isSearchingLead && clientName.length > 0 && <div className="p-4 text-center text-xs text-gray-400">Sin resultados.</div>)}
+                                            {webLeads.length > 0 ? webLeads.map(lead => (
+                                                <div key={lead.id} onClick={() => selectWebLead(lead)} className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b flex justify-between group">
+                                                    <div><span className="font-bold block text-sm">{lead.client_name}</span><span className="text-xs text-gray-500">{lead.event_type}</span></div>
+                                                </div>
+                                            )) : (!isSearchingLead && clientName.length > 0 && <div className="p-4 text-center text-xs text-gray-400">Sin resultados.</div>)}
                                     </div>
                                 )}
                             </div>
@@ -454,7 +464,7 @@ export function CommercialTab({ userRole }: { userRole: string }) {
                                 {showTypeSuggestions && (
                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-y-auto z-50">
                                       {suggestionEventTypes.filter(t => t.toLowerCase().includes(eventType.toLowerCase())).map(t => (
-                                         <div key={t} onClick={() => { setEventType(t); setShowTypeSuggestions(false); }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm">{t}</div>
+                                       <div key={t} onClick={() => { setEventType(t); setShowTypeSuggestions(false); }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm">{t}</div>
                                       ))}
                                    </div>
                                 )}
@@ -500,41 +510,41 @@ export function CommercialTab({ userRole }: { userRole: string }) {
         {/* --- 2. VISTA: LISTA PROPUESTAS --- */}
         {viewMode === 'list_proposals' && (
           <div className="w-full space-y-6 animate-in fade-in">
-             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm min-h-[600px]">
-                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><FileStack className="text-blue-600"/> Archivo de Propuestas</h2>
-                   <div className="relative w-full md:w-72">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
-                      <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar cliente..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2"/>
-                   </div>
-                </div>
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm min-h-[600px]">
+                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><FileStack className="text-blue-600"/> Archivo de Propuestas</h2>
+                    <div className="relative w-full md:w-72">
+                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
+                       <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar cliente..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2"/>
+                    </div>
+                 </div>
 
-                {loadingList ? <div className="p-20 text-center text-gray-400">Cargando...</div> : proposalsList.length === 0 ? (
-                  <div className="p-20 text-center border-2 border-dashed border-gray-100 rounded-xl"><p className="text-gray-500">No hay propuestas guardadas.</p></div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-blue-50 text-blue-900 font-semibold uppercase text-xs border-b border-blue-100">
-                        <tr><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cliente</th><th className="px-6 py-4">Monto</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4 text-right">Acción</th></tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {proposalsList.map((proposal) => (
-                          <tr key={proposal.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4 text-gray-400 text-xs">{new Date(proposal.created_at).toLocaleDateString()}</td>
-                            <td className="px-6 py-4 font-bold text-gray-800">{proposal.client_name}{proposal.source_quote_id && <span className="ml-2 text-[9px] bg-blue-50 text-blue-500 px-1 rounded">WEB</span>}</td>
-                            <td className="px-6 py-4 font-mono font-medium text-gray-900">S/ {Number(proposal.total_price).toFixed(2)}</td>
-                            <td className="px-6 py-4"><StatusSelector currentStatus={proposal.status} onChange={(v)=>handleStatusChange(proposal.id, v)} loading={updatingStatusId===proposal.id}/></td>
-                            <td className="px-6 py-4 text-right flex justify-end gap-2">
-                               <button onClick={() => handleViewPdf(proposal, 'proposal')} className="text-gray-400 hover:text-blue-600 p-2"><Eye size={16}/></button>
-                               {userRole === 'super_admin' && <button onClick={() => confirmDelete(proposal.id, 'proposal')} className="text-gray-400 hover:text-red-600 p-2"><Trash2 size={16}/></button>}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-             </div>
+                 {loadingList ? <div className="p-20 text-center text-gray-400">Cargando...</div> : proposalsList.length === 0 ? (
+                   <div className="p-20 text-center border-2 border-dashed border-gray-100 rounded-xl"><p className="text-gray-500">No hay propuestas guardadas.</p></div>
+                 ) : (
+                   <div className="overflow-x-auto">
+                     <table className="w-full text-left text-sm">
+                       <thead className="bg-blue-50 text-blue-900 font-semibold uppercase text-xs border-b border-blue-100">
+                         <tr><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cliente</th><th className="px-6 py-4">Monto</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4 text-right">Acción</th></tr>
+                       </thead>
+                       <tbody className="divide-y divide-gray-100">
+                         {proposalsList.map((proposal) => (
+                           <tr key={proposal.id} className="hover:bg-gray-50 transition-colors">
+                             <td className="px-6 py-4 text-gray-400 text-xs">{new Date(proposal.created_at).toLocaleDateString()}</td>
+                             <td className="px-6 py-4 font-bold text-gray-800">{proposal.client_name}{proposal.source_quote_id && <span className="ml-2 text-[9px] bg-blue-50 text-blue-500 px-1 rounded">WEB</span>}</td>
+                             <td className="px-6 py-4 font-mono font-medium text-gray-900">S/ {Number(proposal.total_price).toFixed(2)}</td>
+                             <td className="px-6 py-4"><StatusSelector currentStatus={proposal.status} onChange={(v)=>handleStatusChange(proposal.id, v)} loading={updatingStatusId===proposal.id}/></td>
+                             <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                <button onClick={() => handleViewPdf(proposal, 'proposal')} className="text-gray-400 hover:text-blue-600 p-2"><Eye size={16}/></button>
+                                {userRole === 'super_admin' && <button onClick={() => confirmDelete(proposal.id, 'proposal')} className="text-gray-400 hover:text-red-600 p-2"><Trash2 size={16}/></button>}
+                             </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
+                 )}
+              </div>
           </div>
         )}
 
@@ -604,11 +614,11 @@ export function CommercialTab({ userRole }: { userRole: string }) {
            <div className="w-full space-y-6 animate-in fade-in">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 min-h-[600px]">
                   <div className="flex justify-between items-center mb-6">
-                     <h2 className="text-xl font-bold flex gap-2 text-gray-800"><ListPlus/> Archivo de Contratos</h2>
-                     <div className="relative w-72">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
-                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar contrato..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2"/>
-                     </div>
+                      <h2 className="text-xl font-bold flex gap-2 text-gray-800"><ListPlus/> Archivo de Contratos</h2>
+                      <div className="relative w-72">
+                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
+                         <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar contrato..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2"/>
+                      </div>
                   </div>
                   
                   {loadingList ? <div className="p-20 text-center text-gray-400">Cargando...</div> : contractsList.length === 0 ? <div className="p-20 text-center border-2 border-dashed border-gray-100 rounded-xl">No hay contratos.</div> : (

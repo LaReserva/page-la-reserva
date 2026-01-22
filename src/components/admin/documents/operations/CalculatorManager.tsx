@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
-import { Combobox, Disclosure, Transition, Dialog } from '@headlessui/react';
+import { Combobox, Disclosure, Transition, Dialog, Listbox } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
-import { Search, ChevronUp, Plus, X, Download, FileText, Settings2, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { Search, ChevronUp, Plus, X, Download, FileText, Settings2, CheckCircle, AlertTriangle, Loader2, Check } from 'lucide-react';
 import type { Event, Ingredient, RecipeItem, Cocktail } from '@/types';
 import { generateShoppingList, type CalculationResult } from '@/utils/calculator';
 // Ajusta esta ruta si tu archivo está en otra carpeta
@@ -11,6 +11,13 @@ interface CalculatorManagerProps {
   initialEvent: Event | null;
   isFreeMode: boolean;
 }
+
+// Opciones del margen de seguridad
+const marginOptions = [
+  { value: 1, label: '0% (Exacto)' },
+  { value: 1.1, label: '10% (Recomendado)' },
+  { value: 1.2, label: '20% (Alto)' }
+];
 
 export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManagerProps) {
   // --- DATA STATES ---
@@ -192,9 +199,6 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
       const { pdf } = await import('@react-pdf/renderer');
       const FileSaver = (await import('file-saver')).default;
       
-      // ✅ FIX 1 (ERROR PDF): Usamos .toISOString() en modo libre
-      // Esto asegura que la fecha siempre tenga el formato 'YYYY-MM-DDTHH:mm...' 
-      // que la función formatDate() del PDF puede leer sin explotar.
       const eventData = {
         ...(initialEvent || {} as Event),
         event_type: isFreeMode ? 'Cálculo Manual' : initialEvent?.event_type || 'Evento',
@@ -221,6 +225,9 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
       setIsProcessing(false);
     }
   };
+
+  // CLASE COMÚN DE FOCUS
+  const inputFocusClass = "border border-gray-300 rounded-lg p-2 text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm";
 
   return (
     <div className="flex flex-col relative pb-10">
@@ -265,27 +272,52 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
            <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Invitados</label>
-              <input type="number" min="1" value={settings.guestCount} onChange={e => setSettings({...settings, guestCount: Number(e.target.value)})} className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold"/>
+              <input type="number" min="1" value={settings.guestCount} onChange={e => setSettings({...settings, guestCount: Number(e.target.value)})} className={`w-full font-bold ${inputFocusClass}`}/>
            </div>
            <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Horas</label>
-              <input type="number" min="1" value={settings.hours} onChange={e => setSettings({...settings, hours: Number(e.target.value)})} className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold"/>
+              <input type="number" min="1" value={settings.hours} onChange={e => setSettings({...settings, hours: Number(e.target.value)})} className={`w-full font-bold ${inputFocusClass}`}/>
            </div>
            <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hielo Extra</label>
               <div className="flex items-center gap-2">
-                 <button onClick={() => setSettings(p => ({...p, extraIceBags: Math.max(0, p.extraIceBags - 1)}))} className="w-8 h-9 bg-gray-100 rounded-lg font-bold">-</button>
+                 <button onClick={() => setSettings(p => ({...p, extraIceBags: Math.max(0, p.extraIceBags - 1)}))} className="w-8 h-9 bg-gray-100 rounded-lg font-bold hover:bg-gray-200 transition-colors">-</button>
                  <span className="flex-1 text-center font-bold text-sm">{settings.extraIceBags}</span>
-                 <button onClick={() => setSettings(p => ({...p, extraIceBags: p.extraIceBags + 1}))} className="w-8 h-9 bg-gray-100 rounded-lg font-bold">+</button>
+                 <button onClick={() => setSettings(p => ({...p, extraIceBags: p.extraIceBags + 1}))} className="w-8 h-9 bg-gray-100 rounded-lg font-bold hover:bg-gray-200 transition-colors">+</button>
               </div>
            </div>
            <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Margen Seguridad</label>
-              <select value={settings.safetyMargin} onChange={e => setSettings({...settings, safetyMargin: Number(e.target.value)})} className="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white">
-                 <option value={1}>0% (Exacto)</option>
-                 <option value={1.1}>10% (Recomendado)</option>
-                 <option value={1.2}>20% (Alto)</option>
-              </select>
+              {/* REEMPLAZO DEL SELECT NATIVO POR LISTBOX DE HEADLESS UI */}
+              <Listbox value={settings.safetyMargin} onChange={val => setSettings({...settings, safetyMargin: val})}>
+                 <div className="relative mt-1">
+                    <Listbox.Button className={`relative w-full cursor-default rounded-lg bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm shadow-sm ${inputFocusClass}`}>
+                       <span className="block truncate">{marginOptions.find(o => o.value === settings.safetyMargin)?.label}</span>
+                       <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                          <ChevronUp className="h-5 w-5 text-gray-400 rotate-180" aria-hidden="true" />
+                       </span>
+                    </Listbox.Button>
+                    <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
+                       <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-50 border border-gray-100">
+                          {marginOptions.map((option) => (
+                             // AQUÍ SE APLICA EL COLOR PRIMARY-500 AL ESTADO ACTIVE
+                             <Listbox.Option key={option.value} className={({ active }) => `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? 'bg-primary-500 text-white' : 'text-gray-900'}`} value={option.value}>
+                                {({ selected, active }) => (
+                                   <>
+                                      <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{option.label}</span>
+                                      {selected ? (
+                                         <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-primary-500'}`}>
+                                            <Check className="h-5 w-5" aria-hidden="true" />
+                                         </span>
+                                      ) : null}
+                                   </>
+                                )}
+                             </Listbox.Option>
+                          ))}
+                       </Listbox.Options>
+                    </Transition>
+                 </div>
+              </Listbox>
            </div>
         </div>
 
@@ -302,9 +334,6 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
                     <div className="w-full lg:w-1/3 space-y-2 relative z-50">
                        <label className="text-xs font-bold text-gray-400 uppercase">Agregar Coctel</label>
                        
-                       {/* ✅ FIX 2 (TYPESCRIPT ERROR): 
-                           Cambiamos addCocktail por una función flecha con (val: any).
-                           Esto evita que TS se queje de que 'value={null}' hace incompatible la función. */}
                        <Combobox value={null} onChange={(val: any) => addCocktail(val)}>
                           <div className="relative">
                              <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-primary-500 sm:text-sm">
@@ -340,7 +369,15 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
                              return (
                                 <div key={id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
                                    <span className="flex-1 text-xs font-medium truncate" title={c?.name}>{c?.name}</span>
-                                   <input type="number" min="0" max="100" value={Math.round(distribution[id] || 0)} onChange={(e) => updateDist(id, Number(e.target.value))} className="w-12 text-right p-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 outline-none"/>
+                                   {/* Input de porcentaje con clase focus corregida */}
+                                   <input 
+                                     type="number" 
+                                     min="0" 
+                                     max="100" 
+                                     value={Math.round(distribution[id] || 0)} 
+                                     onChange={(e) => updateDist(id, Number(e.target.value))} 
+                                     className={`w-12 text-right p-1 text-xs ${inputFocusClass}`}
+                                   />
                                    <span className="text-xs text-gray-400">%</span>
                                    <button onClick={() => removeCocktail(id)} className="text-gray-400 hover:text-red-500"><X size={14}/></button>
                                 </div>

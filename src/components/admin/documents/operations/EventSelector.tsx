@@ -76,7 +76,7 @@ export function EventSelector({ events, selectedEventId, onSelect, onToggleFreeM
             placeholder="Buscar por cliente, fecha..." 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
-            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-xs resize-none focus:ring-primary-500 focus:border-primary-500 outline-none transition-all placeholder:text-gray-400"
           />
         </div>
       </div>
@@ -88,7 +88,7 @@ export function EventSelector({ events, selectedEventId, onSelect, onToggleFreeM
             {searchTerm ? 'Resultados de Búsqueda' : `Eventos de ${monthName}`}
             </div>
             {!searchTerm && (
-                <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+                <span className="text-[10px] bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full font-medium">
                     Mes Actual
                 </span>
             )}
@@ -113,24 +113,24 @@ export function EventSelector({ events, selectedEventId, onSelect, onToggleFreeM
                 onClick={() => onSelect(event)}
                 className={`w-full text-left p-3 rounded-xl transition-all border group relative ${
                   selectedEventId === event.id
-                    ? 'bg-blue-50 border-blue-200 shadow-sm ring-1 ring-blue-100'
+                    ? 'bg-primary-50 border-primary-200 shadow-sm ring-1 ring-primary-100'
                     : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'
                 }`}
               >
                 <div className="flex justify-between items-start mb-2">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${
-                      selectedEventId === event.id ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-600'
+                      selectedEventId === event.id ? 'bg-primary-200 text-primary-800' : 'bg-gray-100 text-gray-600'
                   }`}>
                     {event.event_type}
                   </span>
-                  <span className={`text-[10px] font-mono ${selectedEventId === event.id ? 'text-blue-600' : 'text-gray-400'}`}>
+                  <span className={`text-[10px] font-mono ${selectedEventId === event.id ? 'text-primary-600' : 'text-gray-400'}`}>
                       {event.event_date}
                   </span>
                 </div>
                 
                 {/* Nombre del Cliente CORREGIDO */}
                 <div className="mb-2 pr-4">
-                    <h4 className={`text-sm font-bold truncate ${selectedEventId === event.id ? 'text-blue-900' : 'text-gray-800'}`}>
+                    <h4 className={`text-sm font-bold truncate ${selectedEventId === event.id ? 'text-primary-900' : 'text-gray-800'}`}>
                         {clientNameDisplay}
                     </h4>
                 </div>
@@ -142,7 +142,7 @@ export function EventSelector({ events, selectedEventId, onSelect, onToggleFreeM
                   </span>
                   
                   {selectedEventId === event.id && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-500 p-1 rounded-full animate-in fade-in zoom-in duration-200">
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary-500 p-1 rounded-full animate-in fade-in zoom-in duration-200">
                       <ChevronRight size={14} className="text-white"/>
                     </div>
                   )}

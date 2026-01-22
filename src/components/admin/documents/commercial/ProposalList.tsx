@@ -253,7 +253,7 @@ export function ProposalList({ userRole, onViewPdf }: { userRole: string, onView
             placeholder="Buscar por cliente..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
           />
         </div>
       </div>

@@ -378,11 +378,11 @@ export default function FinanceView() {
                 <div className="grid grid-cols-2 gap-2 w-full md:w-auto">
                     <div className="flex flex-col">
                         <span className="text-[10px] uppercase font-bold text-secondary-400 mb-1">Desde</span>
-                        <input type="date" className="border border-secondary-200 rounded-xl px-2 py-2 text-sm text-secondary-700 focus:ring-2 focus:ring-primary-500 outline-none bg-secondary-50/50 hover:bg-white transition-colors w-full" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} />
+                        <input type="date" className="border border-secondary-200 rounded-xl px-2 py-2 text-sm text-secondary-700 resize-none focus:ring-primary-500 focus:border-primary-500 outline-none bg-secondary-50/50 hover:bg-white transition-colors w-full" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} />
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] uppercase font-bold text-secondary-400 mb-1">Hasta</span>
-                        <input type="date" className="border border-secondary-200 rounded-xl px-2 py-2 text-sm text-secondary-700 focus:ring-2 focus:ring-primary-500 outline-none bg-secondary-50/50 hover:bg-white transition-colors w-full" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} />
+                        <input type="date" className="border border-secondary-200 rounded-xl px-2 py-2 text-sm text-secondary-700 resize-none focus:ring-primary-500 focus:border-primary-500 outline-none bg-secondary-50/50 hover:bg-white transition-colors w-full" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} />
                     </div>
                 </div>
 
@@ -530,16 +530,16 @@ export default function FinanceView() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-secondary-500 uppercase mb-1">Descripción</label>
-                      <input type="text" required className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-sm" placeholder="Ej: Pago adicional" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                      <input type="text" required className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl resize-none focus:ring-primary-500 focus:border-primary-500 outline-none text-sm" placeholder="Ej: Pago adicional" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold text-secondary-500 uppercase mb-1">Monto (S/)</label>
-                        <input type="number" required min="0" step="0.01" className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl font-mono font-bold text-secondary-900 focus:ring-2 focus:ring-primary-500 outline-none text-sm" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
+                        <input type="number" required min="0" step="0.01" className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl font-mono font-bold text-secondary-900 resize-none focus:ring-primary-500 focus:border-primary-500 outline-none text-sm" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
                       </div>
                       <div>
                           <label className="block text-xs font-bold text-secondary-500 uppercase mb-1">Fecha</label>
-                          <input type="date" required className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                          <input type="date" required className="w-full px-3 py-2.5 border border-secondary-200 rounded-xl text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none bg-white" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                       </div>
                     </div>
                     <div>

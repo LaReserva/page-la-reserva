@@ -45,7 +45,7 @@ export function CommercialShell({ userRole }: { userRole: string }) {
                 <div className="text-[10px] font-bold text-gray-400 uppercase mb-2 pl-2">{group}</div>
                 <div className="space-y-1">
                   {navItems.filter(i => i.group === group).map(item => (
-                    <button key={item.id} onClick={() => handleNavClick(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${view === item.id ? 'bg-blue-50 text-primary-700 shadow-sm border border-blue-100' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                    <button key={item.id} onClick={() => handleNavClick(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${view === item.id ? 'bg-primary-50 text-primary-700 shadow-sm border border-primary-100' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                       <item.icon size={18} className={view === item.id ? 'text-primary-500' : 'text-gray-400'} />
                       {item.label}
                     </button>

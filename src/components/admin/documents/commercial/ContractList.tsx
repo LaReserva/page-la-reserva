@@ -175,7 +175,7 @@ export function ContractList({ userRole }: { userRole: string }) {
       {/* Toolbar */}
       <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
         <h3 className="font-bold text-gray-800 flex items-center gap-2">
-          <FileSignature className="text-blue-600" size={20}/> Archivo de Contratos
+          <FileSignature className="text-primary-500" size={20}/> Archivo de Contratos
         </h3>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
@@ -184,7 +184,7 @@ export function ContractList({ userRole }: { userRole: string }) {
             placeholder="Buscar por cliente..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
           />
         </div>
       </div>
