@@ -6,7 +6,7 @@ import {
 import type { Ingredient, Cocktail, RecipeItem } from '@/types';
 import { BaseModal } from '@/components/admin/ui/BaseModal';
 
-// 1. FEEDBACK MODAL
+// 1. FEEDBACK MODAL (Sin cambios)
 interface FeedbackModalProps {
   isOpen: boolean; 
   type: 'success' | 'error' | 'warning'; 
@@ -38,7 +38,7 @@ export function FeedbackModal({ isOpen, type, title, message, onClose }: Feedbac
   );
 }
 
-// 2. CONFIRMATION MODAL
+// 2. CONFIRMATION MODAL (Sin cambios)
 interface ConfirmationModalProps {
   isOpen: boolean; title: string; message: string; onConfirm: () => void; onClose: () => void; confirmText?: string; isDangerous?: boolean;
 }
@@ -52,7 +52,6 @@ export function ConfirmationModal({ isOpen, title, message, onConfirm, onClose, 
         <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
         <p className="text-sm text-gray-500 mb-6">{message}</p>
         <div className="flex gap-3">
-          {/* USO DE autoFocus: Esto le dice al modal que ponga el foco aquí automáticamente */}
           <button 
             autoFocus 
             onClick={onClose} 
@@ -69,7 +68,7 @@ export function ConfirmationModal({ isOpen, title, message, onConfirm, onClose, 
   );
 }
 
-// 3. COCKTAIL FORM MODAL
+// 3. COCKTAIL FORM MODAL (Estilos de focus actualizados)
 interface CocktailFormModalProps {
   isOpen: boolean; onClose: () => void; onSave: (e: React.FormEvent, data: any, file: File | null) => Promise<void>; isSaving: boolean; initialData?: Cocktail | null;
 }
@@ -105,6 +104,9 @@ export function CocktailFormModal({ isOpen, onClose, onSave, isSaving, initialDa
   };
   const isEdit = !!initialData;
 
+  // Clase común para inputs
+  const inputClass = "w-full px-4 py-2.5 border border-secondary-200 rounded-xl resize-none focus:ring-primary-500 focus:border-primary-500 outline-none transition-all";
+
   return (
     <BaseModal isOpen={isOpen} onClose={onClose} title={isEdit ? "Editar Coctel" : "Nuevo Coctel"} maxWidth="max-w-lg">
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -126,11 +128,11 @@ export function CocktailFormModal({ isOpen, onClose, onSave, isSaving, initialDa
         </div>
         <div>
           <label className="block text-xs font-bold text-secondary-500 uppercase mb-1.5">Nombre del Coctel *</label>
-          <input required type="text" value={data.name} onChange={e => setData({...data, name: e.target.value})} className="w-full px-4 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium" />
+          <input required type="text" value={data.name} onChange={e => setData({...data, name: e.target.value})} className={`${inputClass} font-medium`} />
         </div>
         <div>
           <label className="block text-xs font-bold text-secondary-500 uppercase mb-1.5">Descripción</label>
-          <textarea rows={3} value={data.description} onChange={e => setData({...data, description: e.target.value})} className="w-full px-4 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all resize-none" />
+          <textarea rows={3} value={data.description} onChange={e => setData({...data, description: e.target.value})} className={inputClass} />
         </div>
         <div className="pt-2 flex gap-3">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-secondary-200 text-secondary-600 rounded-xl hover:bg-secondary-50 font-bold transition-colors">Cancelar</button>
@@ -143,7 +145,7 @@ export function CocktailFormModal({ isOpen, onClose, onSave, isSaving, initialDa
   );
 }
 
-// 4. INGREDIENT MANAGER MODAL
+// 4. INGREDIENT MANAGER MODAL (Estilos de focus actualizados)
 interface IngredientManagerModalProps {
   isOpen: boolean; onClose: () => void; ingredients: Ingredient[]; onAdd: (e: React.FormEvent, data: any) => void; onEdit: (e: React.FormEvent, data: any, id: string) => void; onDelete: (id: string) => void;
 }
@@ -173,6 +175,9 @@ export function IngredientManagerModal({ isOpen, onClose, ingredients, onAdd, on
   };
 
   const isGarnish = newData.category === 'garnish' || newData.category === 'fruta';
+  
+  // Clase base actualizada
+  const baseInputClass = "w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl resize-none focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm";
 
   return (
     <>
@@ -189,19 +194,41 @@ export function IngredientManagerModal({ isOpen, onClose, ingredients, onAdd, on
                     {editingId && <button onClick={handleCancelEdit} type="button" className="text-[10px] bg-white border border-secondary-200 px-2 py-1 rounded shadow-sm hover:bg-secondary-50 text-secondary-600 font-medium transition-all">Cancelar</button>}
                    </div>
                    <form onSubmit={handleSubmit} className="space-y-5">
-                      <div className="col-span-2"><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Nombre</label><input required value={newData.name} onChange={e => setNewData({...newData, name: e.target.value})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500/20 outline-none bg-white transition-all shadow-sm" /></div>
+                      <div className="col-span-2">
+                        <label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Nombre</label>
+                        <input required value={newData.name} onChange={e => setNewData({...newData, name: e.target.value})} className={`${baseInputClass} bg-white`} />
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Categoría</label><div className="relative"><select value={newData.category} onChange={e => setNewData({...newData, category: e.target.value})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl bg-white outline-none appearance-none pr-8 cursor-pointer shadow-sm">{['licor', 'mixer', 'fruta', 'garnish', 'otro'].map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none" /></div></div>
-                        <div><label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Costo (S/)</label><input type="number" step="0.1" min="0" value={newData.estimated_price} onChange={e => setNewData({...newData, estimated_price: parseFloat(e.target.value)})} className="w-full px-3 py-2.5 text-sm border border-secondary-300 rounded-xl bg-white outline-none" /></div>
+                        <div>
+                            <label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Categoría</label>
+                            <div className="relative">
+                                <select value={newData.category} onChange={e => setNewData({...newData, category: e.target.value})} className={`${baseInputClass} bg-white appearance-none pr-8 cursor-pointer`}>{['licor', 'mixer', 'fruta', 'garnish', 'otro'].map(c => <option key={c} value={c}>{c}</option>)}</select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-[11px] font-bold text-secondary-500 uppercase mb-1.5 block">Costo (S/)</label>
+                            <input type="number" step="0.1" min="0" value={newData.estimated_price} onChange={e => setNewData({...newData, estimated_price: parseFloat(e.target.value)})} className={`${baseInputClass} bg-white`} />
+                        </div>
                       </div>
                       <div className="bg-white p-5 rounded-xl border border-secondary-200 shadow-sm relative group hover:border-primary-200 transition-colors">
                         <h5 className="text-xs font-bold text-secondary-800 mb-4 uppercase flex items-center gap-2"><Package className="w-4 h-4" /> Presentación</h5>
                         <div className="grid grid-cols-2 gap-4">
-                            <div><label className="text-[10px] font-bold text-secondary-400 uppercase mb-1 block">Envase</label><input list="unit-suggestions" value={newData.purchase_unit} onChange={e => setNewData({...newData, purchase_unit: e.target.value})} className="w-full px-3 py-2 text-sm border border-secondary-200 rounded-lg outline-none bg-secondary-50/30" /><datalist id="unit-suggestions"><option value="botella" /><option value="kg" /><option value="paquete" /><option value="lata" /></datalist></div>
-                            <div><label className="text-[10px] font-bold text-secondary-400 uppercase mb-1 block">Contenido</label><div className="flex relative shadow-sm rounded-lg"><input type="number" min="0" value={newData.package_volume} onChange={e => setNewData({...newData, package_volume: parseFloat(e.target.value)})} className="w-full px-3 py-2 text-sm border border-secondary-200 border-r-0 rounded-l-lg outline-none z-10" /><select value={newData.measurement_unit} onChange={e => setNewData({...newData, measurement_unit: e.target.value})} className="bg-secondary-50 border border-secondary-200 rounded-r-lg text-xs pl-2 pr-1 font-bold outline-none"><option value="ml">ml</option><option value="gr">gr</option><option value="und">und</option></select></div></div>
+                            <div>
+                                <label className="text-[10px] font-bold text-secondary-400 uppercase mb-1 block">Envase</label>
+                                <input list="unit-suggestions" value={newData.purchase_unit} onChange={e => setNewData({...newData, purchase_unit: e.target.value})} className="w-full px-3 py-2 text-sm border border-secondary-200 rounded-lg resize-none focus:ring-primary-500 focus:border-primary-500 outline-none bg-secondary-50/30" />
+                                <datalist id="unit-suggestions"><option value="botella" /><option value="kg" /><option value="paquete" /><option value="lata" /></datalist>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-secondary-400 uppercase mb-1 block">Contenido</label>
+                                <div className="flex relative shadow-sm rounded-lg">
+                                    <input type="number" min="0" value={newData.package_volume} onChange={e => setNewData({...newData, package_volume: parseFloat(e.target.value)})} className="w-full px-3 py-2 text-sm border border-secondary-200 border-r-0 rounded-l-lg resize-none focus:ring-primary-500 focus:border-primary-500 outline-none z-10" />
+                                    <select value={newData.measurement_unit} onChange={e => setNewData({...newData, measurement_unit: e.target.value})} className="bg-secondary-50 border border-secondary-200 rounded-r-lg text-xs pl-2 pr-1 font-bold outline-none focus:ring-primary-500 focus:border-primary-500"><option value="ml">ml</option><option value="gr">gr</option><option value="und">und</option></select>
+                                </div>
+                            </div>
                         </div>
                       </div>
-                      {isGarnish && (<div className="bg-green-50/50 p-4 rounded-xl border border-green-200 shadow-sm"><label className="text-[10px] font-bold text-green-700 uppercase mb-1 block">Piezas por {newData.purchase_unit}</label><input type="number" min="0" value={newData.yield_pieces} onChange={e => setNewData({...newData, yield_pieces: parseFloat(e.target.value)})} className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg outline-none bg-white/80" /></div>)}
+                      {isGarnish && (<div className="bg-green-50/50 p-4 rounded-xl border border-green-200 shadow-sm"><label className="text-[10px] font-bold text-green-700 uppercase mb-1 block">Piezas por {newData.purchase_unit}</label><input type="number" min="0" value={newData.yield_pieces} onChange={e => setNewData({...newData, yield_pieces: parseFloat(e.target.value)})} className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg resize-none focus:ring-primary-500 focus:border-primary-500 outline-none bg-white/80" /></div>)}
                       <button type="submit" className={`w-full py-3.5 text-white font-bold rounded-xl hover:shadow-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center gap-2 items-center ${editingId ? 'bg-primary-600 hover:bg-primary-700' : 'bg-secondary-900 hover:bg-black'}`}>
                           {editingId ? <Save className="w-4 h-4" /> : <Package className="w-4 h-4" />} {editingId ? 'Actualizar Insumo' : 'Guardar Insumo'}
                       </button>
@@ -213,15 +240,13 @@ export function IngredientManagerModal({ isOpen, onClose, ingredients, onAdd, on
                            <tr><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider">Insumo</th><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider">Presentación</th><th className="px-6 py-4 text-xs font-bold text-secondary-400 uppercase tracking-wider text-right">Acción</th></tr>
                        </thead>
                        <tbody className="divide-y divide-secondary-50">
-                           {ingredients.map(ing => (
+                           {[...ingredients].sort((a, b) => a.name.localeCompare(b.name)).map(ing => (
                                <tr key={ing.id} className={`transition-colors group ${editingId === ing.id ? 'bg-primary-50 border-l-4 border-primary-500' : 'hover:bg-secondary-50/80'}`}>
                                    <td className="px-6 py-4"><div className={`font-bold text-sm ${editingId === ing.id ? 'text-primary-900' : 'text-secondary-900'}`}>{ing.name}</div><div className="flex gap-2 mt-1.5"><span className="text-[10px] px-2 py-0.5 rounded-md uppercase font-bold tracking-wide border bg-white border-secondary-200 text-secondary-500">{ing.category}</span>{ing.estimated_price > 0 && <span className="text-[10px] px-2 py-0.5 rounded-md bg-secondary-100 text-secondary-600 font-medium border border-secondary-200">S/ {ing.estimated_price}</span>}</div></td>
                                    <td className="px-6 py-4"><div className="text-secondary-600 text-xs font-medium">1 {ing.purchase_unit} = {ing.package_volume} {ing.measurement_unit}</div>{ing.yield_pieces ? <div className="mt-1 text-[10px] text-green-700 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Rinde: {ing.yield_pieces}</div> : null}</td>
                                    <td className="px-6 py-4 text-right">
                                      <div className="flex items-center justify-end gap-1">
                                        <button onClick={() => handleStartEdit(ing)} className="text-secondary-400 hover:text-primary-600 p-2 hover:bg-primary-50 rounded-lg transition-all"><Pencil className="w-4 h-4" /></button>
-                                       
-                                       {/* SOLUCIÓN AL WARNING ARIA-HIDDEN: .blur() antes de abrir el modal */}
                                        <button 
                                          onClick={(e) => {
                                            e.currentTarget.blur();
@@ -231,7 +256,6 @@ export function IngredientManagerModal({ isOpen, onClose, ingredients, onAdd, on
                                        >
                                          <Trash2 className="w-4 h-4" />
                                        </button>
-
                                      </div>
                                    </td>
                                </tr>
@@ -256,7 +280,7 @@ export function IngredientManagerModal({ isOpen, onClose, ingredients, onAdd, on
   );
 }
 
-// 5. INSTRUCTIONS MODAL
+// 5. INSTRUCTIONS MODAL (Sin cambios)
 interface CocktailInstructionsModalProps {
   isOpen: boolean; onClose: () => void; cocktail: Cocktail; recipe: RecipeItem[]; isAdmin: boolean; onSaveInstructions: (instructions: string) => Promise<void>;
 }
