@@ -75,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
     const emailResult = await resend.emails.send({
       from: 'La Reserva <info@lareservabartending.com>',
       to: [toEmail],
-      replyTo: 'lareservabartending@gmail.com', // Respuestas van a tu Gmail
+      replyTo: 'ventaslareservabartending@gmail.com', // Respuestas van a tu Gmail
       subject: `Re: ${subject}`,
       html: `
         <!DOCTYPE html>
