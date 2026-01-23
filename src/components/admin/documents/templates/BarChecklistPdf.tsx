@@ -255,7 +255,7 @@ export const BarChecklistPdf = ({ event, shoppingList, cocktailNames }: BarCheck
 
           <View style={styles.footerInfo}>
              <Text style={styles.companyInfo}>
-                LA RESERVA BARTENDING  |  ventaslareservabartending@gmail.com  |  +51 989 245 091
+                LA RESERVA BARTENDING  |  bartendinglareserva@gmail.com  |  +51 989 245 091
              </Text>
           </View>
         </View>

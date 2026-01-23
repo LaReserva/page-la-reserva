@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request }) => {
     // 4. Correo al ADMIN
     const sendToAdmin = resend.emails.send({
       from: 'La Reserva Web <info@lareservabartending.com>',
-      to: ['lareservabartending@gmail.com'],
+      to: ['bartendinglareserva@gmail.com'],
       replyTo: email,
       subject: `Nuevo Lead: ${subject}`,
       html: `
