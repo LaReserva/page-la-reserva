@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Combobox, Disclosure, Transition, Dialog, Listbox } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
-import { Search, ChevronUp, Plus, X, Download, FileText, Settings2, CheckCircle, AlertTriangle, Loader2, Check } from 'lucide-react';
+import { Search, ChevronUp, Plus, X, Download, FileText, Settings2, CheckCircle, AlertTriangle, Loader2, Check, ShoppingBasket } from 'lucide-react';
 import type { Event, Ingredient, RecipeItem, Cocktail } from '@/types';
 import { generateShoppingList, type CalculationResult } from '@/utils/calculator';
 // Ajusta esta ruta si tu archivo está en otra carpeta
@@ -12,12 +12,17 @@ interface CalculatorManagerProps {
   isFreeMode: boolean;
 }
 
-// Opciones del margen de seguridad
 const marginOptions = [
   { value: 1, label: '0% (Exacto)' },
   { value: 1.1, label: '10% (Recomendado)' },
   { value: 1.2, label: '20% (Alto)' }
 ];
+
+// Tipo simple para items extra
+interface ExtraItem {
+  ingredientId: string;
+  quantity: number;
+}
 
 export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManagerProps) {
   // --- DATA STATES ---
@@ -36,10 +41,16 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
 
   const [selectedCocktails, setSelectedCocktails] = useState<string[]>([]);
   const [distribution, setDistribution] = useState<Record<string, number>>({});
+  
+  // ✅ NUEVO ESTADO: Items Extra
+  const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
+  
   const [shoppingList, setShoppingList] = useState<CalculationResult[]>([]);
 
   // --- UI STATES ---
   const [query, setQuery] = useState('');
+  // ✅ NUEVO ESTADO UI: Búsqueda de Insumos Extra
+  const [extraQuery, setExtraQuery] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -50,29 +61,25 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
 
   useEffect(() => {
     if (initialEvent && !isFreeMode) {
-      setSettings(prev => ({
-        ...prev,
-        guestCount: initialEvent.guest_count,
-        hours: 5
-      }));
+      setSettings(prev => ({ ...prev, guestCount: initialEvent.guest_count, hours: 5 }));
       setSelectedCocktails(initialEvent.cocktails_selected || []);
     }
   }, [initialEvent, isFreeMode]);
 
-  // Recalcular Distribución Automática
   useEffect(() => {
     if (selectedCocktails.length > 0) {
       const newCocktails = selectedCocktails.filter(id => distribution[id] === undefined);
-      if (newCocktails.length > 0) {
-        rebalanceDistribution(selectedCocktails);
-      }
+      if (newCocktails.length > 0) rebalanceDistribution(selectedCocktails);
     } else {
       setDistribution({});
     }
   }, [selectedCocktails.length]);
 
-  // --- CALCULATOR ENGINE ---
+  // --- CALCULATOR ENGINE MODIFICADO ---
   useEffect(() => {
+    // Generamos la lista base desde las recetas
+    let list: CalculationResult[] = [];
+    
     if (recipes.length > 0 && ingredients.length > 0 && selectedCocktails.length > 0) {
       const mockEvent: Event = {
         ...((initialEvent || {}) as Event),
@@ -81,7 +88,7 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
         cocktails_selected: selectedCocktails
       };
 
-      const list = generateShoppingList({
+      list = generateShoppingList({
         event: mockEvent,
         recipes,
         ingredients,
@@ -93,16 +100,51 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
           extraIceBags: settings.extraIceBags
         }
       });
-      setShoppingList(list);
-    } else {
-      setShoppingList([]);
     }
-  }, [settings, selectedCocktails, distribution, recipes, ingredients, isFreeMode]);
+
+    // ✅ LÓGICA AGREGADA: Integrar Extra Items a la lista
+    if (extraItems.length > 0 && ingredients.length > 0) {
+        extraItems.forEach(extra => {
+            const ing = ingredients.find(i => i.id === extra.ingredientId);
+            if (!ing) return;
+
+            // Buscar si ya existe en la lista calculada para sumar, o crear nuevo
+            const existingIndex = list.findIndex(item => item.ingredientId === ing.id);
+            
+            if (existingIndex >= 0) {
+                // Si ya existe (ej: Limón para Pisco Sour + Limón Extra), sumamos
+                const currentItem = list[existingIndex];
+                const addedQty = extra.quantity; 
+                
+                list[existingIndex] = {
+                    ...currentItem,
+                    totalQuantity: currentItem.totalQuantity + addedQty,
+                    totalCost: currentItem.totalCost + (addedQty * ing.estimated_price),
+                    details: `${(currentItem.totalQuantity + addedQty).toFixed(1)} ${ing.purchase_unit} (Incluye ${addedQty} extra)`
+                };
+            } else {
+                // Si no existe (ej: Vino Blanco), lo agregamos
+                list.push({
+                    ingredientId: ing.id,
+                    ingredientName: ing.name,
+                    category: ing.category,
+                    purchaseUnit: ing.purchase_unit,
+                    price: ing.estimated_price,
+                    totalQuantity: extra.quantity,
+                    totalCost: extra.quantity * ing.estimated_price,
+                    details: `${extra.quantity} ${ing.purchase_unit} (Extra)`
+                });
+            }
+        });
+    }
+
+    setShoppingList(list);
+  }, [settings, selectedCocktails, distribution, recipes, ingredients, isFreeMode, extraItems]);
 
   async function fetchCatalogs() {
     const [r, i, c] = await Promise.all([
       supabase.from('cocktail_recipes').select('*'),
-      supabase.from('catalog_ingredients').select('*'),
+      supabase.from('catalog_ingredients').select('*').order('name'),
       supabase.from('catalog_cocktails').select('*').eq('active', true).order('name')
     ]);
     if (r.data) setRecipes(r.data);
@@ -111,55 +153,57 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
   }
 
   const rebalanceDistribution = (cocktailIds: string[]) => {
-    if (cocktailIds.length === 0) {
-      setDistribution({});
-      return;
-    }
+    if (cocktailIds.length === 0) { setDistribution({}); return; }
     const evenSplit = Math.floor(100 / cocktailIds.length);
     const remainder = 100 % cocktailIds.length;
     const newDist: Record<string, number> = {};
-    cocktailIds.forEach((id, idx) => {
-       newDist[id] = idx === cocktailIds.length - 1 ? evenSplit + remainder : evenSplit;
-    });
+    cocktailIds.forEach((id, idx) => { newDist[id] = idx === cocktailIds.length - 1 ? evenSplit + remainder : evenSplit; });
     setDistribution(newDist);
   };
-
-  const addCocktail = (cocktail: Cocktail) => {
-    if (!selectedCocktails.includes(cocktail.id)) {
-      setSelectedCocktails([...selectedCocktails, cocktail.id]);
-      setQuery('');
-    }
-  };
-
-  const removeCocktail = (id: string) => {
-    const remaining = selectedCocktails.filter(c => c !== id);
-    setSelectedCocktails(remaining);
-    rebalanceDistribution(remaining);
-  };
-
+  const addCocktail = (cocktail: Cocktail) => { if (!selectedCocktails.includes(cocktail.id)) { setSelectedCocktails([...selectedCocktails, cocktail.id]); setQuery(''); } };
+  const removeCocktail = (id: string) => { const remaining = selectedCocktails.filter(c => c !== id); setSelectedCocktails(remaining); rebalanceDistribution(remaining); };
   const updateDist = (id: string, newVal: number) => {
     let clampedVal = Math.max(0, Math.min(100, newVal));
-    if (selectedCocktails.length === 1) {
-        setDistribution({ [id]: 100 });
-        return;
-    }
+    if (selectedCocktails.length === 1) { setDistribution({ [id]: 100 }); return; }
     const remainder = 100 - clampedVal;
     const otherCocktails = selectedCocktails.filter(cId => cId !== id);
-    const numOthers = otherCocktails.length;
-    if (numOthers === 0) return;
-    const split = Math.floor(remainder / numOthers);
-    const leftover = remainder % numOthers;
+    if (otherCocktails.length === 0) return;
+    const split = Math.floor(remainder / otherCocktails.length);
+    const leftover = remainder % otherCocktails.length;
     const newDist: Record<string, number> = { ...distribution };
     newDist[id] = clampedVal;
-    otherCocktails.forEach((cId, idx) => {
-        newDist[cId] = idx === numOthers - 1 ? split + leftover : split;
-    });
+    otherCocktails.forEach((cId, idx) => { newDist[cId] = idx === otherCocktails.length - 1 ? split + leftover : split; });
     setDistribution(newDist);
   };
 
-  const filteredCocktails = query === '' 
-    ? allCocktails 
-    : allCocktails.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+  // ✅ NUEVAS FUNCIONES PARA EXTRAS
+  const addExtraItem = (ingredient: Ingredient) => {
+    const exists = extraItems.find(e => e.ingredientId === ingredient.id);
+    if (exists) {
+        setExtraItems(prev => prev.map(e => e.ingredientId === ingredient.id ? { ...e, quantity: e.quantity + 1 } : e));
+    } else {
+        setExtraItems([...extraItems, { ingredientId: ingredient.id, quantity: 1 }]);
+    }
+    setExtraQuery('');
+  };
+
+  const updateExtraQuantity = (id: string, qty: number) => {
+    if (qty <= 0) {
+        setExtraItems(prev => prev.filter(e => e.ingredientId !== id));
+    } else {
+        setExtraItems(prev => prev.map(e => e.ingredientId === id ? { ...e, quantity: qty } : e));
+    }
+  };
+
+  const removeExtraItem = (id: string) => {
+    setExtraItems(prev => prev.filter(e => e.ingredientId !== id));
+  };
+
+  // Filtrados
+  const filteredCocktails = query === '' ? allCocktails : allCocktails.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+  
+  // ✅ Filtrado de Ingredientes Extra
+  const filteredIngredients = extraQuery === '' ? [] : ingredients.filter(i => i.name.toLowerCase().includes(extraQuery.toLowerCase())).slice(0, 10);
 
   const totalDist = Object.values(distribution).reduce((a, b) => a + b, 0);
 
@@ -269,6 +313,7 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
           </div>
         </div>
 
+        {/* ✅ GRID DE CONFIGURACIÓN */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
            <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Invitados</label>
@@ -288,7 +333,6 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
            </div>
            <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Margen Seguridad</label>
-              {/* REEMPLAZO DEL SELECT NATIVO POR LISTBOX DE HEADLESS UI */}
               <Listbox value={settings.safetyMargin} onChange={val => setSettings({...settings, safetyMargin: val})}>
                  <div className="relative mt-1">
                     <Listbox.Button className={`relative w-full cursor-default rounded-lg bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm shadow-sm ${inputFocusClass}`}>
@@ -300,16 +344,11 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
                     <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
                        <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-50 border border-gray-100">
                           {marginOptions.map((option) => (
-                             // AQUÍ SE APLICA EL COLOR PRIMARY-500 AL ESTADO ACTIVE
                              <Listbox.Option key={option.value} className={({ active }) => `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? 'bg-primary-500 text-white' : 'text-gray-900'}`} value={option.value}>
                                 {({ selected, active }) => (
                                    <>
                                       <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{option.label}</span>
-                                      {selected ? (
-                                         <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-primary-500'}`}>
-                                            <Check className="h-5 w-5" aria-hidden="true" />
-                                         </span>
-                                      ) : null}
+                                      {selected ? (<span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-primary-500'}`}><Check className="h-5 w-5" aria-hidden="true" /></span>) : null}
                                    </>
                                 )}
                              </Listbox.Option>
@@ -321,76 +360,137 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
            </div>
         </div>
 
-        {/* ACORDEÓN */}
-        <Disclosure defaultOpen>
-          {({ open }) => (
-            <div className="border border-gray-200 rounded-xl">
-              <Disclosure.Button className="w-full flex justify-between items-center px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-xl">
-                 <span className="text-sm font-bold text-gray-700 flex items-center gap-2"><Settings2 size={16}/> Configuración de Cocteles ({selectedCocktails.length})</span>
-                 <ChevronUp className={`${open ? '' : 'rotate-180'} transform transition-transform text-gray-500`} size={16} />
-              </Disclosure.Button>
-              <Disclosure.Panel className="p-4 bg-white rounded-b-xl">
-                 <div className="flex flex-col lg:flex-row gap-6">
-                    <div className="w-full lg:w-1/3 space-y-2 relative z-50">
-                       <label className="text-xs font-bold text-gray-400 uppercase">Agregar Coctel</label>
-                       
-                       <Combobox value={null} onChange={(val: any) => addCocktail(val)}>
-                          <div className="relative">
-                             <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-primary-500 sm:text-sm">
-                                <Combobox.Input className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0" onChange={(event) => setQuery(event.target.value)} placeholder="Escribe para buscar..."/>
-                                <div className="absolute inset-y-0 right-0 flex items-center pr-2"><Search className="h-4 w-4 text-gray-400" /></div>
-                             </div>
-                             <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0" afterLeave={() => setQuery('')}>
-                                <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-50 border border-gray-100">
-                                   {filteredCocktails.length === 0 && query !== '' ? (
-                                      <div className="relative cursor-default select-none py-2 px-4 text-gray-700">No encontrado.</div>
-                                   ) : (
-                                      filteredCocktails.map((cocktail) => (
-                                         <Combobox.Option key={cocktail.id} className={({ active }) => `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? 'bg-primary-600 text-white' : 'text-gray-900'}`} value={cocktail}>
-                                            {({ selected, active }) => (
-                                               <><span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{cocktail.name}</span>{selected ? <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-primary-600'}`}><Plus className="h-4 w-4"/></span> : null}</>
+        {/* ACORDEÓNES DE CONFIGURACIÓN */}
+        <div className="space-y-4">
+            {/* 1. COCTELES */}
+            <Disclosure defaultOpen>
+            {({ open }) => (
+                <div className="border border-gray-200 rounded-xl">
+                <Disclosure.Button className="w-full flex justify-between items-center px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-xl">
+                    <span className="text-sm font-bold text-gray-700 flex items-center gap-2"><Settings2 size={16}/> Configuración de Cocteles ({selectedCocktails.length})</span>
+                    <ChevronUp className={`${open ? '' : 'rotate-180'} transform transition-transform text-gray-500`} size={16} />
+                </Disclosure.Button>
+                <Disclosure.Panel className="p-4 bg-white rounded-b-xl">
+                    <div className="flex flex-col lg:flex-row gap-6">
+                        <div className="w-full lg:w-1/3 space-y-2 relative z-20">
+                            <label className="text-xs font-bold text-gray-400 uppercase">Agregar Coctel</label>
+                            <Combobox value={null} onChange={(val: any) => addCocktail(val)}>
+                                <div className="relative">
+                                    <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-primary-500 sm:text-sm">
+                                        <Combobox.Input className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0" onChange={(event) => setQuery(event.target.value)} placeholder="Escribe para buscar..."/>
+                                        <div className="absolute inset-y-0 right-0 flex items-center pr-2"><Search className="h-4 w-4 text-gray-400" /></div>
+                                    </div>
+                                    <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0" afterLeave={() => setQuery('')}>
+                                        <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-50 border border-gray-100">
+                                            {filteredCocktails.length === 0 && query !== '' ? (
+                                                <div className="relative cursor-default select-none py-2 px-4 text-gray-700">No encontrado.</div>
+                                            ) : (
+                                                filteredCocktails.map((cocktail) => (
+                                                    <Combobox.Option key={cocktail.id} className={({ active }) => `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? 'bg-primary-600 text-white' : 'text-gray-900'}`} value={cocktail}>
+                                                        {({ selected, active }) => (
+                                                            <><span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{cocktail.name}</span>{selected ? <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-primary-600'}`}><Plus className="h-4 w-4"/></span> : null}</>
+                                                        )}
+                                                    </Combobox.Option>
+                                                ))
                                             )}
-                                         </Combobox.Option>
-                                      ))
-                                   )}
-                                </Combobox.Options>
-                             </Transition>
-                          </div>
-                       </Combobox>
-                    </div>
-                    <div className="w-full lg:w-2/3 z-0">
-                       <div className="flex justify-between items-center mb-2">
-                          <label className="text-xs font-bold text-gray-400 uppercase">Distribución de Consumo</label>
-                          <span className={`text-xs font-bold ${Math.abs(totalDist - 100) < 1 ? 'text-green-600' : 'text-red-500'}`}>Total: {Math.round(totalDist)}%</span>
-                       </div>
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
-                          {selectedCocktails.map(id => {
-                             const c = allCocktails.find(ac => ac.id === id);
-                             return (
-                                <div key={id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                   <span className="flex-1 text-xs font-medium truncate" title={c?.name}>{c?.name}</span>
-                                   {/* Input de porcentaje con clase focus corregida */}
-                                   <input 
-                                     type="number" 
-                                     min="0" 
-                                     max="100" 
-                                     value={Math.round(distribution[id] || 0)} 
-                                     onChange={(e) => updateDist(id, Number(e.target.value))} 
-                                     className={`w-12 text-right p-1 text-xs ${inputFocusClass}`}
-                                   />
-                                   <span className="text-xs text-gray-400">%</span>
-                                   <button onClick={() => removeCocktail(id)} className="text-gray-400 hover:text-red-500"><X size={14}/></button>
+                                        </Combobox.Options>
+                                    </Transition>
                                 </div>
-                             )
-                          })}
-                          {selectedCocktails.length === 0 && <div className="col-span-2 text-center text-xs text-gray-400 italic py-2">Agrega cocteles para comenzar el cálculo.</div>}
-                       </div>
+                            </Combobox>
+                        </div>
+                        <div className="w-full lg:w-2/3 z-0">
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase">Distribución de Consumo</label>
+                                <span className={`text-xs font-bold ${Math.abs(totalDist - 100) < 1 ? 'text-green-600' : 'text-red-500'}`}>Total: {Math.round(totalDist)}%</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                                {selectedCocktails.map(id => {
+                                    const c = allCocktails.find(ac => ac.id === id);
+                                    return (
+                                        <div key={id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                            <span className="flex-1 text-xs font-medium truncate" title={c?.name}>{c?.name}</span>
+                                            <input type="number" min="0" max="100" value={Math.round(distribution[id] || 0)} onChange={(e) => updateDist(id, Number(e.target.value))} className={`w-12 text-right p-1 text-xs ${inputFocusClass}`}/>
+                                            <span className="text-xs text-gray-400">%</span>
+                                            <button onClick={() => removeCocktail(id)} className="text-gray-400 hover:text-red-500"><X size={14}/></button>
+                                        </div>
+                                    )
+                                })}
+                                {selectedCocktails.length === 0 && <div className="col-span-2 text-center text-xs text-gray-400 italic py-2">Agrega cocteles para comenzar el cálculo.</div>}
+                            </div>
+                        </div>
                     </div>
-                 </div>
-              </Disclosure.Panel>
-            </div>
-          )}
-        </Disclosure>
+                </Disclosure.Panel>
+                </div>
+            )}
+            </Disclosure>
+
+            {/* ✅ 2. NUEVA SECCIÓN: INSUMOS EXTRA */}
+            <Disclosure>
+            {({ open }) => (
+                <div className="border border-gray-200 rounded-xl">
+                <Disclosure.Button className="w-full flex justify-between items-center px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-xl">
+                    <span className="text-sm font-bold text-gray-700 flex items-center gap-2"><ShoppingBasket size={16}/> Insumos Extra ({extraItems.length})</span>
+                    <ChevronUp className={`${open ? '' : 'rotate-180'} transform transition-transform text-gray-500`} size={16} />
+                </Disclosure.Button>
+                <Disclosure.Panel className="p-4 bg-white rounded-b-xl">
+                    <div className="flex flex-col gap-6">
+                        {/* ⚠️ CAMBIO PRINCIPAL: BUSCADOR A 100% WIDTH */}
+                        <div className="w-full space-y-2 relative z-10">
+                            <label className="text-xs font-bold text-gray-400 uppercase">Buscar Insumo (Vino, Cerveza...)</label>
+                            <Combobox value={null} onChange={(val: any) => addExtraItem(val)}>
+                                <div className="relative">
+                                    <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-primary-500 sm:text-sm">
+                                        <Combobox.Input className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0" onChange={(event) => setExtraQuery(event.target.value)} placeholder="Ej: Vino Blanco..."/>
+                                        <div className="absolute inset-y-0 right-0 flex items-center pr-2"><Search className="h-4 w-4 text-gray-400" /></div>
+                                    </div>
+                                    <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0" afterLeave={() => setExtraQuery('')}>
+                                        <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-50 border border-gray-100">
+                                            {filteredIngredients.length === 0 && extraQuery !== '' ? (
+                                                <div className="relative cursor-default select-none py-2 px-4 text-gray-700">No encontrado.</div>
+                                            ) : (
+                                                filteredIngredients.map((ing) => (
+                                                    <Combobox.Option key={ing.id} className={({ active }) => `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? 'bg-primary-600 text-white' : 'text-gray-900'}`} value={ing}>
+                                                        {({ selected, active }) => (
+                                                            <><span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{ing.name} ({ing.purchase_unit})</span>{selected ? <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-primary-600'}`}><Plus className="h-4 w-4"/></span> : null}</>
+                                                        )}
+                                                    </Combobox.Option>
+                                                ))
+                                            )}
+                                        </Combobox.Options>
+                                    </Transition>
+                                </div>
+                            </Combobox>
+                        </div>
+                        {/* LISTA DE ITEMS TAMBIÉN A FULL WIDTH */}
+                        <div className="w-full">
+                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-2">
+                                {extraItems.map(item => {
+                                    const ing = ingredients.find(i => i.id === item.ingredientId);
+                                    if(!ing) return null;
+                                    return (
+                                        <div key={item.ingredientId} className="flex items-center gap-2 bg-yellow-50 p-2 rounded-lg border border-yellow-100">
+                                            <span className="flex-1 text-xs font-medium truncate" title={ing.name}>{ing.name}</span>
+                                            <input 
+                                                type="number" 
+                                                min="1" 
+                                                value={item.quantity} 
+                                                onChange={(e) => updateExtraQuantity(item.ingredientId, Number(e.target.value))} 
+                                                className={`w-16 text-right p-1 text-xs ${inputFocusClass}`}
+                                            />
+                                            <span className="text-xs text-gray-400 w-12 truncate">{ing.purchase_unit}s</span>
+                                            <button onClick={() => removeExtraItem(item.ingredientId)} className="text-gray-400 hover:text-red-500"><X size={14}/></button>
+                                        </div>
+                                    )
+                                })}
+                                {extraItems.length === 0 && <div className="col-span-3 text-center text-xs text-gray-400 italic py-2">No hay insumos extra agregados.</div>}
+                             </div>
+                        </div>
+                    </div>
+                </Disclosure.Panel>
+                </div>
+            )}
+            </Disclosure>
+        </div>
       </div>
 
       {/* --- TABLA DE RESULTADOS --- */}
