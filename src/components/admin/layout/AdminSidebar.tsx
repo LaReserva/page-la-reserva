@@ -1,11 +1,11 @@
 import { useEffect, useState, Fragment } from 'react';
-import type { ElementType } from 'react'; // Importación para tipado estricto
+import type { ElementType } from 'react';
 import { Transition } from '@headlessui/react';
 import { 
   LayoutDashboard, MessageSquare, CalendarDays, Users, 
   Settings, LogOut, Image as ImageIcon, DollarSign, 
   Loader2, UserCog, PenTool, FileText, X, Martini, Mail, AlertCircle,
-  type LucideIcon // Importamos el tipo específico de Lucide
+  type LucideIcon 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { AdminUser } from '@/types';
@@ -15,7 +15,7 @@ import { cn } from '@/utils/utils';
 interface MenuItem {
   name: string;
   href: string;
-  icon: LucideIcon | ElementType; // Corrección de tipado: Evitamos 'any'
+  icon: LucideIcon | ElementType;
   roles: Array<AdminUser['role']>;
 }
 
@@ -52,6 +52,11 @@ function SidebarItem({ item, currentPath, onClick }: SidebarItemProps) {
       <a 
         href={item.href}
         onClick={onClick}
+        /* ✅ MEJORA CRÍTICA DE RENDIMIENTO:
+           data-astro-prefetch="hover" hace que Astro descargue la página destino
+           cuando el usuario pasa el mouse por encima. 
+           Esto elimina el tiempo de espera del servidor al hacer clic. */
+        data-astro-prefetch="hover"
         className={cn(
           "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative overflow-hidden",
           isActive 
@@ -75,7 +80,7 @@ function SidebarItem({ item, currentPath, onClick }: SidebarItemProps) {
   );
 }
 
-// --- COMPONENTE PRINCIPAL ---
+// --- COMPONENTE PRINCIPAL (Sin cambios lógicos, solo integración) ---
 export function AdminSidebar() {
   const [role, setRole] = useState<AdminUser['role'] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,8 +88,10 @@ export function AdminSidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
-    // 1. Gestión de Rutas
+    // 1. Gestión de Rutas (Compatible con View Transitions)
     const updatePath = () => typeof window !== 'undefined' && setCurrentPath(window.location.pathname);
+    
+    // Ejecutar al montar y en cada navegación de Astro
     updatePath(); 
     document.addEventListener('astro:page-load', updatePath);
 
@@ -128,6 +135,7 @@ export function AdminSidebar() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    // Usamos window.location para forzar una recarga completa al salir, limpiando estados
     window.location.href = '/admin/login';
   };
 
@@ -170,11 +178,11 @@ export function AdminSidebar() {
       >
         {/* Header Logo */}
         <div className="p-6 flex items-center justify-between border-b border-secondary-800 shrink-0">
-          {/* MEJORA: Logo ahora es un enlace a la raíz pública */}
           <a 
             href="/" 
             className="block hover:opacity-80 transition-opacity focus:outline-none"
             aria-label="Volver al inicio público"
+            data-astro-prefetch="false" // No precargamos el home público innecesariamente
           >
             <img 
               src="/logo.svg" 
