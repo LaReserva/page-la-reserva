@@ -1,34 +1,95 @@
 ---
 // src/pages/admin/blog.astro
-export const prerender = false;
+
+// ✅ 1. Página estática instantánea
+export const prerender = true;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import BlogManager from '@/components/admin/blog/BlogManager';
-
-// Recuperamos el usuario desde el middleware
-const { user } = Astro.locals;
-
-// Redirección de seguridad por si acaso
-if (!user) {
-  return Astro.redirect('/admin/login');
-}
 ---
 
 <AdminLayout title="Gestión de Blog">
-  <div class="mb-8">
-    <div class="flex items-center gap-2 text-sm text-secondary-500 mb-2">
-      <span>Admin</span>
-      <span>/</span>
-      <span class="text-primary-600 font-bold">Blog</span>
+
+  {/* CSS CRÍTICO: Bloqueo visual inicial */}
+  <style>
+    #protected-content { display: none; }
+  </style>
+
+  <div id="protected-content" class="hidden opacity-0 transition-opacity duration-300">
+
+    <div class="mb-8">
+      <div class="flex items-center gap-2 text-sm text-secondary-500 mb-2">
+        <span>Admin</span>
+        <span>/</span>
+        <span class="text-primary-600 font-bold">Blog</span>
+      </div>
+      <h1 class="text-3xl font-display font-bold text-secondary-900">
+        Artículos & Noticias
+      </h1>
+      <p class="text-secondary-500 mt-1">
+        Crea contenido de valor para mejorar el SEO y atraer clientes.
+      </p>
     </div>
-    <h1 class="text-3xl font-display font-bold text-secondary-900">
-      Artículos & Noticias
-    </h1>
-    <p class="text-secondary-500 mt-1">
-      Crea contenido de valor para mejorar el SEO y atraer clientes.
-    </p>
+
+    {/* ✅ 2. Carga diferida en el cliente (React se encarga de la lógica interna) */}
+    <BlogManager client:only="react" /> 
+
   </div>
 
-  {/* Cargamos la App de React */}
-  <BlogManager client:load currentUserId={user.id} />
+  {/* Loader temporal */}
+  <div id="permission-loader" class="flex flex-col items-center justify-center h-64 text-secondary-400">
+    <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+    <span class="text-sm font-medium">Verificando permisos...</span>
+  </div>
 </AdminLayout>
+
+<script>
+  import { supabase } from '@/lib/supabase';
+
+  // ⚠️ CONFIGURACIÓN DE ROLES PERMITIDOS
+  const ALLOWED_ROLES = ['super_admin'];
+
+  async function protectRoute() {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      sessionStorage.setItem('redirect_to', window.location.pathname);
+      window.location.href = '/admin/login';
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('admin_users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    // Verificamos si el rol del usuario está en la lista permitida
+    if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
+      console.warn(`⛔ Acceso denegado. Rol: ${profile?.role} no permitido.`);
+      window.location.href = '/admin'; // Expulsado al dashboard
+      return;
+    }
+
+    // ✅ CORRECCIÓN EN EL DESBLOQUEO:
+    const content = document.getElementById('protected-content');
+    const loader = document.getElementById('permission-loader');
+    
+    if (content && loader) {
+      // 1. Forzamos display block para vencer al CSS <style>
+      loader.style.display = 'none';
+      content.style.display = 'block'; 
+      
+      // 2. Animación suave
+      requestAnimationFrame(() => {
+        content.classList.remove('hidden');
+        content.classList.remove('opacity-0');
+      });
+    }
+  }
+  
+  protectRoute();
+
+  document.addEventListener('astro:page-load', protectRoute);
+  
+</script>

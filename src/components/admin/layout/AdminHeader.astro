@@ -4,7 +4,14 @@ import { Menu } from 'lucide-react';
 import { NotificationBell } from '@/components/admin/NotificationBell';
 ---
 
-<header class="bg-white border-b border-secondary-200 h-16 px-6 flex items-center justify-between sticky top-0 z-30">
+{/* ✅ CAMBIO CLAVE: transition:persist 
+    Esto hace que el Header se mantenga estático entre navegaciones.
+    El script de abajo ya no se ejecutará innecesariamente en cada clic.
+*/}
+<header 
+  transition:persist
+  class="bg-white border-b border-secondary-200 h-16 px-6 flex items-center justify-between sticky top-0 z-30"
+>
   
   <button id="menu-toggle" class="lg:hidden p-2 text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors">
     <Menu className="w-6 h-6" />
@@ -15,15 +22,17 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
   </div>
 
   <div class="flex items-center gap-4">
-    
-    <NotificationBell client:load />
+    <NotificationBell client:visible />
 
     <div class="h-8 w-px bg-secondary-200 mx-2"></div>
 
     <a href="/admin/perfil" class="flex items-center gap-3 hover:opacity-80 transition-opacity group">
       <div class="text-right hidden sm:block">
-        <p class="text-sm font-bold text-secondary-900 group-hover:text-primary-600 transition-colors" id="admin-name">Cargando...</p>
-        <p class="text-xs text-secondary-500 capitalize" id="admin-role">Admin</p>
+        <p class="text-sm font-bold text-secondary-900 group-hover:text-primary-600 transition-colors" id="admin-name">
+           {/* Skeleton inicial en texto */}
+           <span class="animate-pulse bg-gray-200 text-transparent rounded">Cargando...</span>
+        </p>
+        <p class="text-xs text-secondary-500 capitalize" id="admin-role">...</p>
       </div>
       
       <div class="relative">
@@ -36,9 +45,9 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
 
         <div 
           id="admin-initials-container"
-          class="h-10 w-10 bg-secondary-900 rounded-full flex items-center justify-center text-white font-bold shadow-sm border-2 border-primary-500 group-hover:border-primary-400 transition-colors"
+          class="h-10 w-10 bg-secondary-100 rounded-full flex items-center justify-center text-secondary-400 font-bold shadow-sm border-2 border-transparent group-hover:border-primary-400 transition-colors"
         >
-          <span id="admin-initials">A</span>
+          <span id="admin-initials" class="animate-pulse">...</span>
         </div>
       </div>
     </a>
@@ -49,27 +58,28 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
   import { supabase } from '@/lib/supabase';
   import type { AdminUser } from '@/types';
 
-  // ✅ ENCAPSULAMOS LA LÓGICA
-  // Esta función se encargará de inicializar todo cada vez que cambiemos de página
-  const initHeader = () => {
-    
-    // 1. Lógica del Menú Hamburguesa
+  // Lógica de inicialización
+  const initHeader = async () => {
+    // 1. Menú Hamburguesa
     const menuBtn = document.getElementById('menu-toggle');
-    if (menuBtn) {
-      // Importante: Como el Header se reconstruye, no necesitamos remover el listener anterior
-      menuBtn.addEventListener('click', () => {
-        document.dispatchEvent(new CustomEvent('toggle-sidebar'));
-        console.log('Menú clickeado: evento toggle-sidebar enviado');
-      });
+    // Clonamos el nodo para eliminar listeners viejos acumulados por ViewTransitions si no usáramos persist
+    const newMenuBtn = menuBtn?.cloneNode(true) as HTMLElement;
+    if (menuBtn && newMenuBtn) {
+        menuBtn.parentNode?.replaceChild(newMenuBtn, menuBtn);
+        newMenuBtn.addEventListener('click', () => {
+            document.dispatchEvent(new CustomEvent('toggle-sidebar'));
+        });
     }
 
-    // 2. Lógica de Carga de Usuario
-    const loadUserData = async () => {
-      // Obtenemos sesión
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        // Obtenemos perfil detallado
+    // 2. Carga de Usuario (Solo si no tenemos nombre ya cargado para evitar parpadeo)
+    const nameEl = document.getElementById('admin-name');
+    
+    // Si ya tiene un nombre real (no contiene "Cargando"), no re-fetcheamos
+    if (nameEl && !nameEl.innerText.includes('Cargando')) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
         const { data } = await supabase
           .from('admin_users')
           .select('full_name, role, avatar_url')
@@ -77,39 +87,36 @@ import { NotificationBell } from '@/components/admin/NotificationBell';
           .single();
 
         const profile = data as AdminUser | null;
-
         const name = profile?.full_name || user.email || 'Admin';
         const role = profile?.role || 'staff';
         const avatarUrl = profile?.avatar_url;
 
-        // Buscamos los elementos (Tienen que buscarse AQUÍ dentro, porque el DOM es nuevo)
-        const nameEl = document.getElementById('admin-name');
+        // Referencias DOM
         const roleEl = document.getElementById('admin-role');
         const initialsEl = document.getElementById('admin-initials');
         const avatarImg = document.getElementById('admin-avatar') as HTMLImageElement;
         const initialsContainer = document.getElementById('admin-initials-container');
 
-        // Actualizamos UI
-        if (nameEl) nameEl.textContent = name;
-        if (roleEl) roleEl.textContent = role === 'super_admin' ? 'Super Admin' : 'Administrador';
+        // Update UI
+        if (nameEl) {
+            nameEl.innerText = name; // Quitamos el skeleton text
+            nameEl.classList.remove('animate-pulse');
+        }
+        if (roleEl) roleEl.innerText = role === 'super_admin' ? 'Super Admin' : 'Administrador';
 
         if (avatarUrl && avatarImg && initialsContainer) {
           avatarImg.src = avatarUrl;
           avatarImg.classList.remove('hidden');
           initialsContainer.classList.add('hidden');
-        } else {
-          if (initialsEl) initialsEl.textContent = name.charAt(0).toUpperCase();
-          if (avatarImg) avatarImg.classList.add('hidden');
-          if (initialsContainer) initialsContainer.classList.remove('hidden');
+        } else if (initialsEl && initialsContainer) {
+          initialsEl.innerText = name.charAt(0).toUpperCase();
+          initialsEl.classList.remove('animate-pulse');
+          initialsContainer.classList.remove('bg-secondary-100', 'text-secondary-400');
+          initialsContainer.classList.add('bg-secondary-900', 'text-white', 'border-primary-500');
         }
-      }
-    };
-
-    // Ejecutamos la carga
-    loadUserData();
+    }
   };
 
-  // ✅ EVENTO CLAVE: astro:page-load
-  // Esto asegura que initHeader corra en la primera carga Y en cada navegación subsiguiente.
+  // Se ejecuta una vez al inicio, y Astro lo mantiene vivo gracias a transition:persist
   document.addEventListener('astro:page-load', initHeader);
 </script>

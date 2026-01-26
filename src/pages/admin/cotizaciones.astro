@@ -1,8 +1,8 @@
 ---
 // src/pages/admin/cotizaciones.astro
 
-// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
-export const prerender = false;
+// ✅ 1. Arquitectura Rápida: Renderizado Estático
+export const prerender = true;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { QuotesView } from '@/components/admin/quotes/QuotesView'; 
@@ -12,39 +12,84 @@ const title = "Gestión de Cotizaciones | La Reserva Admin";
 
 <AdminLayout title={title}>
   
-  {/* Encabezado de la Sección */}
-  <div class="mb-8">
-    <div class="flex items-center gap-2 mb-1">
-      <span class="text-primary-600 font-bold text-xs tracking-wider uppercase bg-primary-50 px-2 py-0.5 rounded">CRM</span>
-      <span class="text-secondary-400 text-xs">/ Ventas</span>
-    </div>
-    
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-      <div>
-        <h1 class="text-3xl font-display font-bold text-secondary-900">
-          Solicitudes de Cotización
-        </h1>
-        <p class="text-secondary-500 mt-1">
-          Gestiona y responde a los leads de la página web.
-        </p>
+  {/* CSS CRÍTICO: Bloquea el renderizado visualmente */}
+  <style>
+    #protected-content { display: none; }
+  </style>
+
+  <div id="protected-content" class="hidden opacity-0 transition-opacity duration-300">
+ 
+    {/* Encabezado de la Sección */}
+    <div class="mb-8">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-primary-600 font-bold text-xs tracking-wider uppercase bg-primary-50 px-2 py-0.5 rounded">CRM</span>
+        <span class="text-secondary-400 text-xs">/ Ventas</span>
+      </div>
+      
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h1 class="text-3xl font-display font-bold text-secondary-900">
+            Solicitudes de Cotización
+          </h1>
+          <p class="text-secondary-500 mt-1">
+            Gestiona y responde a los leads de la página web.
+          </p>
+        </div>
       </div>
     </div>
+
+    {/* ✅ 2. Componente React */}
+    <QuotesView client:only="react" />
+
   </div>
 
-  {/* Componente React Interactivo */}
-  <QuotesView client:load />
+  {/* Loader */}
+  <div id="permission-loader" class="flex flex-col items-center justify-center h-64 text-secondary-400">
+    <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+    <span class="text-sm font-medium">Verificando permisos...</span>
+  </div>
 
 </AdminLayout>
 
 <script>
   import { supabase } from '@/lib/supabase';
 
+  const ALLOWED_ROLES = ['super_admin', 'sales'];
+
   async function protectRoute() {
     const { data: { session } } = await supabase.auth.getSession();
+    
     if (!session) {
+      sessionStorage.setItem('redirect_to', window.location.pathname);
       window.location.href = '/admin/login';
+      return;
+    }
+
+    const { data: profile } = await supabase.from('admin_users').select('role').eq('id', session.user.id).single();
+
+    if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
+      window.location.href = '/admin'; 
+      return;
+    }
+
+    // ✅ CORRECCIÓN AQUÍ:
+    const content = document.getElementById('protected-content');
+    const loader = document.getElementById('permission-loader');
+    
+    if (content && loader) {
+      // 1. Usamos style.display para vencer al CSS crítico
+      loader.style.display = 'none';
+      content.style.display = 'block'; 
+      
+      // 2. Quitamos la clase hidden por si acaso y animamos
+      requestAnimationFrame(() => {
+        content.classList.remove('hidden');
+        content.classList.remove('opacity-0');
+      });
     }
   }
-  
   protectRoute();
+
+  document.addEventListener('astro:page-load', protectRoute);
+  
 </script>

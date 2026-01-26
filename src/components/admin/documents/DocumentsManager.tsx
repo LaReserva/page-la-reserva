@@ -1,15 +1,39 @@
 // src/components/admin/documents/DocumentsManager.tsx
 import { useState, useEffect } from 'react';
-import { Tab } from '@headlessui/react'; // ✅ Headless UI
+import { Tab } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
-import { FileText, Truck, Lock, Loader2 } from 'lucide-react';
+import { FileText, Truck, Lock } from 'lucide-react';
 
-// Importamos los nuevos Shells sectorizados (que crearemos a continuación)
 import { CommercialShell } from './commercial/CommercialShell';
 import { OperationsShell } from './operations/OperationsShell';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
+}
+
+// 1. SKELETON COMPONENT (Nuevo)
+function DocumentsSkeleton() {
+  return (
+    <div className="flex flex-col h-[calc(100vh-140px)] gap-4 animate-pulse">
+      {/* Header Tabs Skeleton */}
+      <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm flex-none">
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg h-12">
+           <div className="flex-1 bg-gray-200 rounded-md m-1"></div>
+           <div className="flex-1 bg-gray-200 rounded-md m-1"></div>
+        </div>
+      </div>
+      
+      {/* Content Skeleton */}
+      <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+         <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+         <div className="grid grid-cols-3 gap-4">
+            <div className="h-32 bg-gray-100 rounded-lg col-span-2"></div>
+            <div className="h-32 bg-gray-100 rounded-lg col-span-1"></div>
+         </div>
+         <div className="h-64 bg-gray-100 rounded-lg mt-4"></div>
+      </div>
+    </div>
+  );
 }
 
 export function DocumentsManager() {
@@ -32,7 +56,10 @@ export function DocumentsManager() {
     setIsLoading(false);
   }
 
-  if (isLoading) return <div className="h-96 flex justify-center items-center"><Loader2 className="animate-spin text-primary-600" size={32}/></div>;
+  // ✅ CAMBIO CLAVE: Usamos el Skeleton en lugar del Loader simple
+  if (isLoading) {
+     return <DocumentsSkeleton />;
+  }
 
   if (!hasAccess) {
     return (
@@ -43,7 +70,6 @@ export function DocumentsManager() {
     );
   }
 
-  // Definición de Tabs según permisos
   const tabs = [
     {
       key: 'commercial',
@@ -56,14 +82,12 @@ export function DocumentsManager() {
       key: 'operations',
       name: 'Operaciones y Logística',
       icon: Truck,
-      component: <OperationsShell userRole={userRole} />, // ✅ Uso del nuevo componente
+      component: <OperationsShell userRole={userRole} />,
       show: ['super_admin', 'operations'].includes(userRole)
     }
   ].filter(t => t.show);
 
   return (
-    // ✅ LAYOUT FIX: Altura calculada para ocupar pantalla menos el header del layout principal
-    // Asumimos que el AdminLayout tiene un header de unos 64px o similar. Ajustar si es necesario.
     <div className="flex flex-col h-[calc(100vh-140px)] gap-4">
       
       <Tab.Group>
@@ -76,7 +100,7 @@ export function DocumentsManager() {
                 className={({ selected }) =>
                   classNames(
                     'w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200',
-                    'ring-white ring-opacity-60 ring-offset-2 resize-none',
+                    'ring-white ring-opacity-60 ring-offset-2 resize-none focus:outline-none focus:ring-2',
                     selected
                       ? 'bg-white text-primary-700 shadow shadow-gray-200 scale-[1.02]'
                       : 'text-gray-500 hover:bg-white/[0.12] hover:text-gray-700'
@@ -92,14 +116,14 @@ export function DocumentsManager() {
           </Tab.List>
         </div>
 
-        {/* PANELES DE CONTENIDO (Scrollable area) */}
+        {/* PANELES DE CONTENIDO */}
         <Tab.Panels className="flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm relative">
           {tabs.map((tab) => (
             <Tab.Panel
               key={tab.key}
               className={classNames(
-                'h-full w-full overflow-hidden', // Importante: overflow hidden aquí, los hijos manejarán el scroll
-                'ring-white ring-opacity-60 ring-offset-2 resize-none'
+                'h-full w-full overflow-hidden',
+                'ring-white ring-opacity-60 ring-offset-2 resize-none focus:outline-none'
               )}
             >
               {tab.component}

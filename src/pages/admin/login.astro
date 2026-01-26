@@ -1,8 +1,8 @@
 ---
 // src/pages/admin/login.astro
 
-// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
-export const prerender = false;
+// ✅ 1. Arquitectura Rápida: Renderizado Estático
+export const prerender = true;
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { LoginForm } from '@/components/admin/login/LoginForm';
@@ -24,7 +24,8 @@ import { LoginForm } from '@/components/admin/login/LoginForm';
 
     {/* Formulario */}
     <div class="w-full max-w-md relative z-10">
-      <LoginForm client:load />
+      {/* Usamos client:only para evitar hidratación innecesaria en el form */}
+      <LoginForm client:only="react" />
     </div>
 
   </div>
@@ -34,8 +35,20 @@ import { LoginForm } from '@/components/admin/login/LoginForm';
 
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Si YA está logueado, lo sacamos de aquí
       if (session) {
-        window.location.href = '/admin';
+        // 1. Buscamos si tenía una página pendiente (ej: intentó entrar a /admin/cotizaciones)
+        const returnUrl = sessionStorage.getItem('redirect_to');
+        
+        if (returnUrl) {
+            // Limpiamos la memoria y redirigimos a donde quería ir
+            sessionStorage.removeItem('redirect_to');
+            window.location.href = returnUrl;
+        } else {
+            // Si no, al dashboard general
+            window.location.href = '/admin';
+        }
       }
     }
     

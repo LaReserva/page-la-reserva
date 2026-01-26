@@ -1,6 +1,8 @@
 ---
-// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
-export const prerender = false;
+// src/pages/admin/contenido.astro
+
+// ✅ 1. Arquitectura Rápida: Renderizado Estático
+export const prerender = true;
 
 import Layout from '@/layouts/AdminLayout.astro';
 import PortfolioView from '@/components/admin/portfolio/PortfolioView';
@@ -10,16 +12,77 @@ const title = "Gestor de Portafolio | La Reserva";
 ---
 
 <Layout title={title}>
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
-      Portafolio
-    </h1>
-    <p class="mt-2 text-gray-600 text-lg">
-      Gestiona las fotos que aparecen en tu web pública. 
-    </p>
+
+  {/* CSS CRÍTICO: Bloqueo visual inicial */}
+  <style>
+    #protected-content { display: none; }
+  </style>
+
+  <div id="protected-content" class="hidden opacity-0 transition-opacity duration-300">
+
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
+        Portafolio
+      </h1>
+      <p class="mt-2 text-gray-600 text-lg">
+        Gestiona las fotos que aparecen en tu web pública. 
+      </p>
+    </div>
+
+    <div class="bg-white/50 min-h-[500px] rounded-xl">
+      {/* ✅ 2. Componente React en modo SPA */}
+      <PortfolioView client:only="react" />
+    </div>
+
   </div>
 
-  <div class="bg-white/50 min-h-[500px] rounded-xl">
-    <PortfolioView client:load />
+  {/* Loader temporal */}
+  <div id="permission-loader" class="flex flex-col items-center justify-center h-64 text-secondary-400">
+    <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+    <span class="text-sm font-medium">Verificando permisos...</span>
   </div>
 </Layout>
+
+<script>
+  import { supabase } from '@/lib/supabase';
+
+  // ⚠️ ROLES PERMITIDOS
+  const ALLOWED_ROLES = ['super_admin', 'operations'];
+
+  async function protectRoute() {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      sessionStorage.setItem('redirect_to', window.location.pathname);
+      window.location.href = '/admin/login';
+      return;
+    }
+
+    const { data: profile } = await supabase.from('admin_users').select('role').eq('id', session.user.id).single();
+
+    if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
+      window.location.href = '/admin'; // Expulsar
+      return;
+    }
+
+    // ✅ CORRECCIÓN EN EL DESBLOQUEO:
+    const content = document.getElementById('protected-content');
+    const loader = document.getElementById('permission-loader');
+    
+    if (content && loader) {
+      // 1. Forzamos display block para vencer al CSS <style>
+      loader.style.display = 'none';
+      content.style.display = 'block'; 
+      
+      // 2. Animación suave
+      requestAnimationFrame(() => {
+        content.classList.remove('hidden');
+        content.classList.remove('opacity-0');
+      });
+    }
+  }
+  protectRoute();
+
+  document.addEventListener('astro:page-load', protectRoute);
+  
+</script>

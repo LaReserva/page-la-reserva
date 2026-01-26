@@ -20,7 +20,11 @@ const slugify = (text: string) => {
     .replace(/-+$/, '');            // Recortar - del final
 };
 
-export default function BlogManager({ currentUserId }: { currentUserId: string }) {
+// ✅ CAMBIO 1: Eliminamos la prop 'currentUserId' de la definición
+export default function BlogManager() {
+  // ✅ CAMBIO 2: Creamos un estado interno para guardar el ID del usuario
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+
   const [view, setView] = useState<'list' | 'editor'>('list');
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -38,6 +42,11 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
   // --- CARGAR DATOS ---
   const fetchPosts = async () => {
     setLoading(true);
+    
+    // ✅ CAMBIO 3: Obtenemos el usuario aquí mismo
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) setCurrentUserId(user.id);
+
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
@@ -52,6 +61,13 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
   // --- HANDLERS ---
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validación de seguridad extra
+    if (!currentUserId) {
+        alert("Error de sesión: No se pudo identificar al usuario. Por favor recarga la página.");
+        return;
+    }
+
     if (!editingPost.title || !editingPost.slug || !editingPost.content) {
       alert('Por favor completa los campos obligatorios (*)');
       return;
@@ -61,7 +77,7 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
     try {
       const postData = {
         ...editingPost,
-        author_id: currentUserId, // Vinculamos al usuario actual
+        author_id: currentUserId, // ✅ Ahora usa el estado interno
         updated_at: new Date().toISOString()
       };
 
@@ -308,7 +324,6 @@ export default function BlogManager({ currentUserId }: { currentUserId: string }
         </button>
       </div>
 
-      {/* ✅ CORRECCIÓN: Quitamos 'overflow-hidden' para que el Menú se vea */}
       <div className="bg-white rounded-2xl border border-secondary-200 shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-secondary-50 border-b border-secondary-200 text-xs uppercase font-bold text-secondary-500">

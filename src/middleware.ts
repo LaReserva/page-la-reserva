@@ -1,8 +1,11 @@
-import { createServerClient, parseCookieHeader } from '@supabase/ssr';
 import { defineMiddleware } from 'astro:middleware';
+
+// Nota: Mantenemos los imports por si en el futuro agregas API endpoints (SSR),
+// pero por ahora no se ejecutarán en las páginas estáticas.
+import { createServerClient, parseCookieHeader } from '@supabase/ssr';
 import type { AstroCookieSetOptions } from 'astro';
 
-// Tipos auxiliares para createServerClient
+// Tipos auxiliares
 type CreateServerClientArgs = Parameters<typeof createServerClient>;
 type ClientOptions = NonNullable<CreateServerClientArgs[2]>;
 type CookiesHandler = NonNullable<ClientOptions['cookies']>;
@@ -10,16 +13,31 @@ type CookiesHandler = NonNullable<ClientOptions['cookies']>;
 export const onRequest = defineMiddleware(async (context, next) => {
   const { url, request, locals, redirect } = context;
 
-  // 1. Filtro principal: Solo afecta rutas /admin
+  // 1. Filtro principal: Rutas /admin
   if (url.pathname.startsWith('/admin')) {
     
-    // Rutas públicas dentro de admin (Login, Recuperación)
+    // ✅ MODIFICACIÓN CLAVE PARA APP SHELL (Modo Estático):
+    // Como las páginas ahora son estáticas (prerender = true), el servidor NO debe
+    // intentar leer cookies ni bloquear la petición. Debe entregar el HTML
+    // inmediatamente para que sea rápido.
+    
+    // La seguridad ahora la manejan:
+    // 1. El <script> de protección en cada archivo .astro (Redirección visual).
+    // 2. Las políticas RLS de Supabase (Seguridad de datos real).
+    
+    return next();
+
+    /* -----------------------------------------------------------------------
+       BLOQUE DESACTIVADO (CÓDIGO LEGACY SSR)
+       Se comenta para evitar el error: "Astro.request.headers is not available on prerendered pages"
+       y evitar el bucle infinito de redirecciones.
+    ----------------------------------------------------------------------- */
+    
+    /*
     const publicAdminRoutes = ['/admin/login', '/admin/reset-password'];
-    // Si es ruta pública, dejamos pasar sin revisar nada más
     if (publicAdminRoutes.some(route => url.pathname.startsWith(route))) return next();
 
-    // 2. Configuración de Supabase (Igual que antes)
-const cookieAdapter: CookiesHandler = {
+    const cookieAdapter: CookiesHandler = {
       getAll() {
         const parsed = parseCookieHeader(request.headers.get('Cookie') ?? '');
         return parsed.map((cookie) => ({
@@ -30,7 +48,6 @@ const cookieAdapter: CookiesHandler = {
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
           const astroOptions: AstroCookieSetOptions = {
-            // ✅ CORRECCIÓN CLAVE: Si no viene path, forzamos la raíz '/'
             path: options.path ?? '/', 
             domain: options.domain,
             maxAge: options.maxAge,
@@ -50,15 +67,12 @@ const cookieAdapter: CookiesHandler = {
       { cookies: cookieAdapter }
     );
 
-    // 3. Verificar Autenticación (¿Está logueado?)
     const { data: { user }, error } = await supabase.auth.getUser();
-
 
     if (!user || error) {
       return redirect('/admin/login');
     }
 
-    // 4. Obtener Rol del Usuario
     const { data: adminUser } = await supabase
       .from('admin_users')
       .select('role')
@@ -69,57 +83,25 @@ const cookieAdapter: CookiesHandler = {
       return redirect('/admin/login?error=unauthorized');
     }
 
-    // Guardamos info en locals para usar en las páginas
     locals.user = user;
     locals.role = adminUser.role;
 
-    // ============================================================
-    // 5. CONTROL DE ACCESO POR ROLES (ACL - Access Control List)
-    // ============================================================
-    
-    // Si es super_admin, tiene "Llave Maestra" (acceso total), no filtramos nada.
+    // Lógica de Roles (ACL)
     if (adminUser.role !== 'super_admin') {
       const currentPath = url.pathname;
-
-      // Definimos qué rutas base tiene permitidas cada rol.
-      // Usamos 'starts with', así que '/admin/clientes' permite '/admin/clientes/editar/1'
       const rolePermissions: Record<string, string[]> = {
-        sales: [
-          '/admin/clientes', 
-          '/admin/cotizaciones', 
-          '/admin/eventos', 
-          '/admin/perfil',
-          '/admin/cocteles',
-          '/admin/documentos',
-          '/admin/correo',
-          '/admin/testimonios'
-        ],
-        operations: [
-          '/admin/eventos', 
-          '/admin/contenido', 
-          '/admin/perfil',
-          '/admin/cocteles',
-          '/admin/documentos',
-          '/admin/testimonios',
-          '/admin/blog'
-        ],
+        sales: ['/admin/clientes', '/admin/cotizaciones', '/admin/eventos', '/admin/perfil', '/admin/cocteles', '/admin/documentos', '/admin/correo', '/admin/testimonios'],
+        operations: ['/admin/eventos', '/admin/contenido', '/admin/perfil', '/admin/cocteles', '/admin/documentos', '/admin/testimonios', '/admin/blog'],
       };
-
       const allowedRoutes = rolePermissions[adminUser.role] || [];
-
-      // Validaciones:
-      // A. El Dashboard (/admin o /admin/) siempre se permite para ver el resumen básico.
       const isDashboard = currentPath === '/admin' || currentPath === '/admin/';
-      
-      // B. Verificamos si la ruta actual empieza con alguna de las permitidas
       const isAllowed = allowedRoutes.some(route => currentPath.startsWith(route));
 
-      // Si no es el dashboard Y no está en su lista permitida -> Bloqueamos
       if (!isDashboard && !isAllowed) {
-        // Redirigimos al dashboard con un mensaje de error (opcional) o simplemente al home
         return redirect('/admin'); 
       }
     }
+    */
   }
 
   return next();

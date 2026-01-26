@@ -283,6 +283,7 @@ export function ProfileView() {
                   value={profile.full_name || ''} 
                   onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} 
                   className="w-full px-4 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium text-secondary-900" 
+                  autoComplete="name"
                 />
               </div>
               
@@ -303,6 +304,7 @@ export function ProfileView() {
                     }} 
                     placeholder="8 dígitos"
                     className="w-full pl-11 pr-4 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium text-secondary-900" 
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -330,6 +332,7 @@ export function ProfileView() {
                     }} 
                     placeholder="999 888 777"
                     className="w-full pl-11 pr-4 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium text-secondary-900" 
+                    autoComplete="tel"
                   />
                 </div>
               </div>
@@ -342,6 +345,7 @@ export function ProfileView() {
                     value={profile.address || ''} 
                     onChange={(e) => setProfile({ ...profile, address: e.target.value })} 
                     className="w-full pl-11 pr-4 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none resize-none h-24 text-sm font-medium text-secondary-900" 
+                    autoComplete="street-address"
                   />
                 </div>
               </div>
@@ -380,6 +384,7 @@ export function ProfileView() {
                   onChange={(e) => setPasswords({...passwords, new: e.target.value})}
                   className="w-full pl-11 pr-12 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium"
                   placeholder="Mínimo 6 caracteres"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -402,6 +407,7 @@ export function ProfileView() {
                   onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
                   className="w-full pl-11 pr-12 py-2.5 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium"
                   placeholder="Repite la contraseña"
+                  autoComplete="new-password"
                 />
               </div>
             </div>

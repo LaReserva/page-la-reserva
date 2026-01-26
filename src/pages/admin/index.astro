@@ -1,50 +1,109 @@
 ---
 // src/pages/admin/index.astro
 
-// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
-export const prerender = false;
+// ✅ 1. ACTIVADO: Página estática instantánea
+export const prerender = true;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
-// Importamos SOLO el componente "Maestro"
 import { DashboardView } from '@/components/admin/dashboard/DashboardView';
-import { getGreeting } from '@/utils/utils';
-
-const dateOptions: Intl.DateTimeFormatOptions = { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-};
 ---
 
 <AdminLayout title="Dashboard">
+
+  {/* ✅ CSS CRÍTICO: Oculta el contenido antes de pintar */}
+  <style>
+    #protected-content { display: none; }
+  </style>
   
-  {/* Encabezado Estático */}
-  <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-    <div>
-      <span class="text-primary-600 font-medium text-sm tracking-wider uppercase">Panel de Control</span>
-      <h1 class="text-3xl font-display font-bold text-secondary-900 mt-1">
-        {getGreeting()}, Admin
-      </h1>
-      <p class="text-secondary-500">Resumen de actividad en tiempo real.</p>
+  <div id="protected-content" class="hidden opacity-0 transition-opacity duration-500">
+
+    {/* Encabezado */}
+    <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div>
+        <span class="text-primary-600 font-medium text-sm tracking-wider uppercase">Panel de Control</span>
+        <h1 class="text-3xl font-display font-bold text-secondary-900 mt-1">
+          {/* Span vacío que llenaremos con JS */}
+          <span id="greeting-text">Cargando...</span>
+        </h1>
+        <p class="text-secondary-500">Resumen de actividad en tiempo real.</p>
+      </div>
+      <div class="text-sm text-secondary-400 bg-white px-4 py-2 rounded-full border border-secondary-200 shadow-sm capitalize">
+        <span id="current-date">...</span>
+      </div>
     </div>
-    <div class="text-sm text-secondary-400 bg-white px-4 py-2 rounded-full border border-secondary-200 shadow-sm capitalize">
-      {new Date().toLocaleDateString('es-PE', dateOptions)}
-    </div>
+
+    {/* Componente React */}
+    <DashboardView client:only="react" />
+
   </div>
 
-  {/* Cargamos la Vista Inteligente */}
-  <DashboardView client:load />
+  {/* Loader temporal */}
+  <div id="permission-loader" class="flex flex-col items-center justify-center h-[60vh]">
+    <div class="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
+    <div class="text-secondary-400 font-medium animate-pulse">Cargando Dashboard...</div>
+  </div>
 
 </AdminLayout>
 
 <script>
   import { supabase } from '@/lib/supabase';
 
-  async function protectRoute() {
+  async function initPage() {
+    // 1. VERIFICAR SESIÓN
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) window.location.href = '/admin/login';
+    if (!session) {
+        window.location.href = '/admin/login';
+        return;
+    }
+
+    // 2. OBTENER DATOS DE USUARIO (Para el saludo personalizado)
+    // Buscamos el nombre real en la tabla admin_users
+    const { data: profile } = await supabase
+      .from('admin_users')
+      .select('full_name')
+      .eq('id', session.user.id)
+      .single();
+    
+    // Obtenemos el primer nombre (ej: "Juan" de "Juan Pérez") o fallback a "Admin"
+    const userName = profile?.full_name ? profile.full_name.split(' ')[0] : 'Admin';
+
+    // 3. LÓGICA DE FECHA Y SALUDO
+    const now = new Date();
+    const dateOptions: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    };
+    
+    const hour = now.getHours();
+    let greeting = 'Hola';
+    if (hour < 12) greeting = 'Buenos días';
+    else if (hour < 18) greeting = 'Buenas tardes';
+    else greeting = 'Buenas noches';
+
+    // 4. ACTUALIZAR DOM (Textos)
+    const dateEl = document.getElementById('current-date');
+    const greetingEl = document.getElementById('greeting-text');
+    
+    if (dateEl) dateEl.innerText = now.toLocaleDateString('es-PE', dateOptions);
+    if (greetingEl) greetingEl.innerText = `${greeting}, ${userName}`;
+
+    // 5. ✅ REVELAR INTERFAZ (¡Esto es lo que faltaba!)
+    const loader = document.getElementById('permission-loader');
+    const content = document.getElementById('protected-content');
+
+    if (loader && content) {
+      loader.style.display = 'none';      // Ocultar spinner
+      content.style.display = 'block';    // Quitar bloqueo CSS
+      
+      // Animación suave
+      requestAnimationFrame(() => {
+        content.classList.remove('hidden'); // Quitar clase Tailwind
+        content.classList.remove('opacity-0'); // Iniciar Fade In
+      });
+    }
   }
   
-  protectRoute();
+  initPage();
+
+  document.addEventListener('astro:page-load', initPage);
+
 </script>

@@ -1,8 +1,8 @@
 ---
 // src/pages/admin/eventos.astro
 
-// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
-export const prerender = false;
+// ✅ 1. Arquitectura Rápida: Renderizado Estático
+export const prerender = true;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { EventsCalendarView } from '@/components/admin/events/EventsCalendarView';
@@ -11,46 +11,91 @@ const title = "Calendario de Eventos | La Reserva Admin";
 ---
 
 <AdminLayout title={title}>
-  
-  {/* Encabezado de Sección */}
-  <div class="mb-8">
-    <div class="flex items-center gap-2 mb-1">
-      <span class="text-orange-600 font-bold text-xs tracking-wider uppercase bg-orange-50 px-2 py-0.5 rounded">Operaciones</span>
-      <span class="text-secondary-400 text-xs">/ Planificación</span>
-    </div>
-    
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-      <div>
-        <h1 class="text-3xl font-display font-bold text-secondary-900">
-          Calendario de Eventos
-        </h1>
-        <p class="text-secondary-500 mt-1 max-w-2xl">
-          Visualiza la ocupación y planifica la logística de los próximos servicios.
-        </p>
+
+  {/* CSS CRÍTICO: Bloqueo visual inicial */}
+  <style>
+    #protected-content { display: none; }
+  </style>
+
+  <div id="protected-content" class="hidden opacity-0 transition-opacity duration-300">
+
+    {/* Encabezado de Sección */}
+    <div class="mb-8">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-orange-600 font-bold text-xs tracking-wider uppercase bg-orange-50 px-2 py-0.5 rounded">Operaciones</span>
+        <span class="text-secondary-400 text-xs">/ Planificación</span>
+      </div>
+      
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h1 class="text-3xl font-display font-bold text-secondary-900">
+            Calendario de Eventos
+          </h1>
+          <p class="text-secondary-500 mt-1 max-w-2xl">
+            Visualiza la ocupación y planifica la logística de los próximos servicios.
+          </p>
+        </div>
       </div>
     </div>
+
+    {/* ✅ 2. Componente React en modo SPA */}
+    <EventsCalendarView client:only="react" />
+    
   </div>
 
-  {/* Calendario React */}
-  {/* Necesario client:only="react" porque react-big-calendar usa mucha lógica de navegador */}
-  <EventsCalendarView client:only="react" />
+  {/* Loader temporal */}
+  <div id="permission-loader" class="flex flex-col items-center justify-center h-64 text-secondary-400">
+    <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+    <span class="text-sm font-medium">Verificando permisos...</span>
+  </div>
 
 </AdminLayout>
 
 <script>
   import { supabase } from '@/lib/supabase';
 
+  // ⚠️ ROLES PERMITIDOS
+  const ALLOWED_ROLES = ['super_admin', 'sales', 'operations'];
+
   async function protectRoute() {
     const { data: { session } } = await supabase.auth.getSession();
+    
     if (!session) {
+      sessionStorage.setItem('redirect_to', window.location.pathname);
       window.location.href = '/admin/login';
+      return;
+    }
+
+    const { data: profile } = await supabase.from('admin_users').select('role').eq('id', session.user.id).single();
+
+    if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
+      window.location.href = '/admin'; // Expulsar
+      return;
+    }
+
+    // ✅ CORRECCIÓN EN EL DESBLOQUEO:
+    const content = document.getElementById('protected-content');
+    const loader = document.getElementById('permission-loader');
+    
+    if (content && loader) {
+      // 1. Forzamos el display block para vencer al CSS del <style>
+      loader.style.display = 'none';
+      content.style.display = 'block';
+      
+      // 2. Animación suave
+      requestAnimationFrame(() => {
+        content.classList.remove('hidden');
+        content.classList.remove('opacity-0');
+      });
     }
   }
-  
   protectRoute();
+
+  document.addEventListener('astro:page-load', protectRoute);
+  
 </script>
 
-{/* Estilos globales para personalizar el calendario (overrides) */}
+{/* Estilos globales para personalizar el calendario (Se mantienen igual) */}
 <style is:global>
   /* Personalización básica de React Big Calendar para que coincida con el tema */
   .rbc-calendar {

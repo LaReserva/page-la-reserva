@@ -1,8 +1,8 @@
 ---
 // src/pages/admin/perfil.astro
 
-// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
-export const prerender = false;
+// ✅ 1. Arquitectura Rápida: Renderizado Estático
+export const prerender = true;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { ProfileView } from '@/components/admin/profile/ProfileView';
@@ -11,7 +11,14 @@ const title = "Mi Perfil | La Reserva Admin";
 ---
 
 <AdminLayout title={title}>
+
+  <style>
+    #protected-content { display: none; }
+  </style>
+
+  {/* Mantenemos tu lógica de ocultar contenido hasta verificar sesión */}
   <div id="profile-content" class="opacity-0 transition-opacity duration-300">
+
     <div class="mb-8">
       <div class="flex items-center gap-2 mb-1">
         <span class="text-secondary-500 font-bold text-xs tracking-wider uppercase bg-secondary-100 px-2 py-0.5 rounded">Cuenta</span>
@@ -25,7 +32,15 @@ const title = "Mi Perfil | La Reserva Admin";
       </p>
     </div>
 
-    <ProfileView client:load />
+    {/* ✅ 2. Componente React en modo SPA */}
+    <ProfileView client:only="react" />
+
+  </div>
+
+  {/* Loader temporal mientras verificamos permisos */}
+  <div id="permission-loader" class="flex flex-col items-center justify-center h-64 text-secondary-400">
+    <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+    <span class="text-sm font-medium">Verificando permisos...</span>
   </div>
 </AdminLayout>
 
@@ -36,10 +51,11 @@ const title = "Mi Perfil | La Reserva Admin";
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      // Si no hay sesión, redirigir al login
+      // ✅ 3. Seguridad mejorada: Guardamos la ruta para volver después
+      sessionStorage.setItem('redirect_to', window.location.pathname);
       window.location.href = '/admin/login';
     } else {
-      // Si hay sesión, mostrar el contenido
+      // Si hay sesión, mostrar el contenido suavemente
       const content = document.getElementById('profile-content');
       if (content) {
         content.classList.remove('opacity-0');
@@ -48,4 +64,6 @@ const title = "Mi Perfil | La Reserva Admin";
   }
 
   checkSession();
+
+  document.addEventListener('astro:page-load', checkSession);
 </script>

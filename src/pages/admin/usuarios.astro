@@ -1,6 +1,8 @@
 ---
-// ✅ ESTA LÍNEA ES OBLIGATORIA para paneles de administración protegidos
-export const prerender = false;
+// src/pages/admin/usuarios.astro
+
+// ✅ 1. Renderizado Estático
+export const prerender = true;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { UsersView } from '@/components/admin/users/UsersView';
@@ -10,40 +12,89 @@ const title = "Gestión de Usuarios | La Reserva Admin";
 
 <AdminLayout title={title}>
   
-  {/* Encabezado de la Sección */}
-  <div class="mb-8">
-    <div class="flex items-center gap-2 mb-1">
-      {/* Etiqueta de sección */}
-      <span class="text-purple-600 font-bold text-xs tracking-wider uppercase bg-purple-50 px-2 py-0.5 rounded">Administración</span>
-      <span class="text-secondary-400 text-xs">/ Equipo</span>
-    </div>
+  {/* CSS CRÍTICO: Bloqueo visual inicial */}
+  <style>
+    #protected-content { display: none; }
+  </style>
+  
+  <div id="protected-content" class="hidden opacity-0 transition-opacity duration-300">
     
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-      <div>
-        <h1 class="text-3xl font-display font-bold text-secondary-900">
-          Usuarios
-        </h1>
-        <p class="text-secondary-500 mt-1 max-w-2xl">
-          Gestiona los accesos, roles y perfiles de los miembros del equipo administrativo.
-        </p>
+    <div class="mb-8">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-purple-600 font-bold text-xs tracking-wider uppercase bg-purple-50 px-2 py-0.5 rounded">Administración</span>
+        <span class="text-secondary-400 text-xs">/ Equipo</span>
+      </div>
+      
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h1 class="text-3xl font-display font-bold text-secondary-900">
+            Usuarios
+          </h1>
+          <p class="text-secondary-500 mt-1 max-w-2xl">
+            Gestiona los accesos, roles y perfiles de los miembros del equipo administrativo.
+          </p>
+        </div>
       </div>
     </div>
+
+    {/* Componente React */}
+    <UsersView client:only="react" />
+
   </div>
 
-  {/* Componente React Interactivo con hidratación en el cliente */}
-  <UsersView client:load />
+  {/* Loader temporal */}
+  <div id="permission-loader" class="flex flex-col items-center justify-center h-64 text-secondary-400">
+    <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+    <span class="text-sm font-medium">Verificando permisos...</span>
+  </div>
 
 </AdminLayout>
 
 <script>
   import { supabase } from '@/lib/supabase';
 
-  async function protectRoute() {
+  // Función lógica encapsulada
+  async function runProtection() {
+    const content = document.getElementById('protected-content');
+    const loader = document.getElementById('permission-loader');
+    
+    // Si no existen los elementos, no hacemos nada (estamos en otra página)
+    if (!content || !loader) return;
+
+    // 1. Check Sesión
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      sessionStorage.setItem('redirect_to', window.location.pathname);
       window.location.href = '/admin/login';
+      return;
     }
+
+    // 2. Check Rol
+    const { data: profile } = await supabase
+      .from('admin_users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile || profile.role !== 'super_admin') { // ⚠️ CAMBIA ESTO SEGÚN LA PÁGINA
+      window.location.href = '/admin'; 
+      return;
+    }
+
+    // 3. Desbloquear
+    loader.style.display = 'none';
+    content.style.display = 'block'; 
+    
+    requestAnimationFrame(() => {
+      content.classList.remove('hidden');
+      content.classList.remove('opacity-0');
+    });
   }
-  
-  protectRoute();
+
+  // ✅ AQUÍ ESTÁ LA MAGIA:
+  // Ejecutar inmediatamente (para carga inicial o refresh)
+  runProtection();
+
+  // Y TAMBIÉN ejecutar cada vez que Astro navega (para cuando vuelves a la página)
+  document.addEventListener('astro:page-load', runProtection);
 </script>
