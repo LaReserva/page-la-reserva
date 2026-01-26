@@ -1,7 +1,7 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Send, Mail, User, Calendar, Loader2, CheckCircle2 } from 'lucide-react';
-import type { ContactMessage } from '@/types';
+import { X, Send, Mail, User, Calendar, Loader2, CheckCircle2, MessageSquare } from 'lucide-react';
+import type { ContactMessage, ContactReply } from '@/types';
 import { cn } from '@/utils/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -14,42 +14,50 @@ interface MessageDetailModalProps {
 
 export function MessageDetailModal({ isOpen, onClose, message, onReplySuccess }: MessageDetailModalProps) {
   const [replyText, setReplyText] = useState('');
-  // Estados para manejar la UI: 'idle' (escribiendo) | 'sending' (enviando) | 'success' (éxito)
+  const [replies, setReplies] = useState<ContactReply[]>([]);
   const [status, setStatus] = useState<'idle' | 'sending' | 'success'>('idle');
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Limpiar formulario al cerrar o cambiar de mensaje
-  if (!message) return null;
+  useEffect(() => {
+    if (isOpen && message?.id) {
+      fetchHistory();
+    }
+  }, [isOpen, message]);
 
-  // Resetear estados cuando se abre el modal con un nuevo mensaje
+  async function fetchHistory() {
+    setLoadingHistory(true);
+    const { data } = await supabase
+      .from('contact_replies')
+      .select('*, admin:admin_users(full_name)')
+      .eq('message_id', message?.id)
+      .order('created_at', { ascending: true });
+    setReplies((data as any) || []);
+    setLoadingHistory(false);
+  }
+
   const handleClose = () => {
     if (status === 'success') {
-      // Si cerramos después de éxito, reseteamos todo
       setStatus('idle');
       setReplyText('');
     }
     onClose();
   };
 
-const handleSendReply = async () => {
-    if (!replyText.trim()) return;
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !message) return;
 
     try {
       setStatus('sending');
       setErrorMessage('');
 
-      // 1. OBTENEMOS LA SESIÓN ACTUAL (Tu credencial)
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No hay sesión activa. Por favor recarga la página.');
-      }
+      if (!session) throw new Error('Sesión expirada');
       
       const response = await fetch('/api/send-reply', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          // 2. ENVIAMOS EL TOKEN EN LA CABECERA (Como un pase VIP)
           'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
@@ -62,191 +70,109 @@ const handleSendReply = async () => {
       });
 
       const result = await response.json();
-
       if (!response.ok) throw new Error(result.error || 'Error enviando correo');
 
       setStatus('success');
       onReplySuccess();
+      fetchHistory(); // Recargar historial local
 
-    } catch (error: any) { // Tipado básico para el error
+    } catch (error: any) {
       console.error(error);
       setStatus('idle');
-      setErrorMessage(error.message || 'Hubo un error al enviar el correo.');
+      setErrorMessage(error.message || 'Error al enviar respuesta.');
     }
   };
 
-  const isReplied = message.status === 'replied';
+  if (!message) return null;
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/25 backdrop-blur-sm" />
+        <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
               <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all border border-secondary-200">
                 
-                {/* ✅ VISTA DE ÉXITO 
-                    Si status es 'success', mostramos esto en lugar del formulario
-                */}
                 {status === 'success' ? (
-                  <div className="p-12 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-300">
+                  <div className="p-12 flex flex-col items-center text-center">
                     <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
                       <CheckCircle2 className="w-8 h-8" />
                     </div>
                     <h3 className="text-xl font-bold text-secondary-900 mb-2">¡Respuesta Enviada!</h3>
-                    <p className="text-secondary-500 mb-8 max-w-sm">
-                      El correo ha sido enviado correctamente a {message.name} y el estado se ha actualizado.
-                    </p>
-                    <button
-                      onClick={handleClose}
-                      className="px-6 py-2 bg-secondary-900 text-white rounded-lg hover:bg-secondary-800 transition-colors font-medium"
-                    >
-                      Cerrar ventana
-                    </button>
+                    <p className="text-secondary-500 mb-6">El correo se agrupará en el hilo de Gmail del cliente.</p>
+                    <button onClick={handleClose} className="px-6 py-2 bg-secondary-900 text-white rounded-lg font-medium">Cerrar</button>
                   </div>
                 ) : (
-                  /* ✅ VISTA NORMAL (Formulario) */
                   <>
-                    {/* Header */}
                     <div className="flex justify-between items-center p-6 border-b border-secondary-100 bg-secondary-50/50">
-                      <Dialog.Title as="h3" className="text-lg font-bold text-secondary-900 leading-6">
-                        Detalles del Mensaje
-                      </Dialog.Title>
-                      <button onClick={handleClose} className="text-secondary-400 hover:text-secondary-600 transition-colors">
-                        <X className="w-5 h-5" />
-                      </button>
+                      <Dialog.Title as="h3" className="text-lg font-bold text-secondary-900">Detalles del Mensaje</Dialog.Title>
+                      <button onClick={handleClose} className="text-secondary-400 hover:text-secondary-600"><X className="w-5 h-5" /></button>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-6 space-y-6">
-                      
-                      {/* Info Remitente */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-secondary-500 uppercase tracking-wider">De</div>
-                          <div className="flex items-center gap-2 text-secondary-900 font-medium">
-                            <User className="w-4 h-4 text-secondary-400" />
-                            {message.name}
-                          </div>
-                          <div className="text-sm text-secondary-500 pl-6">{message.phone || 'Sin teléfono'}</div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-secondary-500 uppercase tracking-wider">Email</div>
-                          <div className="flex items-center gap-2 text-secondary-900 font-medium">
-                            <Mail className="w-4 h-4 text-secondary-400" />
-                            <a href={`mailto:${message.email}`} className="hover:text-primary-600 underline decoration-dotted">
-                              {message.email}
-                            </a>
-                          </div>
-                        </div>
+                    <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                      {/* Remitente */}
+                      <div className="flex flex-wrap gap-6 text-sm">
+                        <div><span className="text-secondary-500 uppercase text-[10px] font-bold block mb-1">Cliente</span><div className="flex items-center gap-2 font-medium"><User className="w-4 h-4 text-secondary-400" />{message.name}</div></div>
+                        <div><span className="text-secondary-500 uppercase text-[10px] font-bold block mb-1">Email</span><div className="flex items-center gap-2 font-medium"><Mail className="w-4 h-4 text-secondary-400" />{message.email}</div></div>
                       </div>
-
-                      <hr className="border-secondary-100" />
 
                       {/* Mensaje Original */}
-                      <div>
-                        <div className="flex justify-between items-baseline mb-2">
-                          <h4 className="font-bold text-secondary-900">{message.subject}</h4>
-                          <span className="flex items-center gap-1.5 text-xs text-secondary-400">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {new Date(message.created_at).toLocaleDateString('es-PE', {
-                              day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                            })}
-                          </span>
+                      <div className="bg-secondary-50 p-4 rounded-xl border border-secondary-100">
+                        <div className="flex justify-between mb-2 italic text-secondary-500 text-xs">
+                          <span>Recibido el {new Date(message.created_at).toLocaleDateString()}</span>
                         </div>
-                        <div className="bg-secondary-50 p-4 rounded-xl border border-secondary-100 text-secondary-700 text-sm leading-relaxed whitespace-pre-wrap">
-                          {message.message}
-                        </div>
+                        <p className="text-sm text-secondary-700 whitespace-pre-wrap">{message.message}</p>
                       </div>
 
-                      {/* Área de Respuesta */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label htmlFor="reply" className="block text-sm font-medium text-secondary-900">
-                            Responder al cliente
-                          </label>
-                          {isReplied && (
-                            <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                              Ya respondido
-                            </span>
-                          )}
+                      {/* Historial de Respuestas */}
+                      {replies.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-[10px] font-bold text-primary-600 uppercase">
+                            <MessageSquare className="w-3 h-3" /> Historial de respuestas
+                          </div>
+                          {replies.map(r => (
+                            <div key={r.id} className="bg-primary-50/30 p-3 rounded-lg border border-primary-100">
+                              <div className="flex justify-between text-[10px] mb-1">
+                                <span className="font-bold text-primary-700">{r.admin?.full_name}</span>
+                                <span className="text-secondary-400">{new Date(r.created_at).toLocaleString()}</span>
+                              </div>
+                              <p className="text-xs text-secondary-700">{r.content}</p>
+                            </div>
+                          ))}
                         </div>
-                        
+                      )}
+
+                      {/* Editor de Respuesta */}
+                      <div className="space-y-3 pt-4 border-t border-secondary-100">
+                        <label className="text-sm font-bold text-secondary-900">Escribir nueva respuesta</label>
                         <textarea
-                          id="reply"
-                          rows={5}
-                          className="w-full rounded-xl border-secondary-200 focus:border-primary-500 focus:ring-primary-500 text-sm shadow-sm placeholder:text-secondary-400"
-                          placeholder={isReplied ? "Este mensaje ya fue respondido, pero puedes enviar otro correo..." : "Escribe tu respuesta aquí..."}
+                          rows={4}
+                          className="w-full rounded-xl border-secondary-200 text-sm focus:ring-primary-500"
+                          placeholder="Tu respuesta se enviará como un hilo en Gmail..."
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
                         />
-                        
-                        {/* Mensaje de error si falla */}
-                        {errorMessage && (
-                          <div className="text-red-600 text-sm bg-red-50 p-2 rounded-lg border border-red-100">
-                            {errorMessage}
-                          </div>
-                        )}
+                        {errorMessage && <div className="text-red-500 text-xs">{errorMessage}</div>}
                       </div>
                     </div>
 
-                    {/* Footer Actions */}
-                    <div className="bg-secondary-50 p-6 flex justify-end gap-3 border-t border-secondary-100">
-                      <button
-                        type="button"
-                        onClick={handleClose}
-                        className="px-4 py-2 text-sm font-medium text-secondary-700 bg-white border border-secondary-300 rounded-lg hover:bg-secondary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500"
-                      >
-                        Cerrar
-                      </button>
-                      <button
-                        type="button"
+                    <div className="bg-secondary-50 p-6 flex justify-end gap-3 border-t">
+                      <button onClick={handleClose} className="px-4 py-2 text-sm text-secondary-600 font-medium">Cancelar</button>
+                      <button 
                         onClick={handleSendReply}
                         disabled={status === 'sending' || !replyText.trim()}
-                        className={cn(
-                          "inline-flex justify-center items-center gap-2 px-4 py-2 text-sm font-medium text-white border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all",
-                          status === 'sending' || !replyText.trim() 
-                            ? "bg-secondary-300 cursor-not-allowed" 
-                            : "bg-primary-600 hover:bg-primary-700 shadow-sm"
-                        )}
+                        className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 disabled:opacity-50"
                       >
-                        {status === 'sending' ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Enviando...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4" />
-                            Enviar Respuesta
-                          </>
-                        )}
+                        {status === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Enviar Respuesta
                       </button>
                     </div>
                   </>
                 )}
-
               </Dialog.Panel>
             </Transition.Child>
           </div>

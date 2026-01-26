@@ -1,4 +1,3 @@
-// src/pages/api/send-reply.ts
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
@@ -33,6 +32,13 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ error: 'Faltan datos' }), { status: 400 });
     }
 
+    // --- NUEVO: OBTENER EL ID ORIGINAL PARA EL HILO DE GMAIL ---
+    const { data: originalMsg } = await supabaseAdmin
+      .from('contact_messages')
+      .select('resend_id')
+      .eq('id', id)
+      .single();
+
     // 3. REDES SOCIALES
     const { data: settingsData } = await supabasePublic
       .from('site_settings')
@@ -44,29 +50,15 @@ export const POST: APIRoute = async ({ request }) => {
       return acc;
     }, {}) || {};
 
-    // --- HELPER DE ICONOS ---
     const renderSocialIcon = (url: string | undefined, platform: 'facebook' | 'instagram' | 'tiktok') => {
       if (!url || url.length < 5) return ''; 
-
       const iconUrls = {
         facebook: 'https://cdn-icons-png.flaticon.com/512/145/145802.png',
         instagram: 'https://cdn-icons-png.flaticon.com/512/174/174855.png',
         tiktok: 'https://cdn-icons-png.flaticon.com/512/3046/3046121.png'
       };
-
       const labels = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok' };
-
-      return `
-        <a href="${url}" target="_blank" style="text-decoration: none; display: inline-block; margin: 0 10px;">
-          <img 
-            src="${iconUrls[platform]}" 
-            alt="${labels[platform]}" 
-            width="32" 
-            height="32" 
-            style="display: block; width: 32px; height: 32px; border: 0;" 
-          />
-        </a>
-      `;
+      return `<a href="${url}" target="_blank" style="text-decoration: none; display: inline-block; margin: 0 10px;"><img src="${iconUrls[platform]}" alt="${labels[platform]}" width="32" height="32" style="display: block; width: 32px; height: 32px; border: 0;" /></a>`;
     };
 
     const currentYear = new Date().getFullYear();
@@ -75,41 +67,41 @@ export const POST: APIRoute = async ({ request }) => {
     const emailResult = await resend.emails.send({
       from: 'La Reserva <info@lareservabartending.com>',
       to: [toEmail],
-      replyTo: 'bartendinglareserva@gmail.com', // Respuestas van a tu Gmail
-      subject: `Re: ${subject}`,
+      // ✅ BCC: Copia oculta para que Gmail reciba el correo y lo archive en el hilo
+      bcc: ['bartendinglareserva@gmail.com'], 
+      replyTo: 'bartendinglareserva@gmail.com',
+      subject: subject.startsWith('Re:') ? subject : `Re: ${subject}`,
+      // ✅ HEADERS: Relacionan técnicamente este correo con el anterior
+      headers: {
+        'In-Reply-To': originalMsg?.resend_id || '',
+        'References': originalMsg?.resend_id || ''
+      },
       html: `
         <!DOCTYPE html>
         <html>
         <head><meta charset="utf-8"></head>
         <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
           <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #ffffff; color: #333; line-height: 1.6; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-            
             <div style="background-color: #111; padding: 25px; text-align: center;">
               <h1 style="color: #D4AF37; margin: 0; font-size: 24px; letter-spacing: 2px;">LA RESERVA</h1>
             </div>
-            
             <div style="padding: 30px;">
               <p style="font-size: 16px;">Hola <strong>${clientName}</strong>,</p>
-              
               <div style="margin: 20px 0; color: #333; font-size: 15px;">
                 ${replyMessage.replace(/\n/g, '<br/>')}
               </div>
-              
               <p style="margin-top: 30px; font-size: 14px; color: #666;">
                 Atentamente,<br/>
                 <strong style="color: #D4AF37;">El equipo de La Reserva</strong>
               </p>
             </div>
-
             <div style="background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee;">
               <p style="margin-bottom: 15px; font-weight: 600; color: #888; font-size: 13px;">Síguenos en nuestras redes:</p>
-              
               <div style="margin-bottom: 20px;">
                 ${renderSocialIcon(socialLinks['social_facebook'], 'facebook')}
                 ${renderSocialIcon(socialLinks['social_instagram'], 'instagram')}
                 ${renderSocialIcon(socialLinks['social_tiktok'], 'tiktok')}
               </div>
-
               <p style="font-size: 11px; color: #aaaaaa; margin: 0;">© ${currentYear} La Reserva Bartending.</p>
             </div>
           </div>
@@ -120,16 +112,20 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (emailResult.error) throw new Error(emailResult.error.message);
 
-    // 5. ACTUALIZAR ESTADO EN DB
-    await supabaseAdmin
-      .from('contact_messages')
-      .update({ status: 'replied' })
-      .eq('id', id);
+    // 5. ACTUALIZAR ESTADO Y GUARDAR EN HISTORIAL INTERNO
+    await Promise.all([
+      supabaseAdmin.from('contact_messages').update({ status: 'replied' }).eq('id', id),
+      supabaseAdmin.from('contact_replies').insert({
+        message_id: id,
+        admin_id: user.id,
+        content: replyMessage
+      })
+    ]);
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: 'Error interno' }), { status: 500 });
+    return new Response(JSON.stringify({ error: error.message || 'Error interno' }), { status: 500 });
   }
 };

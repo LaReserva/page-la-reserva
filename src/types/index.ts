@@ -277,6 +277,15 @@ export interface TeamTask {
   assignee?: AdminUser;  // El usuario responsable
 }
 
+export interface ContactReply {
+  id: string;
+  message_id: string;
+  admin_id: string;
+  content: string;
+  created_at: string;
+  admin?: { full_name: string };
+}
+
 export interface ContactMessage {
   id: string;
   name: string;
@@ -286,6 +295,7 @@ export interface ContactMessage {
   message: string;
   status: 'new' | 'read' | 'replied';
   created_at: string;
+  resend_id?: string; // <--- Nuevo campo técnico
 }
 
 // ============================================
