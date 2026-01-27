@@ -1,14 +1,14 @@
 ---
 // src/pages/servicios/[slug].astro
 import PageLayout from '@/layouts/PageLayout.astro';
-import { supabase } from '@/lib/supabase'; // ✅ Usamos Supabase
-import { ICON_MAP, type IconName } from '@/utils/constants'; // Solo iconos
+import { supabase } from '@/lib/supabase';
+import { ICON_MAP, type IconName } from '@/utils/constants';
 import Button from '@/components/ui/Button.astro';
 import { CheckCircle2, ArrowLeft, Calendar, Users } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import type { Service } from '@/types';
 
-// 1. GENERACIÓN DE RUTAS DINÁMICAS DESDE SUPABASE
+// 1. GENERACIÓN DE RUTAS DINÁMICAS
 export async function getStaticPaths() {
   const { data: services } = await supabase
     .from('services')
@@ -21,14 +21,11 @@ export async function getStaticPaths() {
   }));
 }
 
-// 2. RECUPERAR DATOS DEL SERVICIO
+// 2. RECUPERAR DATOS
 const { service } = Astro.props;
 
-// Recuperar Icono dinámico
-const Icon = ICON_MAP[service.icon as IconName] || ICON_MAP.Martini;
-
-// 3. MAPA DE RESPALDO (FALLBACK)
-// Usamos esto solo si la BD tiene campos vacíos (mientras terminas de llenar el admin)
+// 3. MAPA DE RESPALDO (HARDCODED)
+// Se usa solo mientras terminas de llenar la base de datos
 const fallbackDetails: Record<string, any> = {
   'bartending-eventos': {
     longDesc: "Nuestro servicio insignia diseñado para bodas, aniversarios y celebraciones sociales. Nos encargamos de transformar tu barra en el punto focal de la fiesta con un servicio impecable y cócteles que tus invitados recordarán.",
@@ -36,22 +33,40 @@ const fallbackDetails: Record<string, any> = {
     includes: ["Cristalería premium completa", "Hielo y todos los insumos", "Limpieza y gestión de residuos"],
     image: "/images/services-hero.png" 
   },
-  // ... puedes dejar el resto del mapa aquí si quieres mantener compatibilidad histórica
+  'bartenders': {
+    longDesc: "Contrata a nuestros bartenders profesionales para eventos corporativos y lanzamientos de productos. Perfecto para crear un ambiente sofisticado y ofrecer una experiencia de coctelería de alta calidad que impresione a tus clientes y socios.",
+    idealFor: ["Eventos Corporativos", "Lanzamientos de Productos", "Ferias y Exposiciones", "Reuniones de Negocios"],
+    includes: ["Bartenders certificados y con experiencia", "Diseño de menú personalizado", "Servicio profesional y elegante", "Asesoría en compra de insumos", "Gestión de residuos y limpieza"],
+    image: "/images/services-hero.png" 
+  },
+  'cocteles-de-autor-y-mixologia': {
+    longDesc: "Descubre el mundo de los cócteles de autor con nuestro servicio especializado. Perfecto para eventos exclusivos donde se busca ofrecer una experiencia única y sofisticada. Nuestros mixólogos crearán bebidas innovadoras que sorprenderán a tus invitados.",
+    idealFor: ["Eventos Exclusivos", "Lanzamientos de Productos Premium", "Cenas de Gala", "Celebraciones Especiales"],
+    includes: ["Cócteles personalizados y exclusivos", "Bartenders expertos en mixología avanzada", "Presentación y garnish de alta gama", "Receta exclusiva creada para ti", "Asesoría en maridaje de bebidas"],
+    image: "/images/services-hero.png" 
+  },
+  'barra-movil': {
+    longDesc: "Lleva la experiencia de la coctelería a cualquier lugar con nuestra barra móvil. Ideal para eventos al aire libre, festivales y celebraciones en locaciones únicas. Nuestra barra completamente equipada y nuestro equipo profesional garantizan un servicio excepcional dondequiera que estés.",
+    idealFor: ["Eventos al Aire Libre", "Festivales y Ferias", "Celebraciones en Locaciones Únicas", "Bodas en Exteriores"],
+    includes: ["Barra móvil completamente equipada", "Cristalería premium completa","Decoración incluida" ,"Setup y desmontaje en el lugar del evento", "Variedad de diseños disponibles", "Cooler para hielo"],
+    image: "/images/services-hero.png"
+  }
 };
 
-// 4. LÓGICA DE DATOS FINALES (BD > Fallback)
-// Si la BD tiene 'long_description', úsala. Si no, busca en el mapa.
-const fallbackItem = fallbackDetails[service.slug] || fallbackDetails['bartending-eventos'];
+const fallback = fallbackDetails[service.slug];
 
-const longDescription = service.long_description || fallbackItem?.longDesc || service.description;
-const heroImage = service.image_url || fallbackItem?.image || "/images/services-hero.png";
+// 4. LÓGICA DE PRIORIDAD (DB > Fallback > Default)
+const Icon = ICON_MAP[service.icon as IconName] || ICON_MAP.Martini;
+const longDescription = service.long_description || fallback?.longDesc || service.description;
+const heroImage = service.image_url || fallback?.image || "/images/services-hero.png";
 
-// Para arrays como 'idealFor' o 'includes' adicionales, 
-// como no están en tu tabla actual de services (solo features),
-// usaremos los del fallback o dejaremos arrays vacíos por defecto.
-// *Nota: Sería ideal agregar columnas 'ideal_for' (text[]) a tu tabla en el futuro.
-const idealFor = fallbackItem?.idealFor || []; 
-const extraIncludes = fallbackItem?.includes || [];
+// Evitamos duplicados: Si la DB tiene features, usamos esos. Si no, los del fallback.
+const finalFeatures = (service.features && service.features.length > 0) 
+  ? service.features 
+  : (fallback?.includes || []);
+
+// Ideal para (actualmente no está en tu interface de DB, así que viene del fallback)
+const idealFor = fallback?.idealFor || [];
 ---
 
 <PageLayout title={`${service.name} | La Reserva`} description={service.description}>
@@ -82,7 +97,7 @@ const extraIncludes = fallbackItem?.includes || [];
       
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
         
-        {/* Columna Izquierda: Información (8 cols) */}
+        {/* Columna Izquierda: Información */}
         <div class="lg:col-span-8 space-y-12">
           
           {/* Descripción Larga */}
@@ -93,21 +108,11 @@ const extraIncludes = fallbackItem?.includes || [];
             </p>
           </div>
 
-          {/* Lo que incluye */}
+          {/* Lo que incluye (Corregido para evitar duplicados) */}
           <div class="bg-secondary-50 p-8 rounded-2xl border border-secondary-100">
             <h3 class="text-xl font-bold text-secondary-900 mb-6">¿Qué incluye esta experiencia?</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Features desde la BD (tabla services -> columna features) */}
-              {service.features && service.features.map(feature => (
-                <div class="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
-                  <span class="text-secondary-700">{feature}</span>
-                </div>
-              ))}
-
-              {/* Features extra (Fallback) */}
-              {extraIncludes.map((item: string) => (
+              {finalFeatures.map((item: string) => (
                 <div class="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
                   <span class="text-secondary-700">{item}</span>
@@ -116,7 +121,7 @@ const extraIncludes = fallbackItem?.includes || [];
             </div>
           </div>
 
-          {/* Ideal Para (Solo se muestra si hay datos) */}
+          {/* Ideal Para */}
           {idealFor.length > 0 && (
             <div>
               <h3 class="text-xl font-bold text-secondary-900 mb-6">Ideal para</h3>
@@ -132,7 +137,7 @@ const extraIncludes = fallbackItem?.includes || [];
 
         </div>
 
-        {/* Columna Derecha: Sidebar Sticky (4 cols) */}
+        {/* Columna Derecha: Sidebar */}
         <div class="lg:col-span-4">
           <div class="sticky top-24 bg-white border border-secondary-200 rounded-2xl p-6 shadow-lg">
             <div class="text-center mb-6 pb-6 border-b border-secondary-100">
@@ -141,7 +146,6 @@ const extraIncludes = fallbackItem?.includes || [];
             </div>
 
             <div class="space-y-4 mb-8">
-              {/* ✅ AHORA SÍ USAMOS LOS DATOS DE LA BD */}
               <div class="flex items-center gap-3 text-secondary-600">
                 <Users className="w-5 h-5 text-primary-500" />
                 <span class="text-sm">Capacidad: <strong>{service.guest_range || 'Consultar'} invitados</strong></span>
