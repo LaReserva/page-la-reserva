@@ -185,6 +185,7 @@ export interface Service {
   long_description?: string;
   price_from: number;
   features: string[];
+  ideal_for?: string[];
   icon?: string;
   image_url?: string;
   active: boolean;

@@ -25,7 +25,6 @@ export async function getStaticPaths() {
 const { service } = Astro.props;
 
 // 3. MAPA DE RESPALDO (HARDCODED)
-// Se usa solo mientras terminas de llenar la base de datos
 const fallbackDetails: Record<string, any> = {
   'bartending-eventos': {
     longDesc: "Nuestro servicio insignia diseñado para bodas, aniversarios y celebraciones sociales. Nos encargamos de transformar tu barra en el punto focal de la fiesta con un servicio impecable y cócteles que tus invitados recordarán.",
@@ -36,19 +35,19 @@ const fallbackDetails: Record<string, any> = {
   'bartenders': {
     longDesc: "Contrata a nuestros bartenders profesionales para eventos corporativos y lanzamientos de productos. Perfecto para crear un ambiente sofisticado y ofrecer una experiencia de coctelería de alta calidad que impresione a tus clientes y socios.",
     idealFor: ["Eventos Corporativos", "Lanzamientos de Productos", "Ferias y Exposiciones", "Reuniones de Negocios"],
-    includes: ["Bartenders certificados y con experiencia", "Diseño de menú personalizado", "Servicio profesional y elegante", "Asesoría en compra de insumos", "Gestión de residuos y limpieza"],
+    includes: ["Bartenders certificados y con experiencia", "Diseño de menú personalizado", "Servicio profesional y elegante"],
     image: "/images/services-hero.png" 
   },
   'cocteles-de-autor-y-mixologia': {
-    longDesc: "Descubre el mundo de los cócteles de autor con nuestro servicio especializado. Perfecto para eventos exclusivos donde se busca ofrecer una experiencia única y sofisticada. Nuestros mixólogos crearán bebidas innovadoras que sorprenderán a tus invitados.",
-    idealFor: ["Eventos Exclusivos", "Lanzamientos de Productos Premium", "Cenas de Gala", "Celebraciones Especiales"],
-    includes: ["Cócteles personalizados y exclusivos", "Bartenders expertos en mixología avanzada", "Presentación y garnish de alta gama", "Receta exclusiva creada para ti", "Asesoría en maridaje de bebidas"],
+    longDesc: "Descubre el mundo de los cócteles de autor con nuestro servicio especializado. Perfecto para eventos exclusivos donde se busca ofrecer una experiencia única y sofisticada.",
+    idealFor: ["Eventos Exclusivos", "Lanzamientos de Productos Premium", "Cenas de Gala"],
+    includes: ["Cócteles personalizados y exclusivos", "Bartenders expertos en mixología avanzada"],
     image: "/images/services-hero.png" 
   },
   'barra-movil': {
-    longDesc: "Lleva la experiencia de la coctelería a cualquier lugar con nuestra barra móvil. Ideal para eventos al aire libre, festivales y celebraciones en locaciones únicas. Nuestra barra completamente equipada y nuestro equipo profesional garantizan un servicio excepcional dondequiera que estés.",
-    idealFor: ["Eventos al Aire Libre", "Festivales y Ferias", "Celebraciones en Locaciones Únicas", "Bodas en Exteriores"],
-    includes: ["Barra móvil completamente equipada", "Cristalería premium completa","Decoración incluida" ,"Setup y desmontaje en el lugar del evento", "Variedad de diseños disponibles", "Cooler para hielo"],
+    longDesc: "Lleva la experiencia de la coctelería a cualquier lugar con nuestra barra móvil. Ideal para eventos al aire libre, festivales y celebraciones en locaciones únicas.",
+    idealFor: ["Eventos al Aire Libre", "Festivales y Ferias", "Bodas en Exteriores"],
+    includes: ["Barra móvil completamente equipada", "Cristalería premium completa", "Setup y desmontaje"],
     image: "/images/services-hero.png"
   }
 };
@@ -57,16 +56,20 @@ const fallback = fallbackDetails[service.slug];
 
 // 4. LÓGICA DE PRIORIDAD (DB > Fallback > Default)
 const Icon = ICON_MAP[service.icon as IconName] || ICON_MAP.Martini;
+
+// Textos e Imágenes
 const longDescription = service.long_description || fallback?.longDesc || service.description;
 const heroImage = service.image_url || fallback?.image || "/images/services-hero.png";
 
-// Evitamos duplicados: Si la DB tiene features, usamos esos. Si no, los del fallback.
+// Listas (Evitamos duplicados comparando si la DB tiene datos)
 const finalFeatures = (service.features && service.features.length > 0) 
   ? service.features 
   : (fallback?.includes || []);
 
-// Ideal para (actualmente no está en tu interface de DB, así que viene del fallback)
-const idealFor = fallback?.idealFor || [];
+// Lógica para ideal_for (Ahora prioriza la nueva columna de la BD)
+const finalIdealFor = (service.ideal_for && service.ideal_for.length > 0)
+  ? service.ideal_for
+  : (fallback?.idealFor || []);
 ---
 
 <PageLayout title={`${service.name} | La Reserva`} description={service.description}>
@@ -97,7 +100,7 @@ const idealFor = fallback?.idealFor || [];
       
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
         
-        {/* Columna Izquierda: Información */}
+        {/* Columna Izquierda */}
         <div class="lg:col-span-8 space-y-12">
           
           {/* Descripción Larga */}
@@ -108,7 +111,7 @@ const idealFor = fallback?.idealFor || [];
             </p>
           </div>
 
-          {/* Lo que incluye (Corregido para evitar duplicados) */}
+          {/* Lo que incluye */}
           <div class="bg-secondary-50 p-8 rounded-2xl border border-secondary-100">
             <h3 class="text-xl font-bold text-secondary-900 mb-6">¿Qué incluye esta experiencia?</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -121,12 +124,12 @@ const idealFor = fallback?.idealFor || [];
             </div>
           </div>
 
-          {/* Ideal Para */}
-          {idealFor.length > 0 && (
+          {/* Ideal Para (Usando la lógica de prioridad) */}
+          {finalIdealFor.length > 0 && (
             <div>
               <h3 class="text-xl font-bold text-secondary-900 mb-6">Ideal para</h3>
               <div class="flex flex-wrap gap-3">
-                {idealFor.map((tag: string) => (
+                {finalIdealFor.map((tag: string) => (
                   <span class="px-4 py-2 bg-white border border-secondary-200 rounded-full text-secondary-600 text-sm font-medium shadow-sm">
                     {tag}
                   </span>
@@ -137,7 +140,7 @@ const idealFor = fallback?.idealFor || [];
 
         </div>
 
-        {/* Columna Derecha: Sidebar */}
+        {/* Columna Derecha: Sidebar Sticky */}
         <div class="lg:col-span-4">
           <div class="sticky top-24 bg-white border border-secondary-200 rounded-2xl p-6 shadow-lg">
             <div class="text-center mb-6 pb-6 border-b border-secondary-100">
@@ -170,5 +173,4 @@ const idealFor = fallback?.idealFor || [];
 
     </div>
   </section>
-
 </PageLayout>
