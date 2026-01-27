@@ -41,12 +41,12 @@ const { pkg } = Astro.props;
 
   {/* Precio */}
   <div class="text-center py-6 bg-secondary-50/50">
+    <p class="text-xs text-secondary-400 mt-1 mb-2 uppercase tracking-wide">Inversión Total Desde</p>
     <div class="flex items-baseline justify-center gap-1">
       <span class="text-4xl font-bold text-primary-600">
         {formatCurrency(pkg.price)}
       </span>
     </div>
-    <p class="text-xs text-secondary-400 mt-1 uppercase tracking-wide">Inversión Total</p>
   </div>
 
   {/* Detalles Técnicos */}
