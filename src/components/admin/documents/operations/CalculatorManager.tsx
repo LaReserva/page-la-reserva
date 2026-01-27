@@ -34,7 +34,7 @@ export function CalculatorManager({ initialEvent, isFreeMode }: CalculatorManage
   const [settings, setSettings] = useState({
     guestCount: 50,
     hours: 5,
-    consumptionRate: 1.5,
+    consumptionRate: 1,
     safetyMargin: 1.10,
     extraIceBags: 0
   });
