@@ -1,17 +1,18 @@
 // src/components/admin/settings/SettingsManager.tsx
-import React, { useState, useEffect, Fragment } from 'react';
+import React, { useState, useEffect, Fragment, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { Dialog, Transition } from '@headlessui/react';
 import { 
   Save, Plus, Trash2, Settings, Package as PackageIcon, 
   Coffee, Loader2, Clock, AlertTriangle, CheckCircle, XCircle,
-  Instagram, Facebook, MapPin, Phone, Mail, Globe, AlertCircle
+  Instagram, Facebook, MapPin, Phone, Mail, Globe, AlertCircle,
+  Upload, Image as ImageIcon, X
 } from 'lucide-react';
 import type { SiteSetting, Package, Service } from '@/types';
 
 // ==========================================
-// 1. UI COMPONENTS (Solo visual, sin lógica compleja)
+// 1. UI COMPONENTS
 // ==========================================
 
 const TabButton = ({ id, label, icon: Icon, active, onClick }: any) => (
@@ -58,6 +59,79 @@ const InputField = ({ label, value, onChange, type = "text", placeholder, full =
   </div>
 );
 
+const ImageUploader = ({ value, onChange, label }: { value: string, onChange: (url: string) => void, label: string }) => {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `services/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage.from('services-images').upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('services-images').getPublicUrl(filePath);
+      onChange(data.publicUrl);
+    } catch (error: any) {
+      alert("Error al subir imagen: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-bold text-secondary-500 uppercase tracking-wide flex items-center gap-2">
+        <ImageIcon className="w-3 h-3" /> {label}
+      </label>
+      <div className="flex items-center gap-4">
+        {value ? (
+          <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-secondary-200 group">
+            <img src={value} className="w-full h-full object-cover" alt="Preview" />
+            <button type="button" onClick={() => onChange('')} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-20 h-20 rounded-lg border-2 border-dashed border-secondary-300 flex flex-col items-center justify-center text-secondary-400 hover:border-primary-500 hover:text-primary-500 transition-all bg-white">
+            {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+          </button>
+        )}
+        <input type="file" ref={fileInputRef} onChange={handleUpload} accept="image/*" className="hidden" />
+        <div className="flex-1">
+          <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-full text-[11px] p-2 bg-secondary-50 border border-secondary-200 rounded-md outline-none" placeholder="URL de la imagen..." />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TagListEditor = ({ tags = [], onChange, label }: { tags: string[], onChange: (t: string[]) => void, label: string }) => {
+  const [val, setVal] = useState('');
+  const add = () => { if (val.trim()) { onChange([...tags, val.trim()]); setVal(''); } };
+  return (
+    <div className="space-y-3">
+      <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wide">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {tags.map((t, i) => (
+          <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-secondary-100 text-secondary-700 rounded-full text-[11px] font-bold border border-secondary-200">
+            {t} <X className="w-3 h-3 cursor-pointer hover:text-red-500 transition-colors" onClick={() => onChange(tags.filter((_, idx) => idx !== i))} />
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2 max-w-md">
+        <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} className="flex-1 rounded-lg border-secondary-300 shadow-sm text-sm p-2 border outline-none focus:ring-2 focus:ring-primary-500/20" placeholder="Agregar uso ideal (ej: Bodas)..." />
+        <button type="button" onClick={add} className="p-2 bg-secondary-900 text-white rounded-lg hover:bg-black transition-colors"><Plus size={18}/></button>
+      </div>
+    </div>
+  );
+};
+
 const FeatureListEditor = ({ features = [], onChange }: { features: string[], onChange: (f: string[]) => void }) => {
   const updateFeature = (index: number, value: string) => {
     const newFeatures = [...features];
@@ -67,42 +141,31 @@ const FeatureListEditor = ({ features = [], onChange }: { features: string[], on
 
   return (
     <div className="bg-secondary-50/50 p-4 rounded-xl border border-secondary-200 space-y-3 h-full">
-      <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wide">
-        Características Incluidas
-      </label>
-      <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+      <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wide">Características Incluidas</label>
+      <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
         {features.map((feature, idx) => (
           <div key={idx} className="flex gap-2">
             <input
               type="text"
               value={feature}
               onChange={(e) => updateFeature(idx, e.target.value)}
-              className="flex-1 rounded-lg border-secondary-300 shadow-sm text-sm p-2 border focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
+              className="flex-1 rounded-lg border-secondary-300 shadow-sm text-sm p-2 border focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
               placeholder="Ej: Barra iluminada..."
             />
-            <button 
-              type="button" 
-              onClick={() => onChange(features.filter((_, i) => i !== idx))} 
-              className="text-secondary-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors"
-            >
+            <button type="button" onClick={() => onChange(features.filter((_, i) => i !== idx))} className="text-secondary-300 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors">
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
         ))}
         {features.length === 0 && <p className="text-xs text-secondary-400 italic text-center py-2">No hay características.</p>}
       </div>
-      <button 
-        type="button" 
-        onClick={() => onChange([...features, ''])} 
-        className="flex items-center justify-center gap-1.5 text-xs text-secondary-900 font-bold bg-white border border-secondary-300 px-3 py-2 rounded-lg hover:bg-secondary-50 transition-colors shadow-sm w-full"
-      >
-        <Plus className="w-3 h-3" /> Agregar Característica
+      <button type="button" onClick={() => onChange([...features, ''])} className="flex items-center justify-center gap-1.5 text-xs text-secondary-900 font-bold bg-white border border-secondary-300 px-3 py-2.5 rounded-lg hover:bg-secondary-50 transition-colors shadow-sm w-full">
+        <Plus className="w-3 h-3" /> Agregar Item
       </button>
     </div>
   );
 };
 
-// Modal de Confirmación (Headless UI)
 const DeleteModal = ({ isOpen, onClose, onConfirm, title, message }: any) => (
   <Transition appear show={isOpen} as={Fragment}>
     <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -140,15 +203,11 @@ function SettingsContent() {
   const [loading, setLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Estados de Datos
   const [settings, setSettings] = useState<SiteSetting[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-
-  // Estado del Modal de Eliminación
   const [deleteModal, setDeleteModal] = useState<{ open: boolean, id: string | null, table: 'packages' | 'services' | null }>({ open: false, id: null, table: null });
 
-  // --- LÓGICA ORIGINAL (Restaurada) ---
   useEffect(() => {
     const init = async () => {
       try {
@@ -194,20 +253,17 @@ function SettingsContent() {
     finally { setLoading(false); }
   };
 
-  // ✅ LÓGICA DE ACTUALIZACIÓN (Restaurada: Guarda lo que está en el estado)
   const handleUpdateItem = async (table: 'packages' | 'services', id: string, data: any, stateUpdater: any) => {
     setLoading(true);
     try {
       const { error } = await supabase.from(table).update({ ...data, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
-      // Confirmación visual
       stateUpdater((prev: any[]) => prev.map(item => item.id === id ? { ...item, ...data } : item));
       showToast('Guardado correctamente', 'success');
     } catch (err) { showToast('Error al actualizar', 'error'); } 
     finally { setLoading(false); }
   };
 
-  // ✅ LÓGICA DE CREACIÓN (Restaurada)
   const handleCreateItem = async (table: 'packages' | 'services') => {
     setLoading(true);
     try {
@@ -215,33 +271,25 @@ function SettingsContent() {
         const baseItem = { active: false, features: [], order_index: 99 };
         const newItemData = table === 'packages' 
             ? { ...baseItem, name: 'Nuevo Paquete', slug: `paquete-${timestamp}`, price: 0, description: '', duration: 4, guest_range: '25-50' }
-            : { ...baseItem, name: 'Nuevo Servicio', slug: `servicio-${timestamp}`, price_from: 0, description: '', duration: 4, guest_range: 'Consultar' };
+            : { ...baseItem, name: 'Nuevo Servicio', slug: `servicio-${timestamp}`, price_from: 0, description: '', duration: 4, guest_range: 'Consultar', ideal_for: [] };
 
         const { data, error } = await supabase.from(table).insert(newItemData).select().single();
         if (error) throw error;
-
-        // Actualización inmediata del estado local
         if (table === 'packages') setPackages(prev => [...prev, data as any]);
         else setServices(prev => [...prev, data as any]);
-
-        showToast(`${table === 'packages' ? 'Paquete' : 'Servicio'} creado`, 'success');
+        showToast('Creado correctamente', 'success');
     } catch (err: any) { showToast(err.message, 'error'); } 
     finally { setLoading(false); }
   };
 
-  // ✅ LÓGICA DE ELIMINACIÓN CON MODAL
-  const openDeleteModal = (table: 'packages' | 'services', id: string) => setDeleteModal({ open: true, id, table });
-  
   const confirmDelete = async () => {
     if (!deleteModal.id || !deleteModal.table) return;
     setLoading(true);
     try {
         const { error } = await supabase.from(deleteModal.table).delete().eq('id', deleteModal.id);
         if (error) throw error;
-
         if (deleteModal.table === 'packages') setPackages(prev => prev.filter(i => i.id !== deleteModal.id));
         else setServices(prev => prev.filter(i => i.id !== deleteModal.id));
-        
         showToast('Eliminado correctamente', 'success');
     } catch (err) { showToast('Error al eliminar', 'error'); } 
     finally { setLoading(false); setDeleteModal({ open: false, id: null, table: null }); }
@@ -249,10 +297,8 @@ function SettingsContent() {
 
   if (isInitializing) return <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-secondary-400" /></div>;
 
-  // --- RENDERIZADO VISUAL ---
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-secondary-200 min-h-[600px] flex flex-col overflow-hidden">
-      {/* 1. Header Tabs */}
       <div className="border-b border-secondary-200 bg-white px-6 pt-2">
         <nav className="flex space-x-2 overflow-x-auto">
           <TabButton id="general" label="General" icon={Settings} active={activeTab === 'general'} onClick={setActiveTab} />
@@ -263,7 +309,6 @@ function SettingsContent() {
       </div>
 
       <div className="p-6 md:p-8 bg-secondary-50/30 flex-1 overflow-y-auto">
-        {/* --- TAB GENERAL --- */}
         {activeTab === 'general' && (
           <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className="bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm space-y-6">
@@ -279,14 +324,13 @@ function SettingsContent() {
                 </div>
             </div>
             <div className="flex justify-end">
-                <button onClick={saveGeneralSettings} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-6 py-2.5 rounded-xl hover:bg-black disabled:opacity-50 transition-all shadow-lg">
+                <button onClick={saveGeneralSettings} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-6 py-2.5 rounded-xl hover:bg-black transition-all shadow-lg">
                     {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />} Guardar General
                 </button>
             </div>
           </div>
         )}
 
-        {/* --- TAB HORARIOS --- */}
         {activeTab === 'hours' && (
           <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
              <div className="bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm grid grid-cols-1 gap-6">
@@ -298,134 +342,121 @@ function SettingsContent() {
                 <InputField label="Tiempo de Respuesta" value={getSettingValue('response_time')} onChange={(v:any) => updateSettingState('response_time', v)} icon={<AlertCircle className="w-3 h-3"/>} helpText="Mensaje visible en el formulario de contacto."/>
              </div>
              <div className="flex justify-end">
-                <button onClick={saveGeneralSettings} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-6 py-2.5 rounded-xl hover:bg-black disabled:opacity-50 transition-all shadow-lg">
+                <button onClick={saveGeneralSettings} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-6 py-2.5 rounded-xl hover:bg-black transition-all shadow-lg">
                     {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />} Guardar Horarios
                 </button>
             </div>
           </div>
         )}
 
-        {/* --- TABS DINÁMICOS (PAQUETES / SERVICIOS) --- */}
         {(activeTab === 'packages' || activeTab === 'services') && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {/* Header de Sección */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm gap-4">
-               <div>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm gap-4">
+                <div>
                   <h3 className="text-xl font-bold text-secondary-900">{activeTab === 'packages' ? 'Paquetes de Bar' : 'Servicios Adicionales'}</h3>
                   <p className="text-sm text-secondary-500">Administra el contenido que verán tus clientes.</p>
-               </div>
-               <button onClick={() => handleCreateItem(activeTab)} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                </div>
+                <button onClick={() => handleCreateItem(activeTab)} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg">
                   <Plus className="w-4 h-4" /> Crear Nuevo
-               </button>
+                </button>
             </div>
 
-            {/* Grid de Items */}
             <div className="grid gap-6">
-               {(activeTab === 'packages' ? packages : services).map((item) => (
-                 <div key={item.id} className="bg-white rounded-2xl border border-secondary-200 p-6 shadow-sm hover:border-secondary-300 transition-all group">
-                    {/* Cabecera del Item */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6 border-b border-secondary-100 pb-4">
+                {(activeTab === 'packages' ? packages : services).map((item) => (
+                 <div key={item.id} className="bg-white rounded-2xl border border-secondary-200 p-6 shadow-sm group">
+                    <div className="flex justify-between items-start gap-4 mb-6 border-b border-secondary-100 pb-4">
                         <div className="flex items-center gap-4 w-full">
                             <div className={`p-3 rounded-xl shrink-0 ${item.active ? 'bg-green-100 text-green-700' : 'bg-secondary-100 text-secondary-500'}`}>
                                 {activeTab === 'packages' ? <PackageIcon size={24} /> : <Coffee size={24} />}
                             </div>
                             <div className="flex-1">
                                 <h4 className="font-bold text-lg text-secondary-900">{item.name || 'Sin Nombre'}</h4>
-                                <div className="flex flex-wrap items-center gap-3 mt-1">
-                                    <button 
-                                        onClick={() => handleUpdateItem(activeTab, item.id, { active: !item.active }, activeTab === 'packages' ? setPackages : setServices)}
-                                        className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors ${item.active ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
-                                    >
-                                        {item.active ? <CheckCircle size={12}/> : <XCircle size={12}/>}
-                                        {item.active ? 'Activo' : 'Inactivo'}
+                                <div className="flex items-center gap-3 mt-1">
+                                    <button onClick={() => handleUpdateItem(activeTab, item.id, { active: !item.active }, activeTab === 'packages' ? setPackages : setServices)} className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors ${item.active ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
+                                        {item.active ? <CheckCircle size={12}/> : <XCircle size={12}/>} {item.active ? 'Activo' : 'Inactivo'}
                                     </button>
-                                    <span className="text-[10px] text-secondary-400 font-mono bg-secondary-50 px-2 py-1 rounded">ID: {item.id.slice(0,8)}</span>
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => openDeleteModal(activeTab, item.id)} className="text-secondary-300 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors shrink-0">
-                            <Trash2 className="w-5 h-5" />
-                        </button>
+                        <button onClick={() => setDeleteModal({ open: true, id: item.id, table: activeTab })} className="text-secondary-300 hover:text-red-600 p-2 rounded-lg transition-colors shrink-0"><Trash2 className="w-5 h-5" /></button>
                     </div>
 
-                    {/* Formulario del Item (Lógica Original: onChange actualiza estado local) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-6">
                         <div className="lg:col-span-2 space-y-5">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <InputField label="Nombre" value={item.name} onChange={(v: any) => {
-                                    const updater = activeTab === 'packages' ? setPackages : setServices;
-                                    updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, name: v } : i));
-                                }} />
-                                <InputField label="Slug (URL)" value={item.slug} onChange={(v: any) => {
-                                    const updater = activeTab === 'packages' ? setPackages : setServices;
-                                    updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, slug: v } : i));
-                                }} icon={<Globe className="w-3 h-3"/>} />
+                                <InputField label="Nombre" value={item.name} onChange={(v: any) => (activeTab === 'packages' ? setPackages : setServices)((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, name: v } : i))} />
+                                <InputField label="Slug (URL)" value={item.slug} onChange={(v: any) => (activeTab === 'packages' ? setPackages : setServices)((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, slug: v } : i))} icon={<Globe className="w-3 h-3"/>} />
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <InputField 
-                                    type="number" 
-                                    label={activeTab === 'packages' ? "Precio" : "Desde"} 
-                                    value={activeTab === 'packages' ? (item as Package).price : (item as Service).price_from} 
-                                    onChange={(v: any) => {
-                                        const val = Number(v);
-                                        const updater = activeTab === 'packages' ? setPackages : setServices;
-                                        const field = activeTab === 'packages' ? 'price' : 'price_from';
-                                        updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, [field]: val } : i));
-                                    }} 
+
+                            {activeTab === 'services' && (
+                              <>
+                                <ImageUploader 
+                                  label="Imagen del Servicio" 
+                                  value={(item as Service).image_url || ''} 
+                                  onChange={(url) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, image_url: url } : i))} 
                                 />
-                                <InputField type="number" label="Horas" value={item.duration} onChange={(v: any) => {
-                                    const updater = activeTab === 'packages' ? setPackages : setServices;
-                                    updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, duration: Number(v) } : i));
-                                }} />
-                                <InputField label="Personas" value={item.guest_range} onChange={(v: any) => {
-                                    const updater = activeTab === 'packages' ? setPackages : setServices;
-                                    updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, guest_range: v } : i));
-                                }} />
-                            </div>
-                            <InputField type="textarea" label="Descripción" value={item.description} onChange={(v: any) => {
-                                const updater = activeTab === 'packages' ? setPackages : setServices;
-                                updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, description: v } : i));
-                            }} />
+                                
+                                <div className="grid grid-cols-3 gap-4">
+                                    <InputField type="number" label="Desde" value={(item as Service).price_from} onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, price_from: Number(v) } : i))} />
+                                    <InputField type="number" label="Horas" value={item.duration} onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, duration: Number(v) } : i))} />
+                                    <InputField label="Personas" value={item.guest_range} onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, guest_range: v } : i))} />
+                                </div>
+
+                                <InputField type="textarea" label="Descripción Corta" value={item.description} onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, description: v } : i))} />
+                                
+                                <InputField 
+                                  type="textarea" 
+                                  label="Descripción Larga (Página de Detalle)" 
+                                  value={(item as Service).long_description || ''} 
+                                  onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, long_description: v } : i))} 
+                                />
+                              </>
+                            )}
+
+                            {activeTab === 'packages' && (
+                              <>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <InputField type="number" label="Precio" value={(item as Package).price} onChange={(v: any) => setPackages((prev) => prev.map((i: any) => i.id === item.id ? { ...i, price: Number(v) } : i))} />
+                                    <InputField type="number" label="Horas" value={item.duration} onChange={(v: any) => setPackages((prev) => prev.map((i: any) => i.id === item.id ? { ...i, duration: Number(v) } : i))} />
+                                    <InputField label="Personas" value={item.guest_range} onChange={(v: any) => setPackages((prev) => prev.map((i: any) => i.id === item.id ? { ...i, guest_range: v } : i))} />
+                                </div>
+                                <InputField type="textarea" label="Descripción" value={item.description} onChange={(v: any) => setPackages((prev) => prev.map((i: any) => i.id === item.id ? { ...i, description: v } : i))} />
+                              </>
+                            )}
                         </div>
-                        <div className="lg:col-span-1">
-                            <FeatureListEditor features={item.features || []} onChange={(newFeatures) => {
-                                const updater = activeTab === 'packages' ? setPackages : setServices;
-                                updater((prev: any[]) => prev.map(i => i.id === item.id ? { ...i, features: newFeatures } : i));
-                            }} />
+
+                        <div className="lg:col-span-1 space-y-6">
+                            <FeatureListEditor 
+                              features={item.features || []} 
+                              onChange={(newFeatures) => (activeTab === 'packages' ? setPackages : setServices)((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, features: newFeatures } : i))} 
+                            />
                         </div>
                     </div>
 
-                    {/* Botón Guardar Individual */}
+                    {/* SECCIÓN IDEAL PARA OCUPANDO EL ANCHO COMPLETO AL FINAL DE LOS SERVICIOS */}
+                    {activeTab === 'services' && (
+                      <div className="pt-4 border-t border-secondary-50">
+                        <TagListEditor 
+                          label="Ideal Para" 
+                          tags={(item as Service).ideal_for || []} 
+                          onChange={(t) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, ideal_for: t } : i))} 
+                        />
+                      </div>
+                    )}
+
                     <div className="mt-6 pt-4 border-t border-secondary-100 flex justify-end">
-                        <button 
-                            onClick={() => handleUpdateItem(activeTab, item.id, item, activeTab === 'packages' ? setPackages : setServices)} 
-                            disabled={loading} 
-                            className="flex items-center gap-2 bg-white border border-secondary-300 text-secondary-700 px-5 py-2 rounded-xl text-sm font-bold hover:bg-secondary-50 hover:text-secondary-900 hover:border-secondary-400 transition-colors shadow-sm"
-                        >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            Guardar Cambios
+                        <button onClick={() => handleUpdateItem(activeTab, item.id, item, activeTab === 'packages' ? setPackages : setServices)} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-sm">
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar Cambios
                         </button>
                     </div>
                  </div>
-               ))}
-               {(activeTab === 'packages' ? packages : services).length === 0 && (
-                   <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-secondary-200">
-                       <p className="text-secondary-400">No hay elementos creados aún.</p>
-                   </div>
-               )}
+                ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* MODAL ELIMINAR */}
-      <DeleteModal 
-        isOpen={deleteModal.open} 
-        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
-        onConfirm={confirmDelete}
-        title="¿Eliminar elemento?"
-        message="Esta acción no se puede deshacer. El elemento dejará de ser visible inmediatamente."
-      />
+      <DeleteModal isOpen={deleteModal.open} onClose={() => setDeleteModal({ ...deleteModal, open: false })} onConfirm={confirmDelete} title="¿Eliminar elemento?" message="Esta acción no se puede deshacer." />
     </div>
   );
 }
