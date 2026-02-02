@@ -3,14 +3,13 @@
 export const prerender = true;
 import PageLayout from '@/layouts/PageLayout.astro';
 import { QuoteForm } from '@/components/forms/QuoteForm';
-import { CheckCircle2, Clock, ShieldCheck, Star } from 'lucide-react';
+import { CheckCircle2, Clock, ShieldCheck, Star, HelpCircle, ChevronDown } from 'lucide-react'; // Añadidos solo los iconos necesarios
 import { supabase } from '@/lib/supabase';
 import type { Package, Service } from '@/types';
 
 // 1. Fetch de Paquetes Activos
 const { data: packagesData } = await supabase
   .from('packages')
-  // ✅ CORRECCIÓN CRÍTICA: Agregamos 'slug' aquí para que el formulario pueda comparar
   .select('id, name, price, slug') 
   .eq('active', true)
   .order('order_index');
@@ -24,6 +23,55 @@ const { data: servicesData } = await supabase
 
 const packages = (packagesData || []) as unknown as Package[];
 const services = (servicesData || []) as unknown as Service[];
+
+// Definición con tipado fuerte para TypeScript
+interface FAQ {
+  question: string;
+  answer: string;
+}
+
+const faqs: FAQ[] = [
+  {
+    question: "¿Cómo reservo mi fecha y cuál es la modalidad de pago?",
+    answer: "La fecha se asegura con el 50% del costo total del paquete. Aceptamos efectivo, transferencias y billeteras digitales. Una vez aprobado el presupuesto, firmamos un contrato para formalizar el servicio."
+  },
+  {
+    question: "¿Qué incluye exactamente el servicio 'Todo Incluido'?",
+    answer: "Incluye la barra móvil, bartenders profesionales, cristalería de vidrio, equipos de bar, hielo e insumos necesarios (jarabes, jugos naturales, guarniciones). No incluye costos de movilidad."
+  },
+  {
+    question: "¿Ustedes proveen el alcohol o puedo ponerlo yo?",
+    answer: "Somos flexibles: podemos proveer etiquetas premium o tú puedes poner el alcohol y nosotros nos encargamos de los insumos artesanales y el servicio profesional."
+  },
+  {
+    question: "¿Cuántas horas de servicio brindan y puedo pedir horas extra?",
+    answer: "Nuestros paquetes estándar son de 4 o 5 horas. Si el evento se extiende, puedes contratar horas adicionales coordinando con nuestro staff 30 minutos antes del cierre."
+  },
+  {
+    question: "¿Cuántos bartenders envían para mi evento?",
+    answer: "Para garantizar rapidez y evitar colas, enviamos un bartender profesional por cada 50 invitados."
+  },
+  {
+    question: "¿Pueden crear un cóctel personalizado o de autor?",
+    answer: "Sí, nos especializamos en coctelería de autor y podemos diseñar recetas exclusivas inspiradas en tu boda o identidad corporativa."
+  },
+  {
+    question: "¿Qué espacio y requerimientos técnicos necesitan?",
+    answer: "Requerimos un espacio mínimo de 2x2 metros para la barra, además de acceso cercano a puntos de agua y conexión eléctrica."
+  },
+  {
+    question: "¿Con cuánto tiempo de anticipación llegan para el montaje?",
+    answer: "Llegamos entre 1 y 3 horas antes del inicio, dependiendo de la complejidad del montaje, para asegurar que todo esté listo a tiempo."
+  },
+  {
+    question: "¿Qué sucede si tengo más invitados de lo planeado el mismo día?",
+    answer: "Calculamos insumos según el contrato. Si el número de invitados aumenta repentinamente, no podemos garantizar el servicio para los excedentes por el límite de insumos pactados."
+  },
+  {
+    question: "¿Qué diferencia a La Reserva de otros servicios?",
+    answer: "Nuestra mentalidad de hospitalidad premium y operatividad garantizada: llevamos siempre un 20% adicional de insumos críticos para que la barra nunca se detenga."
+  }
+];
 ---
 
 <PageLayout 
@@ -34,7 +82,7 @@ const services = (servicesData || []) as unknown as Service[];
   <section class="section bg-secondary-50 min-h-screen flex items-center py-20">
     <div class="container-custom">
       
-      {/* Encabezado */}
+      {/* Encabezado - Sin cambios */}
       <div class="text-center mb-12 max-w-3xl mx-auto">
         <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block">
           Empecemos a Planear
@@ -48,12 +96,11 @@ const services = (servicesData || []) as unknown as Service[];
         </p>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start mb-20">
         
-        {/* COLUMNA IZQUIERDA: Formulario */}
+        {/* COLUMNA IZQUIERDA: Formulario - Sin cambios */}
         <div class="lg:col-span-7">
           <div class="bg-white rounded-2xl shadow-xl p-6 md:p-10 border-t-4 border-primary-500">
-            {/* Pasamos los datos completos (ahora con slug) */}
             <QuoteForm 
               client:load 
               packages={packages} 
@@ -62,17 +109,10 @@ const services = (servicesData || []) as unknown as Service[];
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: Información de Confianza */}
+        {/* COLUMNA DERECHA: Información de Confianza - Sin cambios */}
         <div class="lg:col-span-5 space-y-8 lg:sticky lg:top-32">
           
-          {/* Bloque: Proceso */}
           <div class="bg-secondary-900 text-white p-8 rounded-2xl shadow-lg relative overflow-hidden">
-            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/3 -translate-y-1/3 pointer-events-none">
-              <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
-                <circle cx="100" cy="100" r="100" fill="white"/>
-              </svg>
-            </div>
-            
             <h3 class="text-xl font-bold mb-6 text-secondary-300 flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary-500" />
               ¿Qué sucede después?
@@ -103,7 +143,6 @@ const services = (servicesData || []) as unknown as Service[];
             </ul>
           </div>
 
-          {/* Bloque: Garantías */}
           <div class="bg-white p-8 rounded-2xl shadow-sm border border-secondary-100">
             <h3 class="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-primary-600" />
@@ -129,7 +168,6 @@ const services = (servicesData || []) as unknown as Service[];
             </ul>
           </div>
 
-          {/* Bloque: Social Proof */}
           <div class="flex items-center justify-center gap-2 text-secondary-500 text-sm bg-white p-4 rounded-xl border border-secondary-100">
             <div class="flex text-primary-500">
               <Star className="w-4 h-4 fill-current" />
@@ -143,6 +181,31 @@ const services = (servicesData || []) as unknown as Service[];
 
         </div>
       </div>
+
+      {/* NUEVA SECCIÓN: FAQ debajo del contenido existente */}
+      <div class="pt-12 border-t border-secondary-200">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl font-display font-bold text-secondary-900 flex items-center justify-center gap-3">
+            <HelpCircle className="w-7 h-7 text-primary-500" />
+            Preguntas Frecuentes
+          </h2>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 max-w-5xl mx-auto">
+          {faqs.map((faq: FAQ) => (
+            <details class="group bg-white p-5 rounded-xl border border-secondary-100 transition-all duration-300 open:shadow-md">
+              <summary class="flex justify-between items-center cursor-pointer list-none font-bold text-secondary-800">
+                <span class="text-sm md:text-base">{faq.question}</span>
+                <ChevronDown className="w-5 h-5 text-primary-500 transition-transform group-open:rotate-180 flex-shrink-0" />
+              </summary>
+              <p class="mt-4 text-sm text-secondary-600 leading-relaxed pt-4 border-t border-secondary-50">
+                {faq.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+
     </div>
   </section>
 
