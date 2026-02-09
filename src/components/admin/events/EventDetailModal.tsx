@@ -56,6 +56,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
   // Estados Modales Internos
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showPaymentErrorModal, setShowPaymentErrorModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Estado para el montaje del portal (evita errores de SSR en Next.js/Astro)
@@ -186,7 +187,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
     const currentPending = currentPrice - totalPaid;
     
     if (amountToPay > currentPending) {
-        alert(`Error: El monto supera el saldo pendiente.`);
+        setShowPaymentErrorModal(true);
         return;
     }
 
@@ -830,6 +831,58 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate }: EventDeta
                       {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sí, Confirmar"}
                     </button>
                   </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+
+      {/* === NUEVO: MODAL DE ERROR DE PAGO === */}
+      <Transition appear show={showPaymentErrorModal} as={Fragment}>
+        <Dialog as="div" className="relative z-[200]" onClose={() => setShowPaymentErrorModal(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-secondary-900/40 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-3xl bg-white p-8 text-center shadow-2xl transition-all border-2 border-red-100">
+                  <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
+                    <AlertCircle className="w-8 h-8" />
+                  </div>
+                  
+                  <Dialog.Title as="h3" className="text-xl font-bold text-secondary-900 mb-2">
+                    Monto Excedido
+                  </Dialog.Title>
+                  
+                  <p className="text-secondary-500 mb-6 text-sm">
+                    El monto que intentas ingresar supera el saldo pendiente del evento.
+                  </p>
+
+                  <button
+                    onClick={() => setShowPaymentErrorModal(false)}
+                    className="w-full py-3 bg-red-100 hover:bg-red-200 text-red-700 font-bold rounded-xl transition-colors"
+                  >
+                    Entendido
+                  </button>
                 </Dialog.Panel>
               </Transition.Child>
             </div>

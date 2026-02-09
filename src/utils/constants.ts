@@ -83,13 +83,13 @@ export const SOCIAL_LINKS = {
 // ============================================
 
 export const GUEST_LIMITS = {
-  min: 25,
+  min: 15,
   max: 500,
   recommended: 100,
 } as const;
 
 export const GUEST_RANGES = [
-  { value: '25-50', label: '25 - 50 invitados' },
+  { value: '15-50', label: '15 - 50 invitados' },
   { value: '51-100', label: '51 - 100 invitados' },
   { value: '101-200', label: '101 - 200 invitados' },
   { value: '201-300', label: '201 - 300 invitados' },
@@ -102,7 +102,7 @@ export const VALIDATION = {
   email: { max: 255 },
   phone: { min: 9, max: 15 },
   message: { min: 10, max: 1000 },
-  guests: { min: 25, max: 500 },
+  guests: { min: 15, max: 500 },
 } as const;
 
 // ============================================

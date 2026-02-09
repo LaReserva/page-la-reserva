@@ -13,11 +13,14 @@ import { useUserRole } from '@/hooks/useUserRole';
 
 // --- CONSTANTS ---
 const AVAILABLE_PACKAGES = [
-  { value: 'esencial', label: 'Esencial' },
-  { value: 'premium', label: 'Premium' },
-  { value: 'exclusive', label: 'Exclusive' },
-  { value: 'corporativo-esencial', label: 'Corporativo Esencial' },
-  { value: 'corporativo-premium', label: 'Corporativo Premium' },
+  { value: 'personalizado', label: 'Personalizado' },
+  { value: 'pack-pisco-65', label: 'Pack Pisco 65' },
+  { value: 'pack-pisco-ron-85', label: 'Pack Pisco & Ron 85' },
+  { value: 'pack-pisco-120', label: 'Pack Pisco 120' },
+  { value: 'pack-pisco-ron-120', label: 'Pack Pisco & Ron 120' },
+  { value: 'paquete-completo', label: 'Paquete Completo' },
+  { value: 'paquete-premium', label: 'Paquete Premium' },
+  { value: 'barra-bartender', label: 'Solo Bartender' },
   { value: 'barra-movil', label: 'Solo Barra Móvil' },
 ];
 

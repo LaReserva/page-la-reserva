@@ -51,19 +51,26 @@ const title = "Mi Perfil | La Reserva Admin";
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      // ✅ 3. Seguridad mejorada: Guardamos la ruta para volver después
       sessionStorage.setItem('redirect_to', window.location.pathname);
       window.location.href = '/admin/login';
     } else {
-      // Si hay sesión, mostrar el contenido suavemente
+      // 1. Mostrar el contenido principal
       const content = document.getElementById('profile-content');
       if (content) {
         content.classList.remove('opacity-0');
       }
+
+      // 2. Ocultar el Loader (¡Esto es lo que faltaba!)
+      const loader = document.getElementById('permission-loader');
+      if (loader) {
+        loader.style.display = 'none';
+      }
     }
   }
 
+  // Ejecutamos la verificación
   checkSession();
 
+  // Aseguramos que corra en navegaciones de Astro (ViewTransitions)
   document.addEventListener('astro:page-load', checkSession);
 </script>

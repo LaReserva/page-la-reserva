@@ -24,19 +24,6 @@ function ContactFormContent() {
     try {
       setIsSubmitting(true);
 
-      // 1. PRIMERO: Guardar en Base de Datos (Respaldo seguro)
-      // Usamos 'as any' temporalmente hasta que actualices los tipos de la BD
-      const { error: dbError } = await supabase.from('contact_messages' as any).insert({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        subject: data.subject,
-        message: data.message,
-        status: 'new'
-      } as any);
-
-      if (dbError) throw new Error(`Error BD: ${dbError.message}`);
-
       // 2. SEGUNDO: Enviar el correo a través de nuestra API
       const response = await fetch('/api/send-contact', {
         method: 'POST',

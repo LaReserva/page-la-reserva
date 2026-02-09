@@ -146,7 +146,7 @@ function QuoteFormContent({ packages, services }: QuoteFormProps) {
             {...register('guestCount', { valueAsNumber: true })} 
             id="guestCount" 
             type="number" 
-            min={25} 
+            min={15} 
             max={500} 
             className={inputClasses(!!errors.guestCount)} 
             placeholder="100" 
