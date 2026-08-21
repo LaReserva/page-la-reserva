@@ -7,6 +7,9 @@ import Button from '@/components/ui/Button.astro';
 import { CheckCircle2, ArrowLeft, Calendar, Users } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import type { Service } from '@/types';
+import { getImage } from 'astro:assets';
+import servicesHeroFallback from '@/assets/images/services-hero.png';
+
 
 // 1. GENERACIÓN DE RUTAS DINÁMICAS
 export async function getStaticPaths() {
@@ -59,7 +62,11 @@ const Icon = ICON_MAP[service.icon as IconName] || ICON_MAP.Martini;
 
 // Textos e Imágenes
 const longDescription = service.long_description || fallback?.longDesc || service.description;
-const heroImage = service.image_url || fallback?.image || "/images/services-hero.png";
+const optFallbackImage = await getImage({ src: servicesHeroFallback, format: 'webp', width: 1920 });
+const dbOrFallbackImage = service.image_url || fallback?.image;
+const heroImage = (dbOrFallbackImage && dbOrFallbackImage !== "/images/services-hero.png") 
+  ? dbOrFallbackImage 
+  : optFallbackImage.src;
 
 // Listas (Evitamos duplicados comparando si la DB tiene datos)
 const finalFeatures = (service.features && service.features.length > 0) 

@@ -9,6 +9,11 @@ import { supabase } from '@/lib/supabase';
 import { MessageSquare, FileText, CheckCircle, Wine } from 'lucide-react';
 import type { Service } from '@/types';
 
+import { getImage } from 'astro:assets';
+import servicesHeroDesktop from '@/assets/images/services-hero-desktop.png';
+import servicesHeroTablet from '@/assets/images/services-hero-tablet.png';
+import servicesHeroMobile from '@/assets/images/services-hero-mobile.png';
+
 // Fetch de datos (igual que antes)
 const { data } = await supabase
   .from('services')
@@ -24,6 +29,10 @@ const steps = [
   { icon: CheckCircle, title: "3. Detalles", desc: "Afinamos la selección." },
   { icon: Wine, title: "4. ¡Salud!", desc: "Disfruta de tu evento." }
 ];
+
+const optDesktop = await getImage({ src: servicesHeroDesktop, format: 'webp', width: 1920 });
+const optTablet = await getImage({ src: servicesHeroTablet, format: 'webp', width: 1024 });
+const optMobile = await getImage({ src: servicesHeroMobile, format: 'webp', width: 640 });
 ---
 
 <PageLayout 
@@ -36,9 +45,9 @@ const steps = [
     client:load
     title="Servicios Diseñados para Impresionar"
     subtitle="Elevamos el estándar de tu evento con mixología de autor, ingredientes premium y una atención impecable."
-    imageDesktop="/images/services-hero-desktop.png"
-    imageTablet="/images/services-hero-tablet.png"
-    imageMobile="/images/services-hero-mobile.png"
+    imageDesktop={optDesktop.src}
+    imageTablet={optTablet.src}
+    imageMobile={optMobile.src}
   />
 
   {/* 2. GRID DE SERVICIOS */}

@@ -6,6 +6,12 @@ import { HeroServices } from '@/components/sections/HeroServices';
 import Button from '@/components/ui/Button.astro';
 import Card from '@/components/ui/Card.astro';
 import { Award, Users, Heart, Clock } from 'lucide-react'; // Iconos para valores
+import { getImage, Image } from 'astro:assets';
+import aboutHeroDesktop from '@/assets/images/about-hero-desktop.png';
+import aboutHeroTablet from '@/assets/images/about-hero-tablet.png';
+import aboutHeroMobile from '@/assets/images/about-hero-mobile.png';
+import teamWorking from '@/assets/images/team-working.png';
+import pattern from '@/assets/images/pattern.png';
 
 const stats = [
   { number: '+3', label: 'Años de Experiencia', icon: Clock },
@@ -28,6 +34,11 @@ const values = [
     desc: 'Servimos personas, no solo bebidas. La calidez es nuestro sello.'
   }
 ];
+
+const optDesktop = await getImage({ src: aboutHeroDesktop, format: 'webp', width: 1920 });
+const optTablet = await getImage({ src: aboutHeroTablet, format: 'webp', width: 1024 });
+const optMobile = await getImage({ src: aboutHeroMobile, format: 'webp', width: 640 });
+const optPattern = await getImage({ src: pattern, format: 'webp', width: 100 });
 ---
 
 <PageLayout 
@@ -40,9 +51,9 @@ const values = [
     client:load
     title="Nuestra Historia"
     subtitle="Más que bartenders, somos creadores de experiencias. Descubre la pasión detrás de cada copa."
-    imageDesktop="/images/about-hero-desktop.png"
-    imageTablet="/images/about-hero-tablet.png"
-    imageMobile="/images/about-hero-mobile.png"
+    imageDesktop={optDesktop.src}
+    imageTablet={optTablet.src}
+    imageMobile={optMobile.src}
   />
 
   {/* 2. HISTORIA Y MISIÓN */}
@@ -79,8 +90,8 @@ const values = [
         {/* Imagen / Collage */}
         <div class="relative">
           <div class="aspect-[4/5] rounded-lg overflow-hidden shadow-2xl">
-            <img 
-              src="/images/team-working.png" 
+            <Image 
+              src={teamWorking} 
               alt="Equipo La Reserva en acción" 
               class="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
             />
@@ -100,7 +111,7 @@ const values = [
   {/* 3. ESTADÍSTICAS */}
   <section class="py-20 bg-secondary-900 text-white relative overflow-hidden">
     {/* Patrón de fondo */}
-    <div class="absolute inset-0 opacity-10 bg-[url('/images/pattern.png')]"></div>
+    <div class="absolute inset-0 opacity-10" style={`background-image: url('${optPattern.src}')`}></div>
     
     <div class="container-custom relative z-10">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">

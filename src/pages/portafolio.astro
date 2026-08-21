@@ -7,6 +7,11 @@ import { PortfolioGrid } from '@/components/sections/PortfolioGrid';
 import { supabase } from '@/lib/supabase';
 import type { EventImageWithEvent } from '@/types';
 
+import { getImage } from 'astro:assets';
+import portfolioHeroDesktop from '@/assets/images/portfolio-hero-desktop.png';
+import portfolioHeroTablet from '@/assets/images/portfolio-hero-tablet.png';
+import portfolioHeroMobile from '@/assets/images/portfolio-hero-mobile.png';
+
 // --- CARGA DE DATOS REALES (Server Side) ---
 
 const { data, error } = await supabase
@@ -29,6 +34,10 @@ if (error) {
 
 // Transformamos los datos (si data es null, usamos array vacío)
 const images = (data || []) as EventImageWithEvent[];
+
+const optDesktop = await getImage({ src: portfolioHeroDesktop, format: 'webp', width: 1920 });
+const optTablet = await getImage({ src: portfolioHeroTablet, format: 'webp', width: 1024 });
+const optMobile = await getImage({ src: portfolioHeroMobile, format: 'webp', width: 640 });
 ---
 
 <PageLayout 
@@ -41,9 +50,9 @@ const images = (data || []) as EventImageWithEvent[];
     client:load
     title="Nuestra Galería"
     subtitle="Una colección de momentos memorables y cócteles excepcionales creados para nuestros clientes."
-    imageDesktop="/images/portfolio-hero-desktop.png"
-    imageTablet="/images/portfolio-hero-tablet.png"
-    imageMobile="/images/portfolio-hero-mobile.png"
+    imageDesktop={optDesktop.src}
+    imageTablet={optTablet.src}
+    imageMobile={optMobile.src}
   />
 
   {/* 2. GRID PRINCIPAL */}

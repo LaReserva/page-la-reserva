@@ -9,6 +9,9 @@ import { supabase } from '@/lib/supabase';
 import { getGlobalSettings } from '@/lib/data'; // ✅ Importamos el fetcher global
 import type { Testimonial } from '@/types'; // ✅ Importamos el tipo correcto
 
+import { getImage } from 'astro:assets';
+import heroPoster from '@/assets/images/hero-poster.png';
+
 // 1. Fetch de Configuración Global (Para usar el WhatsApp actualizado en el Hero si es necesario)
 const settings = await getGlobalSettings();
 
@@ -23,6 +26,8 @@ if (error) console.error('Error fetching testimonials:', error);
 
 // Casteamos los datos al tipo correcto
 const testimonials = (testimonialsData || []) as unknown as Testimonial[];
+
+const optimizedPoster = await getImage({ src: heroPoster, format: 'webp', width: 1920 });
 ---
 
 <PageLayout title="Inicio">
@@ -35,7 +40,7 @@ const testimonials = (testimonialsData || []) as unknown as Testimonial[];
     subtitle="Transformamos tu evento en una experiencia memorable con cócteles de autor."
     videoDesktop="/videos/hero-desktop.mp4" 
     videoMobile="/videos/hero-mobile.mp4"
-    poster="/images/hero-poster.png" 
+    poster={optimizedPoster.src} 
     whatsappUrl={settings.whatsapp_url} 
   />
 

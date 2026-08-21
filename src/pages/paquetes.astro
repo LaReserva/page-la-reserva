@@ -12,6 +12,11 @@ import type { Package } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import { Plus } from 'lucide-react';
 
+import { getImage } from 'astro:assets';
+import packagesHeroDesktop from '@/assets/images/packages-hero-desktop.png';
+import packagesHeroTablet from '@/assets/images/packages-hero-tablet.png';
+import packagesHeroMobile from '@/assets/images/packages-hero-mobile.png';
+
 // 1. Fetch de Paquetes (Desde Base de Datos)
 const { data: packagesData } = await supabase
   .from('packages')
@@ -23,6 +28,10 @@ const packages = (packagesData || []) as unknown as Package[];
 
 // 2. Fetch de Configuración Global (Teléfonos, Redes, etc.)
 const settings = await getGlobalSettings();
+
+const optDesktop = await getImage({ src: packagesHeroDesktop, format: 'webp', width: 1920 });
+const optTablet = await getImage({ src: packagesHeroTablet, format: 'webp', width: 1024 });
+const optMobile = await getImage({ src: packagesHeroMobile, format: 'webp', width: 640 });
 ---
 
 <PageLayout 
@@ -35,9 +44,9 @@ const settings = await getGlobalSettings();
     client:load
     title="Paquetes Todo Incluido"
     subtitle="Diseñados para simplificar tu planificación sin sacrificar la excelencia. Elige la experiencia ideal para tus invitados."
-    imageDesktop="/images/packages-hero-desktop.png"
-    imageTablet="/images/packages-hero-tablet.png"
-    imageMobile="/images/packages-hero-mobile.png" 
+    imageDesktop={optDesktop.src}
+    imageTablet={optTablet.src}
+    imageMobile={optMobile.src} 
   />
 
   {/* 2. GRID DE PAQUETES */}

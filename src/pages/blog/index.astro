@@ -9,6 +9,9 @@ import { Calendar, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+import { getImage } from 'astro:assets';
+import pattern from '@/assets/images/pattern.png';
+
 const { data: posts } = await supabase
   .from('blog_posts')
   .select('*')
@@ -17,12 +20,14 @@ const { data: posts } = await supabase
 
 const title = "Blog & Novedades | La Reserva";
 const description = "Descubre consejos de coctelería, tendencias para eventos y el detrás de escena de nuestros servicios.";
+
+const optPattern = await getImage({ src: pattern, format: 'webp', width: 100 });
 ---
 
 <PageLayout title={title} description={description}>
   {/* Hero Section */}
   <section class="bg-secondary-900 text-white py-20 relative overflow-hidden">
-    <div class="absolute inset-0 opacity-10 bg-[url('/images/pattern.png')]"></div>
+    <div class="absolute inset-0 opacity-10" style={`background-image: url('${optPattern.src}')`}></div>
     <div class="container-custom relative z-10 text-center max-w-3xl mx-auto">
       <span class="text-primary-500 font-bold tracking-widest uppercase text-sm mb-4 block animate-fade-in-up">
         La Reserva Journal
