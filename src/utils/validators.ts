@@ -54,7 +54,7 @@ export const quoteSchema = z.object({
     }, ERROR_MESSAGES.pastDate),
   
   guestCount: z
-    .number({ invalid_type_error: ERROR_MESSAGES.required })
+    .number({ message: ERROR_MESSAGES.required })
     .min(VALIDATION.guests.min, ERROR_MESSAGES.minValue(VALIDATION.guests.min))
     .max(VALIDATION.guests.max, ERROR_MESSAGES.maxValue(VALIDATION.guests.max)),
   
