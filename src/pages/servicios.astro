@@ -6,7 +6,7 @@ import ServiceCard from '@/components/sections/ServiceCard.astro';
 import Button from '@/components/ui/Button.astro';
 import { HeroServices } from '@/components/sections/HeroServices'; // ✅ Importamos el nuevo componente
 import { supabase } from '@/lib/supabase';
-import { MessageSquare, FileText, CheckCircle, Wine } from 'lucide-react';
+import { MessageSquare, FileText, CheckCircle, Calendar, Wine } from 'lucide-react';
 import type { Service } from '@/types';
 
 import { getImage } from 'astro:assets';
@@ -24,10 +24,11 @@ const { data } = await supabase
 const services = (data || []) as Service[];
 
 const steps = [
-  { icon: MessageSquare, title: "1. Consulta", desc: "Cuéntanos sobre tu evento." },
-  { icon: FileText, title: "2. Propuesta", desc: "Recibe cotización en 24-48h." },
-  { icon: CheckCircle, title: "3. Detalles", desc: "Afinamos la selección." },
-  { icon: Wine, title: "4. ¡Salud!", desc: "Disfruta de tu evento." }
+  { icon: MessageSquare, title: "1. Cuéntanos tu evento", desc: "Platícanos la fecha, lugar y estilo de celebración que estás planeando." },
+  { icon: FileText, title: "2. Diseñamos tu propuesta", desc: "Elaboramos una cotización a la medida con opciones de barra y coctelería." },
+  { icon: CheckCircle, title: "3. Definimos los detalles", desc: "Ajustamos el menú de cócteles, insumos y el estilo de la barra." },
+  { icon: Calendar, title: "4. Coordinamos todo", desc: "Nos encargamos de la logística, montaje y coordinación con tu locación." },
+  { icon: Wine, title: "5. Tú disfrutas", desc: "Nosotros nos encargamos de todo para que compartas momentos memorables con tus invitados." }
 ];
 
 const optDesktop = await getImage({ src: servicesHeroDesktop, format: 'webp', width: 1920 });
@@ -72,7 +73,7 @@ const optMobile = await getImage({ src: servicesHeroMobile, format: 'webp', widt
         <div class="w-20 h-1 bg-primary-500 mx-auto rounded-full mb-6"></div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
         {steps.map((step) => (
           <div class="text-center group p-6 rounded-xl border border-secondary-100 hover:border-primary-200 transition-colors">
             <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-secondary-50 flex items-center justify-center text-primary-600 group-hover:bg-primary-500 group-hover:text-white transition-all duration-300 shadow-sm">

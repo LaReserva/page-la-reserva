@@ -1,0 +1,229 @@
+---
+// src/pages/experiencias.astro
+export const prerender = true;
+import PageLayout from '@/layouts/PageLayout.astro';
+import { HeroServices } from '@/components/sections/HeroServices';
+import PackageCard from '@/components/sections/PackageCard.astro';
+import Button from '@/components/ui/Button.astro';
+import { supabase } from '@/lib/supabase';
+import { getGlobalSettings } from '@/lib/data'; // ✅ Importamos el fetcher
+import { ADD_ONS } from '@/utils/constants'; 
+import type { Package } from '@/types';
+import { formatCurrency } from '@/utils/formatters';
+import { Users, Wine, Clock, GlassWater, Martini, Sparkles } from 'lucide-react';
+
+import { getImage, Image } from 'astro:assets';
+import packagesHeroDesktop from '@/assets/images/packages-hero-desktop.png';
+import packagesHeroTablet from '@/assets/images/packages-hero-tablet.png';
+import packagesHeroMobile from '@/assets/images/packages-hero-mobile.png';
+import barmanImage from '@/assets/images/Barman.jpeg';
+
+// 1. Fetch de Experiencias (Desde la tabla packages de la Base de Datos)
+const { data: packagesData } = await supabase
+  .from('packages')
+  .select('*')
+  .eq('active', true)
+  .order('order_index');
+
+const packages = (packagesData || []) as unknown as Package[];
+
+// 2. Fetch de Configuración Global (Teléfonos, Redes, etc.)
+const settings = await getGlobalSettings();
+
+const optDesktop = await getImage({ src: packagesHeroDesktop, format: 'webp', width: 1920 });
+const optTablet = await getImage({ src: packagesHeroTablet, format: 'webp', width: 1024 });
+const optMobile = await getImage({ src: packagesHeroMobile, format: 'webp', width: 640 });
+---
+
+<PageLayout 
+  title="Experiencias de Eventos"
+  description="Experiencias completas de bartending para bodas, eventos corporativos y celebraciones en Lima. Todo incluido para tu tranquilidad."
+>
+  
+  {/* 1. HERO */}
+  <HeroServices
+    client:load
+    title="Experiencias Todo Incluido"
+    subtitle="Diseñados para simplificar tu planificación sin sacrificar la excelencia. Elige la experiencia ideal para tus invitados."
+    imageDesktop={optDesktop.src}
+    imageTablet={optTablet.src}
+    imageMobile={optMobile.src} 
+  />
+
+  {/* 2. GRID DE EXPERIENCIAS */}
+  <section class="section bg-secondary-50 relative">
+    <div class="container-custom relative z-10">
+      
+      <div class="text-center max-w-3xl mx-auto mb-24">
+        <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block">
+          Soluciones Completas
+        </span>
+        <h2 class="text-3xl md:text-4xl font-display font-bold text-secondary-900">
+          Encuentra tu Experiencia Ideal
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center items-start -mt-8">
+        {packages.map((pkg) => (
+          <PackageCard pkg={pkg} />
+        ))}
+      </div>
+
+    </div>
+  </section>
+
+  {/* 3. SECCIÓN: ¿QUIERES ALGO DIFERENTE? (CTA PERSONALIZADO) */}
+  <section class="section bg-secondary-900 text-white relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#D4AF37 1px, transparent 1px); background-size: 32px 32px;"></div>
+    <div class="container-custom relative z-10 max-w-6xl mx-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        
+        {/* Lado Izquierdo: Fotografía o video de coctelería real */}
+        <div class="relative w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl group/image">
+          <Image 
+            src={barmanImage} 
+            alt="Barman preparando cóctel en La Reserva" 
+            class="w-full h-full object-cover rounded-2xl transition-transform duration-700 hover:scale-[1.02]" 
+          />
+        </div>
+
+        {/* Lado Derecho: Contenido */}
+        <div class="space-y-6 text-left">
+          <h2 class="text-3xl md:text-5xl font-display font-bold text-white leading-tight">
+            ¿Quieres algo <span class="text-primary-500">diferente?</span>
+          </h2>
+          <p class="text-xl text-primary-400 font-medium leading-relaxed">
+            Diseñamos tu experiencia desde cero.
+          </p>
+          
+          <p class="text-secondary-300 text-sm uppercase tracking-widest font-semibold">
+            Podemos adaptar:
+          </p>
+
+          {/* Opciones: pills minimalistas */}
+          <div class="flex flex-wrap gap-2.5 mb-8">
+            {[
+              'Carta de cócteles', 'Temática', 'Barra', 'Cristalería',
+              'Duración', 'Presentación', 'Cócteles de autor', 'Mixología'
+            ].map((item) => (
+              <span class="px-4 py-2 bg-secondary-800/40 border border-secondary-750 text-secondary-200 text-sm font-semibold rounded-full select-none hover:border-primary-500 hover:text-primary-400 transition-colors duration-300">
+                {item}
+              </span>
+            ))}
+          </div>
+
+          <p class="text-lg text-secondary-300 leading-relaxed">
+            Cuéntanos cómo imaginas tu evento y crearemos una propuesta acorde a tus necesidades.
+          </p>
+
+          <div class="pt-4 flex">
+            <Button 
+              variant="primary"
+              size="lg"
+              href={settings.whatsapp_url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="w-full sm:w-auto text-center"
+            >
+              Diseñar mi experiencia
+            </Button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  {/* 4. SECCIÓN: ¿QUÉ DETERMINA EL PRECIO DE TU EXPERIENCIA? */}
+  <section class="section bg-white border-t border-secondary-100">
+    <div class="container-custom">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-display font-bold text-secondary-900 mb-4">
+          ¿Qué determina el precio de tu experiencia?
+        </h2>
+        <div class="w-20 h-1 bg-primary-500 mx-auto rounded-full mb-6"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Factor 1 */}
+        <div class="p-6 rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-md transition-all bg-white flex items-start gap-4 group">
+          <div class="p-2.5 bg-primary-50 text-primary-600 rounded-lg group-hover:bg-primary-500 group-hover:text-white transition-colors flex-shrink-0">
+            <Users className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-secondary-900 mb-2">Número de invitados</h3>
+            <p class="text-sm text-secondary-500 leading-relaxed">
+              El costo por persona puede disminuir en eventos de mayor volumen.
+            </p>
+          </div>
+        </div>
+
+        {/* Factor 2 */}
+        <div class="p-6 rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-md transition-all bg-white flex items-start gap-4 group">
+          <div class="p-2.5 bg-primary-50 text-primary-600 rounded-lg group-hover:bg-primary-500 group-hover:text-white transition-colors flex-shrink-0">
+            <Wine className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-secondary-900 mb-2">Carta de cócteles</h3>
+            <p class="text-sm text-secondary-500 leading-relaxed">
+              Una carta sencilla no requiere la misma preparación que una experiencia de coctelería de autor.
+            </p>
+          </div>
+        </div>
+
+        {/* Factor 3 */}
+        <div class="p-6 rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-md transition-all bg-white flex items-start gap-4 group">
+          <div class="p-2.5 bg-primary-50 text-primary-600 rounded-lg group-hover:bg-primary-500 group-hover:text-white transition-colors flex-shrink-0">
+            <Clock className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-secondary-900 mb-2">Duración</h3>
+            <p class="text-sm text-secondary-500 leading-relaxed">
+              La cantidad de horas de servicio afecta personal, insumos y operación.
+            </p>
+          </div>
+        </div>
+
+        {/* Factor 4 */}
+        <div class="p-6 rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-md transition-all bg-white flex items-start gap-4 group">
+          <div class="p-2.5 bg-primary-50 text-primary-600 rounded-lg group-hover:bg-primary-500 group-hover:text-white transition-colors flex-shrink-0">
+            <GlassWater className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-secondary-900 mb-2">Cristalería</h3>
+            <p class="text-sm text-secondary-500 leading-relaxed">
+              El tipo y cantidad de cristalería requerida modifica la propuesta.
+            </p>
+          </div>
+        </div>
+
+        {/* Factor 5 */}
+        <div class="p-6 rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-md transition-all bg-white flex items-start gap-4 group">
+          <div class="p-2.5 bg-primary-50 text-primary-600 rounded-lg group-hover:bg-primary-500 group-hover:text-white transition-colors flex-shrink-0">
+            <Martini className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-secondary-900 mb-2">Barra</h3>
+            <p class="text-sm text-secondary-500 leading-relaxed">
+              Desde una solución funcional hasta una barra móvil completamente equipada.
+            </p>
+          </div>
+        </div>
+
+        {/* Factor 6 */}
+        <div class="p-6 rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-md transition-all bg-white flex items-start gap-4 group">
+          <div class="p-2.5 bg-primary-50 text-primary-600 rounded-lg group-hover:bg-primary-500 group-hover:text-white transition-colors flex-shrink-0">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-secondary-900 mb-2">Personalización</h3>
+            <p class="text-sm text-secondary-500 leading-relaxed">
+              Temática, presentación, cócteles de autor, garnish, técnicas de mixología, etc.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</PageLayout>

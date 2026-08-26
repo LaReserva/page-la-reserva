@@ -155,7 +155,7 @@ function QuoteFormContent({ packages, services }: QuoteFormProps) {
         </div>
 
         <div className="relative">
-          <label htmlFor="interestedPackage" className={labelClasses}>Paquete de interés (Opcional)</label>
+          <label htmlFor="interestedPackage" className={labelClasses}>Experiencia de interés (Opcional)</label>
           <div className="relative">
             <select 
               {...register('interestedPackage')} 
