@@ -199,14 +199,13 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, title, message }: any) => (
 
 function SettingsContent() {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'general' | 'hours' | 'packages' | 'services'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'hours' | 'packages'>('general');
   const [loading, setLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
   const [settings, setSettings] = useState<SiteSetting[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean, id: string | null, table: 'packages' | 'services' | null }>({ open: false, id: null, table: null });
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean, id: string | null, table: 'packages' | null }>({ open: false, id: null, table: null });
 
   useEffect(() => {
     const init = async () => {
@@ -214,15 +213,13 @@ function SettingsContent() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { window.location.href = '/admin/login'; return; }
 
-        const [settingsRes, packagesRes, servicesRes] = await Promise.all([
+        const [settingsRes, packagesRes] = await Promise.all([
           supabase.from('site_settings').select('*'),
-          supabase.from('packages').select('*').order('order_index'),
-          supabase.from('services').select('*').order('order_index')
+          supabase.from('packages').select('*').order('order_index')
         ]);
 
         if (settingsRes.data) setSettings(settingsRes.data as any);
         if (packagesRes.data) setPackages(packagesRes.data as any);
-        if (servicesRes.data) setServices(servicesRes.data as any);
         setIsInitializing(false);
       } catch (error) {
         showToast('Error de conexión', 'error');
@@ -253,7 +250,7 @@ function SettingsContent() {
     finally { setLoading(false); }
   };
 
-  const handleUpdateItem = async (table: 'packages' | 'services', id: string, data: any, stateUpdater: any) => {
+  const handleUpdateItem = async (table: 'packages', id: string, data: any, stateUpdater: any) => {
     setLoading(true);
     try {
       const { error } = await supabase.from(table).update({ ...data, updated_at: new Date().toISOString() }).eq('id', id);
@@ -264,19 +261,16 @@ function SettingsContent() {
     finally { setLoading(false); }
   };
 
-  const handleCreateItem = async (table: 'packages' | 'services') => {
+  const handleCreateItem = async (table: 'packages') => {
     setLoading(true);
     try {
         const timestamp = Date.now();
         const baseItem = { active: false, features: [], order_index: 99 };
-        const newItemData = table === 'packages' 
-            ? { ...baseItem, name: 'Nuevo Paquete', slug: `paquete-${timestamp}`, price: 0, description: '', duration: 4, guest_range: '25-50' }
-            : { ...baseItem, name: 'Nuevo Servicio', slug: `servicio-${timestamp}`, price_from: 0, description: '', duration: 4, guest_range: 'Consultar', ideal_for: [] };
+        const newItemData = { ...baseItem, name: 'Nuevo Paquete', slug: `paquete-${timestamp}`, price: 0, description: '', duration: 4, guest_range: '25-50' };
 
         const { data, error } = await supabase.from(table).insert(newItemData).select().single();
         if (error) throw error;
-        if (table === 'packages') setPackages(prev => [...prev, data as any]);
-        else setServices(prev => [...prev, data as any]);
+        setPackages(prev => [...prev, data as any]);
         showToast('Creado correctamente', 'success');
     } catch (err: any) { showToast(err.message, 'error'); } 
     finally { setLoading(false); }
@@ -288,8 +282,7 @@ function SettingsContent() {
     try {
         const { error } = await supabase.from(deleteModal.table).delete().eq('id', deleteModal.id);
         if (error) throw error;
-        if (deleteModal.table === 'packages') setPackages(prev => prev.filter(i => i.id !== deleteModal.id));
-        else setServices(prev => prev.filter(i => i.id !== deleteModal.id));
+        setPackages(prev => prev.filter(i => i.id !== deleteModal.id));
         showToast('Eliminado correctamente', 'success');
     } catch (err) { showToast('Error al eliminar', 'error'); } 
     finally { setLoading(false); setDeleteModal({ open: false, id: null, table: null }); }
@@ -304,7 +297,6 @@ function SettingsContent() {
           <TabButton id="general" label="General" icon={Settings} active={activeTab === 'general'} onClick={setActiveTab} />
           <TabButton id="hours" label="Horarios" icon={Clock} active={activeTab === 'hours'} onClick={setActiveTab} />
           <TabButton id="packages" label="Paquetes" icon={PackageIcon} active={activeTab === 'packages'} onClick={setActiveTab} />
-          <TabButton id="services" label="Servicios" icon={Coffee} active={activeTab === 'services'} onClick={setActiveTab} />
         </nav>
       </div>
 
@@ -349,11 +341,11 @@ function SettingsContent() {
           </div>
         )}
 
-        {(activeTab === 'packages' || activeTab === 'services') && (
+        {activeTab === 'packages' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm gap-4">
                 <div>
-                  <h3 className="text-xl font-bold text-secondary-900">{activeTab === 'packages' ? 'Paquetes de Bar' : 'Servicios Adicionales'}</h3>
+                  <h3 className="text-xl font-bold text-secondary-900">Paquetes de Bar</h3>
                   <p className="text-sm text-secondary-500">Administra el contenido que verán tus clientes.</p>
                 </div>
                 <button onClick={() => handleCreateItem(activeTab)} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg">
@@ -362,17 +354,17 @@ function SettingsContent() {
             </div>
 
             <div className="grid gap-6">
-                {(activeTab === 'packages' ? packages : services).map((item) => (
+                {packages.map((item) => (
                  <div key={item.id} className="bg-white rounded-2xl border border-secondary-200 p-6 shadow-sm group">
                     <div className="flex justify-between items-start gap-4 mb-6 border-b border-secondary-100 pb-4">
                         <div className="flex items-center gap-4 w-full">
                             <div className={`p-3 rounded-xl shrink-0 ${item.active ? 'bg-green-100 text-green-700' : 'bg-secondary-100 text-secondary-500'}`}>
-                                {activeTab === 'packages' ? <PackageIcon size={24} /> : <Coffee size={24} />}
+                                <PackageIcon size={24} />
                             </div>
                             <div className="flex-1">
                                 <h4 className="font-bold text-lg text-secondary-900">{item.name || 'Sin Nombre'}</h4>
                                 <div className="flex items-center gap-3 mt-1">
-                                    <button onClick={() => handleUpdateItem(activeTab, item.id, { active: !item.active }, activeTab === 'packages' ? setPackages : setServices)} className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors ${item.active ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
+                                    <button onClick={() => handleUpdateItem(activeTab, item.id, { active: !item.active }, setPackages)} className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors ${item.active ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
                                         {item.active ? <CheckCircle size={12}/> : <XCircle size={12}/>} {item.active ? 'Activo' : 'Inactivo'}
                                     </button>
                                 </div>
@@ -384,68 +376,28 @@ function SettingsContent() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-6">
                         <div className="lg:col-span-2 space-y-5">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <InputField label="Nombre" value={item.name} onChange={(v: any) => (activeTab === 'packages' ? setPackages : setServices)((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, name: v } : i))} />
-                                <InputField label="Slug (URL)" value={item.slug} onChange={(v: any) => (activeTab === 'packages' ? setPackages : setServices)((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, slug: v } : i))} icon={<Globe className="w-3 h-3"/>} />
+                                <InputField label="Nombre" value={item.name} onChange={(v: any) => setPackages((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, name: v } : i))} />
+                                <InputField label="Slug (URL)" value={item.slug} onChange={(v: any) => setPackages((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, slug: v } : i))} icon={<Globe className="w-3 h-3"/>} />
                             </div>
 
-                            {activeTab === 'services' && (
-                              <>
-                                <ImageUploader 
-                                  label="Imagen del Servicio" 
-                                  value={(item as Service).image_url || ''} 
-                                  onChange={(url) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, image_url: url } : i))} 
-                                />
-                                
-                                <div className="grid grid-cols-3 gap-4">
-                                    <InputField type="number" label="Desde" value={(item as Service).price_from} onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, price_from: Number(v) } : i))} />
-                                    <InputField type="number" label="Horas" value={item.duration} onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, duration: Number(v) } : i))} />
-                                    <InputField label="Personas" value={item.guest_range} onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, guest_range: v } : i))} />
-                                </div>
-
-                                <InputField type="textarea" label="Descripción Corta" value={item.description} onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, description: v } : i))} />
-                                
-                                <InputField 
-                                  type="textarea" 
-                                  label="Descripción Larga (Página de Detalle)" 
-                                  value={(item as Service).long_description || ''} 
-                                  onChange={(v: any) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, long_description: v } : i))} 
-                                />
-                              </>
-                            )}
-
-                            {activeTab === 'packages' && (
-                              <>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <InputField type="number" label="Precio" value={(item as Package).price} onChange={(v: any) => setPackages((prev) => prev.map((i: any) => i.id === item.id ? { ...i, price: Number(v) } : i))} />
-                                    <InputField type="number" label="Horas" value={item.duration} onChange={(v: any) => setPackages((prev) => prev.map((i: any) => i.id === item.id ? { ...i, duration: Number(v) } : i))} />
-                                    <InputField label="Personas" value={item.guest_range} onChange={(v: any) => setPackages((prev) => prev.map((i: any) => i.id === item.id ? { ...i, guest_range: v } : i))} />
-                                </div>
-                                <InputField type="textarea" label="Descripción" value={item.description} onChange={(v: any) => setPackages((prev) => prev.map((i: any) => i.id === item.id ? { ...i, description: v } : i))} />
-                              </>
-                            )}
+                            <div className="grid grid-cols-3 gap-4">
+                                <InputField type="number" label="Precio" value={(item as Package).price} onChange={(v: any) => setPackages((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, price: Number(v) } : i))} />
+                                <InputField type="number" label="Horas" value={item.duration} onChange={(v: any) => setPackages((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, duration: Number(v) } : i))} />
+                                <InputField label="Personas" value={item.guest_range} onChange={(v: any) => setPackages((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, guest_range: v } : i))} />
+                            </div>
+                            <InputField type="textarea" label="Descripción" value={item.description} onChange={(v: any) => setPackages((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, description: v } : i))} />
                         </div>
 
                         <div className="lg:col-span-1 space-y-6">
                             <FeatureListEditor 
                               features={item.features || []} 
-                              onChange={(newFeatures) => (activeTab === 'packages' ? setPackages : setServices)((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, features: newFeatures } : i))} 
+                              onChange={(newFeatures) => setPackages((prev: any[]) => prev.map((i: any) => i.id === item.id ? { ...i, features: newFeatures } : i))} 
                             />
                         </div>
                     </div>
 
-                    {/* SECCIÓN IDEAL PARA OCUPANDO EL ANCHO COMPLETO AL FINAL DE LOS SERVICIOS */}
-                    {activeTab === 'services' && (
-                      <div className="pt-4 border-t border-secondary-50">
-                        <TagListEditor 
-                          label="Ideal Para" 
-                          tags={(item as Service).ideal_for || []} 
-                          onChange={(t) => setServices((prev) => prev.map((i: any) => i.id === item.id ? { ...i, ideal_for: t } : i))} 
-                        />
-                      </div>
-                    )}
-
                     <div className="mt-6 pt-4 border-t border-secondary-100 flex justify-end">
-                        <button onClick={() => handleUpdateItem(activeTab, item.id, item, activeTab === 'packages' ? setPackages : setServices)} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-sm">
+                        <button onClick={() => handleUpdateItem(activeTab, item.id, item, setPackages)} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-sm">
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar Cambios
                         </button>
                     </div>
