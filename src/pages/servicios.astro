@@ -26,6 +26,10 @@ import servicesHeroTablet from '@/assets/images/services-hero-tablet.png';
 import servicesHeroMobile from '@/assets/images/services-hero-mobile.png';
 import barmanImage from '@/assets/images/Barman.jpeg';
 import teamWorking from '@/assets/images/team-working.png';
+import coctelListo from '@/assets/images/coctel-listo.jpeg';
+import barraLista from '@/assets/images/barra-lista.jpeg';
+import servicioListo from '@/assets/images/servicio-listo.jpeg';
+import autorListo from '@/assets/images/autor-listo.jpeg';
 
 // Fetch de Configuración Global (Teléfonos, Redes, etc.)
 const settings = await getGlobalSettings();
@@ -83,8 +87,8 @@ const optMobile = await getImage({ src: servicesHeroMobile, format: 'webp', widt
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Izquierda: Imagen */}
           <div class="order-1 lg:order-1 rounded-2xl overflow-hidden shadow-xl aspect-[4/3] group bg-secondary-200">
-            <img 
-              src="/src/assets/images/coctel-listo.jpeg" 
+            <Image 
+              src={coctelListo} 
               alt="Coctelería de autor en La Reserva" 
               class="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.03]" 
             />
@@ -133,8 +137,8 @@ const optMobile = await getImage({ src: servicesHeroMobile, format: 'webp', widt
           </div>
           {/* Derecha: Imagen */}
           <div class="order-1 lg:order-2 rounded-2xl overflow-hidden shadow-xl aspect-[4/3] group bg-secondary-200">
-            <img 
-              src="/src/assets/images/barra-lista.jpeg" 
+            <Image 
+              src={barraLista} 
               alt="Montaje de barra móvil por La Reserva" 
               class="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.03]" 
             />
@@ -145,8 +149,8 @@ const optMobile = await getImage({ src: servicesHeroMobile, format: 'webp', widt
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Izquierda: Imagen */}
           <div class="order-1 lg:order-1 rounded-2xl overflow-hidden shadow-xl aspect-[4/3] group bg-secondary-200">
-            <img 
-              src="/src/assets/images/servicio-listo.jpeg" 
+            <Image 
+              src={servicioListo} 
               alt="Equipo de bartenders profesionales trabajando" 
               class="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.03]" 
             />
@@ -195,8 +199,8 @@ const optMobile = await getImage({ src: servicesHeroMobile, format: 'webp', widt
           </div>
           {/* Derecha: Imagen */}
           <div class="order-1 lg:order-2 rounded-2xl overflow-hidden shadow-xl aspect-[4/3] group bg-secondary-200">
-            <img 
-              src="/src/assets/images/autor-listo.jpeg" 
+            <Image 
+              src={autorListo} 
               alt="Experiencia personalizada La Reserva" 
               class="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.03]" 
             />
