@@ -2,26 +2,33 @@
 // src/pages/servicios.astro
 export const prerender = true;
 import PageLayout from '@/layouts/PageLayout.astro';
-import ServiceCard from '@/components/sections/ServiceCard.astro';
 import Button from '@/components/ui/Button.astro';
-import { HeroServices } from '@/components/sections/HeroServices'; // ✅ Importamos el nuevo componente
-import { supabase } from '@/lib/supabase';
-import { MessageSquare, FileText, CheckCircle, Calendar, Wine } from 'lucide-react';
-import type { Service } from '@/types';
+import { HeroServices } from '@/components/sections/HeroServices'; // ✅ Importamos el componente de Hero
+import { getGlobalSettings } from '@/lib/data'; // ✅ Importamos el fetcher global
+import { 
+  MessageSquare, 
+  FileText, 
+  CheckCircle, 
+  Calendar, 
+  Wine, 
+  Martini, 
+  Award, 
+  Sparkles, 
+  GlassWater, 
+  Users, 
+  ShieldCheck, 
+  Settings 
+} from 'lucide-react';
 
-import { getImage } from 'astro:assets';
+import { getImage, Image } from 'astro:assets';
 import servicesHeroDesktop from '@/assets/images/services-hero-desktop.png';
 import servicesHeroTablet from '@/assets/images/services-hero-tablet.png';
 import servicesHeroMobile from '@/assets/images/services-hero-mobile.png';
+import barmanImage from '@/assets/images/Barman.jpeg';
+import teamWorking from '@/assets/images/team-working.png';
 
-// Fetch de datos (igual que antes)
-const { data } = await supabase
-  .from('services')
-  .select('*')
-  .eq('active', true)
-  .order('order_index');
-
-const services = (data || []) as Service[];
+// Fetch de Configuración Global (Teléfonos, Redes, etc.)
+const settings = await getGlobalSettings();
 
 const steps = [
   { icon: MessageSquare, title: "1. Cuéntanos tu evento", desc: "Platícanos la fecha, lugar y estilo de celebración que estás planeando." },
@@ -38,33 +45,235 @@ const optMobile = await getImage({ src: servicesHeroMobile, format: 'webp', widt
 
 <PageLayout 
   title="Nuestros Servicios"
-  description="Soluciones de bartending premium para bodas y eventos en Lima."
+  description="Diseño y ejecución de experiencias completas de coctelería para bodas, cumpleaños y eventos privados en Lima."
 >
   
   {/* 1. HERO ESPECÍFICO DE SERVICIOS */}
   <HeroServices
     client:load
-    title="Servicios Diseñados para Impresionar"
-    subtitle="Elevamos el estándar de tu evento con mixología de autor, ingredientes premium y una atención impecable."
+    title="Nos encargamos de la barra. Tú disfruta del evento."
+    subtitle="Diseñamos y ejecutamos experiencias de coctelería para bodas, cumpleaños y celebraciones privadas en Lima."
     imageDesktop={optDesktop.src}
     imageTablet={optTablet.src}
     imageMobile={optMobile.src}
   />
 
-  {/* 2. GRID DE SERVICIOS */}
-  <section class="section bg-secondary-50 relative">
-    <div class="container-custom relative z-10">
-      {/* Ajustamos el margen negativo para que encaje con el nuevo hero */}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 -mt-16">
-        {services.map((service) => (
-          <ServiceCard service={service} />
-        ))}
+  {/* NUEVO BLOQUE CENTRAL DE SERVICIOS */}
+  <section class="section bg-secondary-50 relative border-t border-secondary-100">
+    <div class="container-custom relative z-10 max-w-6xl mx-auto">
+      
+      {/* Cabecera del Bloque */}
+      <div class="text-center max-w-3xl mx-auto mb-24">
+        <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block animate-fade-in">
+          Servicio Integral
+        </span>
+        <h2 class="text-3xl md:text-5xl font-display font-bold text-secondary-900 mb-6">
+          Todo lo que necesitas para una gran experiencia de bar.
+        </h2>
+        <div class="w-20 h-1 bg-primary-500 mx-auto rounded-full mb-8"></div>
+        <p class="text-lg text-secondary-600 leading-relaxed max-w-2xl mx-auto">
+          En La Reserva nos encargamos de diseñar y ejecutar la experiencia de coctelería de tu evento. Desde la carta y la presentación hasta la operación de la barra, cuidamos cada detalle para que tus invitados disfruten y tú puedas dedicarte a vivir el momento.
+        </p>
+      </div>
+
+      {/* Grid Editorial Alternado (Zebra Grid) */}
+      <div class="space-y-20 lg:space-y-28">
+        
+        {/* BLOQUE 1 — COCTELERÍA */}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          {/* Izquierda: Imagen */}
+          <div class="order-1 lg:order-1 rounded-2xl overflow-hidden shadow-xl aspect-[4/3] group bg-secondary-200">
+            <img 
+              src="/src/assets/images/coctel-listo.jpeg" 
+              alt="Coctelería de autor en La Reserva" 
+              class="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.03]" 
+            />
+          </div>
+          {/* Derecha: Contenido */}
+          <div class="order-2 lg:order-2 space-y-6 text-left">
+            <span class="text-xs font-bold uppercase tracking-widest text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+              Fase 1: Mixología
+            </span>
+            <h3 class="text-2xl md:text-3xl font-display font-bold text-secondary-900 leading-tight">
+              Una carta pensada para tus invitados.
+            </h3>
+            <p class="text-secondary-600 leading-relaxed">
+              Creamos una propuesta de coctelería acorde al estilo de tu celebración, desde clásicos cuidadosamente ejecutados hasta cócteles de autor y opciones sin alcohol.
+            </p>
+            <div class="flex flex-wrap gap-2 pt-2">
+              {['CÓCTELES CLÁSICOS', 'CÓCTELES DE AUTOR', 'MOCKTAILS', 'CARTA PERSONALIZADA'].map((pill) => (
+                <span class="px-3.5 py-1.5 bg-white border border-secondary-200 text-secondary-700 text-xs font-semibold rounded-full select-none hover:border-primary-400 hover:text-primary-600 transition-colors duration-300">
+                  {pill}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* BLOQUE 2 — BARRA */}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          {/* Izquierda: Contenido */}
+          <div class="order-2 lg:order-1 space-y-6 text-left">
+            <span class="text-xs font-bold uppercase tracking-widest text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+              Fase 2: Infraestructura
+            </span>
+            <h3 class="text-2xl md:text-3xl font-display font-bold text-secondary-900 leading-tight">
+              Una barra lista para recibirlos.
+            </h3>
+            <p class="text-secondary-600 leading-relaxed">
+              Nos encargamos de preparar y equipar el espacio de bar para que todo funcione de forma fluida durante la celebración.
+            </p>
+            <div class="flex flex-wrap gap-2 pt-2">
+              {['BARRA', 'CRISTALERÍA', 'HIELO', 'INSUMOS', 'HERRAMIENTAS', 'MONTAJE'].map((pill) => (
+                <span class="px-3.5 py-1.5 bg-white border border-secondary-200 text-secondary-700 text-xs font-semibold rounded-full select-none hover:border-primary-400 hover:text-primary-600 transition-colors duration-300">
+                  {pill}
+                </span>
+              ))}
+            </div>
+          </div>
+          {/* Derecha: Imagen */}
+          <div class="order-1 lg:order-2 rounded-2xl overflow-hidden shadow-xl aspect-[4/3] group bg-secondary-200">
+            <img 
+              src="/src/assets/images/barra-lista.jpeg" 
+              alt="Montaje de barra móvil por La Reserva" 
+              class="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.03]" 
+            />
+          </div>
+        </div>
+
+        {/* BLOQUE 3 — ATENCIÓN */}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          {/* Izquierda: Imagen */}
+          <div class="order-1 lg:order-1 rounded-2xl overflow-hidden shadow-xl aspect-[4/3] group bg-secondary-200">
+            <img 
+              src="/src/assets/images/servicio-listo.jpeg" 
+              alt="Equipo de bartenders profesionales trabajando" 
+              class="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.03]" 
+            />
+          </div>
+          {/* Derecha: Contenido */}
+          <div class="order-2 lg:order-2 space-y-6 text-left">
+            <span class="text-xs font-bold uppercase tracking-widest text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+              Fase 3: Operación
+            </span>
+            <h3 class="text-2xl md:text-3xl font-display font-bold text-secondary-900 leading-tight">
+              Un servicio pensado para tus invitados.
+            </h3>
+            <p class="text-secondary-600 leading-relaxed">
+              Nuestro equipo se encarga de la operación de la barra y de atender a tus invitados con profesionalismo, agilidad y una presentación cuidada.
+            </p>
+            <div class="flex flex-wrap gap-2 pt-2">
+              {['ATENCIÓN PROFESIONAL', 'SERVICIO EFICIENTE', 'PRESENTACIÓN CUIDADA', 'OPERACIÓN DE BARRA'].map((pill) => (
+                <span class="px-3.5 py-1.5 bg-white border border-secondary-200 text-secondary-700 text-xs font-semibold rounded-full select-none hover:border-primary-400 hover:text-primary-600 transition-colors duration-300">
+                  {pill}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* BLOQUE 4 — ADAPTACIÓN */}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          {/* Izquierda: Contenido */}
+          <div class="order-2 lg:order-1 space-y-6 text-left">
+            <span class="text-xs font-bold uppercase tracking-widest text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+              Fase 4: Adaptabilidad
+            </span>
+            <h3 class="text-2xl md:text-3xl font-display font-bold text-secondary-900 leading-tight">
+              Una experiencia que se adapta a tu celebración.
+            </h3>
+            <p class="text-secondary-600 leading-relaxed">
+              Cada evento tiene una personalidad diferente. Adaptamos la experiencia al estilo, temática y necesidades de tu celebración.
+            </p>
+            <div class="flex flex-wrap gap-2 pt-2">
+              {['TEMÁTICA', 'PRESENTACIÓN', 'DURACIÓN', 'DECORACIÓN', 'BRANDING', 'EXPERIENCIAS ESPECIALES'].map((pill) => (
+                <span class="px-3.5 py-1.5 bg-white border border-secondary-200 text-secondary-700 text-xs font-semibold rounded-full select-none hover:border-primary-400 hover:text-primary-600 transition-colors duration-300">
+                  {pill}
+                </span>
+              ))}
+            </div>
+          </div>
+          {/* Derecha: Imagen */}
+          <div class="order-1 lg:order-2 rounded-2xl overflow-hidden shadow-xl aspect-[4/3] group bg-secondary-200">
+            <img 
+              src="/src/assets/images/autor-listo.jpeg" 
+              alt="Experiencia personalizada La Reserva" 
+              class="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.03]" 
+            />
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
 
-  {/* 3. PROCESO DE TRABAJO */}
-  <section class="section bg-white">
+  {/* 6. SECCIÓN DESTACADA — EXPERIENCIA DESDE CERO */}
+  <section class="section bg-secondary-900 text-white relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#D4AF37 1px, transparent 1px); background-size: 32px 32px;"></div>
+    <div class="container-custom relative z-10 max-w-6xl mx-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        
+        {/* Lado Izquierdo: Fotografía o video de coctelería real */}
+        <div class="relative w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl group/image">
+          <Image 
+            src={barmanImage} 
+            alt="Barman de La Reserva preparando un cóctel" 
+            class="w-full h-full object-cover rounded-2xl transition-transform duration-700 hover:scale-[1.02]" 
+          />
+        </div>
+
+        {/* Lado Derecho: Contenido */}
+        <div class="space-y-6 text-left">
+          <h2 class="text-3xl md:text-5xl font-display font-bold text-white leading-tight">
+            ¿Quieres algo <span class="text-primary-500">diferente?</span>
+          </h2>
+          <p class="text-xl text-primary-400 font-medium leading-relaxed">
+            Diseñamos tu experiencia desde cero.
+          </p>
+          <p class="text-base text-secondary-300 leading-relaxed">
+            Podemos adaptar cada detalle de la experiencia a las necesidades y estilo de tu evento.
+          </p>
+          
+          <p class="text-secondary-300 text-sm uppercase tracking-widest font-semibold pt-2">
+            Podemos adaptar:
+          </p>
+
+          {/* Opciones: pills minimalistas */}
+          <div class="flex flex-wrap gap-2.5 mb-8">
+            {[
+              'Carta de cócteles', 'Temática', 'Barra', 'Cristalería',
+              'Duración', 'Presentación', 'Cócteles de autor', 'Mixología'
+            ].map((item) => (
+              <span class="px-4 py-2 bg-secondary-800/40 border border-secondary-750 text-secondary-200 text-sm font-semibold rounded-full select-none hover:border-primary-500 hover:text-primary-400 transition-colors duration-300">
+                {item}
+              </span>
+            ))}
+          </div>
+
+          <p class="text-lg text-secondary-300 leading-relaxed">
+            Cuéntanos cómo imaginas tu evento y crearemos una propuesta acorde a tus necesidades.
+          </p>
+
+          <div class="pt-4 flex">
+            <Button 
+              variant="primary"
+              size="lg"
+              href={settings.whatsapp_url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="w-full sm:w-auto text-center"
+            >
+              Diseñar mi experiencia
+            </Button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  {/* 7. PROCESO DE TRABAJO */}
+  <section class="section bg-white border-t border-secondary-100">
     <div class="container-custom">
       <div class="text-center mb-16">
         <h2 class="text-3xl md:text-4xl font-display font-bold text-secondary-900 mb-4">
@@ -89,18 +298,25 @@ const optMobile = await getImage({ src: servicesHeroMobile, format: 'webp', widt
     </div>
   </section>
 
-  {/* 4. CTA FINAL */}
+  {/* 8. CTA FINAL */}
   <section class="py-24 bg-secondary-900 relative overflow-hidden">
+    <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#D4AF37 1px, transparent 1px); background-size: 32px 32px;"></div>
     <div class="container-custom text-center relative z-10">
       <h2 class="text-3xl md:text-5xl font-display font-bold text-white mb-6">
-        ¿Necesitas un Servicio Personalizado?
+        ¿Ya tienes fecha?
       </h2>
       <p class="text-lg text-secondary-300 mb-10 max-w-2xl mx-auto">
-        Contáctanos para crear una propuesta a la medida de tus necesidades.
+        Cuéntanos qué estás planeando y preparemos una propuesta para tu evento.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <Button variant="primary" href="/cotizacion" size="lg">
-          Solicitar Cotización
+        <Button 
+          variant="primary" 
+          href={settings.whatsapp_url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          size="lg"
+        >
+          Cotizar por WhatsApp
         </Button>
       </div>
     </div>

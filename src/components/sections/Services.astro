@@ -1,62 +1,77 @@
 ---
 // src/components/sections/Services.astro
-import ServiceCard from './ServiceCard.astro';
-import Button from '@/components/ui/Button.astro';
-import { supabase } from '@/lib/supabase'; // ✅ Importamos Supabase
-import type { Service } from '@/types';
-
 interface Props {
   className?: string;
 }
 
 const { className } = Astro.props;
 
-// 1. Fetch de Servicios desde la BD
-const { data: servicesData } = await supabase
-  .from('services')
-  .select('*')
-  .eq('active', true)
-  .order('order_index');
-
-// 2. Casteo de tipos
-const services = (servicesData || []) as unknown as Service[];
+const pillars = [
+  {
+    num: "01",
+    category: "COCTELERÍA",
+    title: "Una carta que tus invitados quieran probar.",
+    desc: "Cócteles clásicos, propuestas de autor y opciones personalizadas según el estilo de tu evento."
+  },
+  {
+    num: "02",
+    category: "PERSONALIZACIÓN",
+    title: "Tu celebración no tiene que parecerse a ninguna otra.",
+    desc: "Adaptamos la experiencia a la temática, estilo y necesidades de tu evento."
+  },
+  {
+    num: "03",
+    category: "TODO RESUELTO",
+    title: "Nos encargamos de cada detalle de la barra.",
+    desc: "Personal, insumos, cristalería, hielo, montaje y operación durante el evento."
+  },
+  {
+    num: "04",
+    category: "EXPERIENCIA",
+    title: "Profesionales que saben cómo hacer que todo fluya.",
+    desc: "Un equipo preparado para atender a tus invitados y cuidar cada detalle durante la celebración."
+  }
+];
 ---
 
-<section id="servicios" class:list={["relative py-20 md:py-32 bg-secondary-50 overflow-hidden", className]}>
-  
-  {/* Decoración de fondo sutil */}
-  <div class="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none">
-    <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <path d="M0 100 C 20 0 50 0 100 100 Z" fill="currentColor" />
-    </svg>
-  </div>
-
-  <div class="container mx-auto px-4 relative z-10">
+<section id="servicios" class:list={["relative py-20 md:py-32 bg-secondary-50 overflow-hidden border-b border-secondary-100", className]}>
+  <div class="container mx-auto px-4 relative z-10 max-w-5xl">
     
+    {/* Cabecera del Bloque */}
     <div class="text-center max-w-3xl mx-auto mb-16 md:mb-20">
-      <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block">
-        Experiencias a Medida
+      <span class="text-primary-600 font-bold tracking-widest uppercase text-sm mb-2 block animate-fade-in">
+        Una experiencia de bar
       </span>
-      <h2 class="text-4xl md:text-5xl font-display font-bold text-secondary-900 mb-6">
-        Nuestros Servicios Exclusivos
+      <h2 class="text-3xl md:text-5xl font-display font-bold text-secondary-900 mb-6 leading-tight">
+        Pensada para tu evento
       </h2>
-      <p class="text-lg text-secondary-600 leading-relaxed">
-        Elevamos el estándar de tu evento con mixología de autor, ingredientes premium y un servicio impecable diseñado para impresionar.
+      <div class="w-20 h-1 bg-primary-500 mx-auto rounded-full mb-8"></div>
+      <p class="text-lg md:text-xl text-secondary-600 leading-relaxed max-w-2xl mx-auto font-body">
+        No solo servimos cócteles. Diseñamos y nos encargamos de toda la experiencia para que tus invitados disfruten y tú puedas disfrutar de tu celebración.
       </p>
     </div>
 
-    {/* Grid de Servicios */}
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8">
-      {services.map((service) => (
-        // ✅ Ahora pasamos el objeto directo, ya que viene de la BD con el formato correcto
-        <ServiceCard service={service} />
+    {/* Grid de 4 Pilares de Valor (2x2 en Desktop, 1 Columna en Móvil) */}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-y-12 gap-x-16">
+      {pillars.map((pillar) => (
+        <div class="group border-t border-secondary-200/60 pt-8 flex flex-col text-left transition-all duration-300">
+          <div class="flex items-baseline gap-2.5 mb-2">
+            <span class="text-2xl font-display font-semibold text-primary-500 transition-all duration-300 group-hover:-translate-y-1 group-hover:scale-110 origin-bottom select-none">
+              {pillar.num}
+            </span>
+            <span class="text-xs font-bold text-secondary-400 group-hover:text-secondary-600 uppercase tracking-widest transition-colors duration-300">
+              {pillar.category}
+            </span>
+          </div>
+          <h3 class="text-lg md:text-xl font-bold text-secondary-900 font-display mt-1 transition-colors duration-300">
+            {pillar.title}
+          </h3>
+          <p class="text-sm text-secondary-500 leading-relaxed mt-3">
+            {pillar.desc}
+          </p>
+          <div class="w-0 h-[2px] bg-primary-500 mt-5 transition-all duration-300 group-hover:w-16"></div>
+        </div>
       ))}
-    </div>
-
-    <div class="mt-16 text-center">
-      <Button href="/servicios" variant="outline" class="border-secondary-300 text-secondary-600 hover:border-primary-500 hover:text-primary-600">
-        Ver detalles completos
-      </Button>
     </div>
 
   </div>
