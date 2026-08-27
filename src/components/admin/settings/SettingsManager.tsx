@@ -266,7 +266,7 @@ function SettingsContent() {
     try {
         const timestamp = Date.now();
         const baseItem = { active: false, features: [], order_index: 99 };
-        const newItemData = { ...baseItem, name: 'Nuevo Paquete', slug: `paquete-${timestamp}`, price: 0, description: '', duration: 4, guest_range: '25-50' };
+        const newItemData = { ...baseItem, name: 'Nueva Experiencia', slug: `paquete-${timestamp}`, price: 0, description: '', duration: 4, guest_range: '25-50' };
 
         const { data, error } = await supabase.from(table).insert(newItemData).select().single();
         if (error) throw error;
@@ -296,7 +296,7 @@ function SettingsContent() {
         <nav className="flex space-x-2 overflow-x-auto">
           <TabButton id="general" label="General" icon={Settings} active={activeTab === 'general'} onClick={setActiveTab} />
           <TabButton id="hours" label="Horarios" icon={Clock} active={activeTab === 'hours'} onClick={setActiveTab} />
-          <TabButton id="packages" label="Paquetes" icon={PackageIcon} active={activeTab === 'packages'} onClick={setActiveTab} />
+          <TabButton id="packages" label="Experiencias" icon={PackageIcon} active={activeTab === 'packages'} onClick={setActiveTab} />
         </nav>
       </div>
 
@@ -345,7 +345,7 @@ function SettingsContent() {
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-secondary-200 shadow-sm gap-4">
                 <div>
-                  <h3 className="text-xl font-bold text-secondary-900">Paquetes de Bar</h3>
+                  <h3 className="text-xl font-bold text-secondary-900">Experiencias de Bar</h3>
                   <p className="text-sm text-secondary-500">Administra el contenido que verán tus clientes.</p>
                 </div>
                 <button onClick={() => handleCreateItem(activeTab)} disabled={loading} className="flex items-center gap-2 bg-secondary-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg">

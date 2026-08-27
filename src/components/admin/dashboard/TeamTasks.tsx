@@ -1,16 +1,43 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { supabase as supabaseClient } from '@/lib/supabase';
-import { Listbox, Transition } from '@headlessui/react';
+import { Listbox, Transition, Dialog } from '@headlessui/react';
 import { 
   CheckCircle2, Circle, Plus, Trash2, Loader2, 
   ArrowUpCircle, MinusCircle, ArrowDownCircle, 
-  Calendar, User as UserIcon, Check, ChevronDown, X
+  Calendar, User as UserIcon, Check, ChevronDown, X, AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, TeamTask, AdminUser } from '@/types';
 
 const supabase = supabaseClient as SupabaseClient<Database>;
+
+// --- COMPONENTES AUXILIARES ---
+const WarningModal = ({ isOpen, onClose, title, message }: { isOpen: boolean; onClose: () => void; title: string; message: string }) => (
+  <Transition show={isOpen} as={Fragment}>
+    <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" />
+      </Transition.Child>
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4 text-center">
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+            <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all border border-secondary-100">
+              <div className="flex items-center gap-3 text-amber-500 mb-4">
+                <AlertTriangle className="w-6.5 h-6.5 shrink-0" />
+                <Dialog.Title as="h3" className="text-lg font-bold text-secondary-900 leading-6">{title}</Dialog.Title>
+              </div>
+              <p className="text-sm text-secondary-500 leading-relaxed mb-6">{message}</p>
+              <div className="flex justify-end">
+                <button onClick={onClose} className="px-5 py-2 bg-secondary-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors shadow-sm">Entendido</button>
+              </div>
+            </Dialog.Panel>
+          </Transition.Child>
+        </div>
+      </div>
+    </Dialog>
+  </Transition>
+);
 
 // --- CONFIGURACIÓN ---
 const PRIORITIES = {
@@ -58,6 +85,7 @@ export function TeamTasks() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending'>('all');
+  const [warningModal, setWarningModal] = useState({ open: false, title: '', message: '' });
 
   useEffect(() => {
     initData();
@@ -138,10 +166,18 @@ export function TeamTasks() {
     }
   }
 
-  async function toggleTask(id: string, currentStatus: string) {
-    const newStatus = currentStatus === 'pending' ? 'done' : 'pending';
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
-    await supabase.from('team_tasks').update({ status: newStatus }).eq('id', id);
+  async function toggleTask(task: TeamTask) {
+    if (task.assigned_to && currentUser && currentUser.id !== task.assigned_to) {
+      setWarningModal({
+        open: true,
+        title: "Acción Restringida",
+        message: "Esta tarea está asignada a otro miembro del equipo y solo él puede completarla."
+      });
+      return;
+    }
+    const newStatus = task.status === 'pending' ? 'done' : 'pending';
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    await supabase.from('team_tasks').update({ status: newStatus }).eq('id', task.id);
   }
 
   async function deleteTask(id: string) {
@@ -200,7 +236,7 @@ export function TeamTasks() {
             
             return (
               <div key={task.id} className={cn("group relative flex items-start gap-3 p-3 rounded-xl border transition-all duration-200 bg-white", task.status === 'done' ? "opacity-60 bg-gray-50 border-transparent" : "border-secondary-200 hover:shadow-md")}>
-                <button onClick={() => toggleTask(task.id, task.status)} className={cn("mt-1 flex-shrink-0 transition-colors", task.status === 'done' ? "text-green-500" : "text-secondary-300 hover:text-green-600")}>
+                <button onClick={() => toggleTask(task)} className={cn("mt-1 flex-shrink-0 transition-colors", task.status === 'done' ? "text-green-500" : "text-secondary-300 hover:text-green-600")}>
                   {task.status === 'done' ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
                 </button>
                 
@@ -330,6 +366,13 @@ export function TeamTasks() {
           </div>
         </div>
       </form>
+      
+      <WarningModal 
+        isOpen={warningModal.open} 
+        onClose={() => setWarningModal({ ...warningModal, open: false })} 
+        title={warningModal.title} 
+        message={warningModal.message} 
+      />
     </div>
   );
 }

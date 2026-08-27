@@ -18,8 +18,8 @@ const AVAILABLE_PACKAGES = [
   { value: 'pack-pisco-ron-85', label: 'Pack Pisco & Ron 85' },
   { value: 'pack-pisco-120', label: 'Pack Pisco 120' },
   { value: 'pack-pisco-ron-120', label: 'Pack Pisco & Ron 120' },
-  { value: 'paquete-completo', label: 'Paquete Completo' },
-  { value: 'paquete-premium', label: 'Paquete Premium' },
+  { value: 'paquete-completo', label: 'Experiencia Completa' },
+  { value: 'paquete-premium', label: 'Experiencia Premium' },
   { value: 'barra-bartender', label: 'Solo Bartender' },
   { value: 'barra-movil', label: 'Solo Barra Móvil' },
 ];
@@ -464,7 +464,7 @@ export function QuoteDetailModal({ quote, isOpen, onClose, onUpdate }: QuoteDeta
                             </div>
                             
                             <div>
-                              <label className="text-xs text-secondary-400 block mb-1 font-medium">Paquete</label>
+                              <label className="text-xs text-secondary-400 block mb-1 font-medium">Experiencia</label>
                               <Listbox value={selectedPackage} onChange={setSelectedPackage} disabled={isLocked}>
                                 <div className="relative">
                                   <Listbox.Button className={cn(INPUT_STYLES, "text-left flex items-center justify-between bg-white")}>
