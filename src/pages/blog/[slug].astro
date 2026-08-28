@@ -29,14 +29,36 @@ if (error || !post) {
 await supabase.rpc('increment_post_views', { post_id: post.id });
 
 const formattedDate = format(new Date(post.created_at), 'dd ' + 'MMMM, yyyy', { locale: es });
+
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": post.title,
+  "description": post.excerpt,
+  "image": post.image_url,
+  "datePublished": post.created_at,
+  "author": post.author ? {
+    "@type": "Person",
+    "name": post.author.full_name
+  } : undefined,
+  "publisher": {
+    "@type": "Organization",
+    "name": "La Reserva",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://lareservabartending.com/logo.png"
+    }
+  }
+};
 ---
 
 {/* ✅ CORRECCIÓN TÉCNICA: Movimos el comentario fuera del tag para evitar errores */}
 {/* Importante para compartir en WhatsApp */}
 <PageLayout 
-  title={post.title} 
+  title={`${post.title} | La Reserva`} 
   description={post.excerpt} 
   image={post.image_url} 
+  schema={articleSchema}
 >
   
   <article class="min-h-screen bg-white pb-20">
@@ -44,7 +66,7 @@ const formattedDate = format(new Date(post.created_at), 'dd ' + 'MMMM, yyyy', { 
     <div class="bg-secondary-900 text-white relative py-24 md:py-32">
         {post.image_url && (
             <div class="absolute inset-0">
-                <img src={post.image_url} class="w-full h-full object-cover opacity-20" />
+                <img src={post.image_url} alt={post.title} class="w-full h-full object-cover opacity-20" />
                 <div class="absolute inset-0 bg-gradient-to-t from-secondary-900 via-transparent to-transparent"></div>
             </div>
         )}

@@ -9,17 +9,19 @@ interface Props {
   description?: string;
   image?: string;
   noindex?: boolean;
+  schema?: Record<string, any>;
 }
 
 const { 
   title, 
   description, 
   image, 
-  noindex = false 
+  noindex = false,
+  schema
 } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description} image={image} noindex={noindex}>
+<BaseLayout title={title} description={description} image={image} noindex={noindex} schema={schema}>
   
   {/* ✅ 1. Header persistente: 
       El menú se queda fijo y no parpadea al navegar.

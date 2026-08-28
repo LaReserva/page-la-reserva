@@ -3,12 +3,14 @@
 import '@/styles/global.css';
 // ✅ 1. Importamos el Router de Cliente (antes ViewTransitions)
 import { ClientRouter } from 'astro:transitions';
+import { getGlobalSettings } from '@/lib/data';
 
 interface Props {
   title: string;
   description?: string;
   image?: string;
   noindex?: boolean;
+  schema?: Record<string, any>;
 }
 
 const {
@@ -16,9 +18,12 @@ const {
   description = 'Servicio de bartender exclusivo para eventos premium en Lima, Perú. Cócteles de autor y servicio excepcional.',
   image = '/images/og-image.jpg',
   noindex = false,
+  schema,
 } = Astro.props;
 
-const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://lareserva.pe';
+const settings = await getGlobalSettings();
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://lareservabartending.com';
 const canonicalURL = new URL(Astro.url.pathname, siteUrl);
 ---
 
@@ -30,7 +35,7 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     
-    <title>{title} | La Reserva - Mixología Exclusiva</title>
+    <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
@@ -57,21 +62,28 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
     {/* ✅ 2. Activamos las transiciones suaves SPA en todo el sitio */}
     <ClientRouter />
 
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "LocalBusiness",
-        "name": "La Reserva",
-        "description": "Mixología exclusiva para eventos premium",
-        "url": "https://lareserva.pe",
-        "telephone": "+51999888777",
-        "address": {
-          "@type": "PostalAddress",
-          "addressLocality": "Lima",
-          "addressCountry": "PE"
-        }
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "La Reserva",
+      "description": "Experiencias de coctelería para bodas, cumpleaños y eventos privados en Lima.",
+      "url": "https://lareservabartending.com",
+      "telephone": settings.contact_phone,
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Lima",
+        "addressCountry": "PE",
+        "streetAddress": settings.address
+      },
+      "areaServed": {
+        "@type": "AdministrativeArea",
+        "name": "Lima Metropolitana"
       }
-    </script>
+    })} />
+
+    {schema && (
+      <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+    )}
   </head>
   <body class="antialiased">
     <slot />

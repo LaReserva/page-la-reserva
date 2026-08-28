@@ -18,8 +18,8 @@ const { data: posts } = await supabase
   .eq('published', true)
   .order('created_at', { ascending: false });
 
-const title = "Blog & Novedades | La Reserva";
-const description = "Descubre consejos de coctelería, tendencias para eventos y el detrás de escena de nuestros servicios.";
+const title = "Blog de Coctelería y Eventos | La Reserva";
+const description = "Ideas, consejos y tendencias sobre coctelería, bodas, cumpleaños y experiencias de bar para eventos en Lima.";
 
 const optPattern = await getImage({ src: pattern, format: 'webp', width: 100 });
 ---

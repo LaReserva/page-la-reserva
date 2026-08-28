@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /feedback/
+
+Sitemap: https://lareservabartending.com/sitemap.xml

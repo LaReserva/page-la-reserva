@@ -87,7 +87,7 @@ export function PortfolioGrid({ images }: PortfolioGridProps) {
             >
               <img
                 src={img.image_url}
-                alt={img.caption || 'Evento La Reserva'}
+                alt={img.caption || "Servicio de coctelería y barra móvil para eventos por La Reserva"}
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
               />
