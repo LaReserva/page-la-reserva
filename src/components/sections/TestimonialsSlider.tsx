@@ -56,7 +56,7 @@ export function TestimonialsSlider({ testimonials }: TestimonialsSliderProps) {
 
   if (!testimonials || length === 0) return null;
 
-  const formatEventType = (event: string) => {
+  const formatEventType = (event?: string) => {
     if (!event) return '';
     const containsLima = /lima/i.test(event);
     return containsLima ? event : `${event} · Lima`;

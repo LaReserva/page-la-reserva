@@ -12,9 +12,6 @@ interface ImportMetaEnv {
   // Otros
   readonly PUBLIC_SITE_URL: string;
   readonly RESEND_API_KEY: string;
-  readonly WHATSAPP_BUSINESS_ID: string;
-  readonly WHATSAPP_ACCESS_TOKEN: string;
-  readonly PUBLIC_GOOGLE_MAPS_API_KEY: string;
 }
 
 interface ImportMeta {
