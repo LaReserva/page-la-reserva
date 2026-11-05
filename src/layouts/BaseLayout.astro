@@ -4,6 +4,7 @@ import '@/styles/global.css';
 // ✅ 1. Importamos el Router de Cliente (antes ViewTransitions)
 import { ClientRouter } from 'astro:transitions';
 import { getGlobalSettings } from '@/lib/data';
+import CookieConsent from '@/components/privacy/CookieConsent.astro';
 
 interface Props {
   title: string;
@@ -84,8 +85,38 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
     {schema && (
       <script type="application/ld+json" set:html={JSON.stringify(schema)} />
     )}
+    {/* ✅ 3. Preparación de Google Consent Mode v2 (Privacidad por defecto, sin rastreadores) */}
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('consent', 'default', {
+        'analytics_storage': 'denied',
+        'ad_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied',
+        'wait_for_update': 500
+      });
+
+      try {
+        var storedConsent = localStorage.getItem('lr_cookie_consent_v1');
+        if (storedConsent) {
+          var parsed = JSON.parse(storedConsent);
+          if (parsed && parsed.categories) {
+            gtag('consent', 'update', {
+              'analytics_storage': parsed.categories.analytics ? 'granted' : 'denied',
+              'ad_storage': parsed.categories.marketing ? 'granted' : 'denied',
+              'ad_user_data': parsed.categories.marketing ? 'granted' : 'denied',
+              'ad_personalization': parsed.categories.marketing ? 'granted' : 'denied'
+            });
+          }
+        }
+      } catch (e) {
+        // LocalStorage no disponible
+      }
+    </script>
   </head>
   <body class="antialiased">
     <slot />
+    <CookieConsent />
   </body>
 </html>

@@ -4,31 +4,116 @@ export const prerender = true;
 import PageLayout from '@/layouts/PageLayout.astro';
 ---
 
-<PageLayout title="Política de Privacidad" noindex={true}>
+<PageLayout 
+  title="Política de Privacidad | La Reserva Bartending" 
+  description="Conoce nuestra Política de Protección de Datos Personales, conforme a la Ley N° 29733 de la República del Perú."
+  noindex={true}
+>
   <section class="section bg-white">
-    <div class="container-custom max-w-4xl">
-      <h1 class="text-4xl font-display font-bold text-secondary-900 mb-8">Política de Privacidad</h1>
+    <div class="container-custom max-w-4xl mx-auto">
       
-      <div class="prose prose-lg text-secondary-600">
-        <p>En La Reserva, respetamos su privacidad y estamos comprometidos a proteger sus datos personales conforme a la Ley de Protección de Datos Personales (Ley N° 29733) de Perú.</p>
+      {/* Encabezado */}
+      <div class="mb-10 pb-6 border-b border-secondary-200">
+        <span class="text-primary-600 font-bold tracking-widest uppercase text-xs md:text-sm mb-2 block">
+          Protección de Datos Personales
+        </span>
+        <h1 class="text-3xl md:text-5xl font-display font-bold text-secondary-900 mb-4">
+          Política de Privacidad
+        </h1>
+        <p class="text-secondary-500 text-sm font-light">
+          Última actualización: Noviembre 2026 | En conformidad con la Ley N° 29733 (Perú)
+        </p>
+      </div>
+      
+      <div class="prose prose-lg text-secondary-600 max-w-none">
+        
+        <p class="lead text-lg text-secondary-700 font-light leading-relaxed">
+          En <strong>La Reserva Bartending</strong> (en adelante, «La Reserva»), valoramos la confianza de nuestros clientes y visitantes. Por ello, garantizamos la confidencialidad y el tratamiento seguro de sus datos personales, conforme a la <strong>Ley de Protección de Datos Personales de la República del Perú (Ley N° 29733)</strong> y su Reglamento aprobado por el <strong>Decreto Supremo N° 003-2013-JUS</strong>.
+        </p>
 
-        <h3>1. Información que Recopilamos</h3>
-        <p>Recopilamos información personal que usted nos proporciona voluntariamente al solicitar una cotización o contactarnos, incluyendo: nombre, dirección de correo electrónico, número de teléfono y detalles del evento.</p>
+        <h2>1. Identidad y Domicilio del Titular del Banco de Datos</h2>
+        <p>
+          El responsable del tratamiento de los datos personales recabados a través del sitio web <a href="https://lareservabartending.com" class="text-primary-600 underline">https://lareservabartending.com</a> es <strong>La Reserva Bartending</strong>, con operaciones en Lima Metropolitana, Perú, y correo electrónico de contacto: <a href="mailto:lareservabartending@gmail.com" class="text-primary-600 underline">lareservabartending@gmail.com</a>.
+        </p>
 
-        <h3>2. Uso de la Información</h3>
-        <p>Utilizamos su información exclusivamente para:</p>
+        <h2>2. Datos Personales que Recopilamos</h2>
+        <p>
+          Recopilamos únicamente los datos personales que usted nos proporciona de manera voluntaria, directa y libre mediante:
+        </p>
         <ul>
-          <li>Procesar y responder a sus solicitudes de cotización.</li>
-          <li>Coordinar y ejecutar los servicios contratados.</li>
-          <li>Enviar información relevante sobre su evento.</li>
-          <li>Mejorar nuestros servicios y atención al cliente.</li>
+          <li>
+            <strong>Formulario de Cotización (/cotizacion):</strong> Nombres y apellidos, dirección de correo electrónico, número telefónico (WhatsApp), tipo de evento (boda, cumpleaños, corporativo, etc.), fecha estimada de la celebración, número estimado de invitados, horario proyectado, ubicación o distrito del evento, paquetes y servicios seleccionados, y comentarios adicionales.
+          </li>
+          <li>
+            <strong>Formulario de Contacto Directo (/contacto):</strong> Nombre, correo electrónico, número telefónico y mensaje o requerimiento específico.
+          </li>
+          <li>
+            <strong>Canales de mensajería (WhatsApp / Teléfono):</strong> Número de teléfono y contenido de las consultas formuladas voluntariamente para coordinar detalles de barras y cócteles.
+          </li>
         </ul>
 
-        <h3>3. Protección de Datos</h3>
-        <p>Sus datos personales son almacenados de manera segura y no serán vendidos, alquilados ni compartidos con terceros con fines comerciales sin su consentimiento explícito.</p>
+        <h2>3. Finalidades del Tratamiento de Datos</h2>
+        <p>
+          Los datos personales recabados son tratados exclusivamente para las siguientes finalidades legítimas y necesarias:
+        </p>
+        <ol>
+          <li>Elaborar, personalizar y remitir presupuestos o cotizaciones de servicios de coctelería y barras móviles.</li>
+          <li>Verificar la disponibilidad de fechas, bartenders y logística para su celebración en Lima.</li>
+          <li>Formalizar contratos de prestación de servicios, acuerdos de reserva y emitir los comprobantes correspondientes.</li>
+          <li>Coordinar el montaje, selección de carta de cócteles, logística previa y atención operativa durante el día del evento.</li>
+          <li>Responder a preguntas, dudas o solicitudes enviadas a través de nuestros formularios o canales de mensajería.</li>
+        </ol>
+        <p>
+          <strong>No utilizamos sus datos para envío masivo de publicidad no solicitada (spam)</strong> ni para comercialización cruzada sin su consentimiento explícito previo.
+        </p>
 
-        <h3>4. Derechos ARCO</h3>
-        <p>Usted tiene derecho a Acceder, Rectificar, Cancelar u Oponerse al tratamiento de sus datos personales. Para ejercer estos derechos, puede contactarnos en <a href="mailto:lareservabartending@gmail.com" class="text-primary-600 underline">lareservabartending@gmail.com</a>.</p>
+        <h2>4. Transferencia y Destinatarios de los Datos</h2>
+        <p>
+          Sus datos personales <strong>nunca serán vendidos, alquilados, comercializados ni cedidos</strong> a terceras empresas con fines comerciales. 
+        </p>
+        <p>
+          Para la prestación técnica del servicio web, nos apoyamos en proveedores de infraestructura tecnológica de primer nivel bajo estrictos acuerdos de confidencialidad y estándares de seguridad:
+        </p>
+        <ul>
+          <li><strong>Supabase:</strong> Alojamiento y almacenamiento seguro de bases de datos con cifrado en reposo y en tránsito.</li>
+          <li><strong>Resend:</strong> Plataforma de envío técnico de correos electrónicos transaccionales de notificación.</li>
+          <li><strong>Vercel:</strong> Infraestructura de despliegue y alojamiento de la plataforma web.</li>
+        </ul>
+
+        <h2>5. Plazo de Conservación de los Datos</h2>
+        <p>
+          Los datos personales serán conservados durante el tiempo estrictamente necesario para atender su cotización y ejecutar el servicio contratado, así como durante los plazos legalmente exigibles para cumplir con obligaciones contractuales, tributarias y de resolución de controversias en el Perú. Concluidos dichos plazos, la información será eliminada o anonimizada.
+        </p>
+
+        <h2>6. Medidas de Seguridad</h2>
+        <p>
+          La Reserva adopta medidas de seguridad técnicas, organizativas y legales apropiadas para salvaguardar sus datos contra pérdida, alteración, acceso no autorizado o divulgación indebida. Las comunicaciones web entre su navegador y nuestros servidores se realizan bajo protocolo seguro cifrado HTTPS (SSL/TLS).
+        </p>
+
+        <h2>7. Ejercicio de Derechos ARCO</h2>
+        <p>
+          De conformidad con la Ley N° 29733, usted tiene derecho a ejercer en cualquier momento sus derechos de <strong>Acceso, Rectificación, Cancelación y Oposición (ARCO)</strong>, así como revocar el consentimiento otorgado:
+        </p>
+        <ul>
+          <li><strong>Acceso:</strong> Conocer qué datos personales suyos tratamos y las condiciones de su tratamiento.</li>
+          <li><strong>Rectificación:</strong> Solicitar la corrección de datos inexactos, incompletos o desactualizados.</li>
+          <li><strong>Cancelación:</strong> Solicitar la supresión de sus datos cuando ya no sean necesarios para la finalidad contratada.</li>
+          <li><strong>Oposición:</strong> Oponerse al tratamiento de sus datos ante motivos fundados y legítimos.</li>
+        </ul>
+        <p>
+          Para ejercer cualquiera de estos derechos, basta con enviar una solicitud indicando su nombre completo y el derecho que desea ejercer al correo: <a href="mailto:lareservabartending@gmail.com" class="text-primary-600 underline font-semibold">lareservabartending@gmail.com</a>. Su solicitud será atendida dentro de los plazos establecidos por el Reglamento de la Ley N° 29733.
+        </p>
+
+        <h2>8. Vinculación con la Política de Cookies</h2>
+        <p>
+          La navegación en nuestro sitio web se rige además por nuestra <a href="/cookies" class="text-primary-600 underline">Política de Cookies</a>, donde se detallan los mecanismos de almacenamiento local técnico y las opciones para autorizar o denegar futuras herramientas analíticas y publicitarias.
+        </p>
+
+        <h2>9. Modificaciones a la Política</h2>
+        <p>
+          La Reserva se reserva el derecho de actualizar esta Política de Privacidad para adecuarla a novedades legislativas o mejoras operativas. Cualquier cambio sustancial será publicado oportunamente en este sitio web.
+        </p>
+
       </div>
     </div>
   </section>

@@ -1,0 +1,388 @@
+---
+// src/components/privacy/CookieConsent.astro
+import { ShieldCheck, X, Check, SlidersHorizontal } from 'lucide-react';
+---
+
+<div id="cookie-consent-wrapper" transition:persist>
+  {/* 1. BANNER FLOTANTE DISCRETO Y ELEGANTE */}
+  <aside 
+    id="cookie-banner" 
+    class="fixed bottom-4 left-4 right-4 md:right-auto md:bottom-6 md:left-6 md:max-w-md z-[60] bg-[#1A1A1A]/95 backdrop-blur-md border border-primary-500/40 rounded-2xl shadow-2xl p-5 md:p-6 text-white transition-all duration-500 translate-y-8 opacity-0 pointer-events-none"
+    role="region"
+    aria-label="Consentimiento de cookies"
+  >
+    <div class="flex items-start gap-3 mb-3">
+      <div class="p-2 rounded-lg bg-primary-500/10 border border-primary-500/20 text-primary-400 flex-shrink-0">
+        <ShieldCheck className="w-5 h-5" />
+      </div>
+      <div>
+        <h3 class="font-display font-bold text-base text-white tracking-wide">
+          Tu Privacidad en La Reserva
+        </h3>
+        <span class="text-[11px] uppercase tracking-wider text-primary-400 font-semibold block">
+          Control de Cookies
+        </span>
+      </div>
+    </div>
+
+    <p class="text-xs text-secondary-300 leading-relaxed font-light mb-4">
+      Utilizamos cookies técnicas necesarias para el funcionamiento del sitio. Opcionalmente, te solicitamos autorización para futuras métricas analíticas y campañas publicitarias. Consulta nuestra{' '}
+      <a href="/cookies" class="text-primary-400 underline underline-offset-2 hover:text-primary-300 transition-colors">
+        Política de Cookies
+      </a>{' '}
+      y{' '}
+      <a href="/privacidad" class="text-primary-400 underline underline-offset-2 hover:text-primary-300 transition-colors">
+        Privacidad
+      </a>.
+    </p>
+
+    {/* Botones de acción directa con accesibilidad equivalente */}
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-3">
+      <button
+        id="btn-cookie-accept-all"
+        type="button"
+        class="flex-1 bg-gradient-to-r from-primary-500 to-accent-500 text-secondary-900 font-bold px-4 py-2 rounded-full text-xs uppercase tracking-wider hover:from-primary-600 hover:to-accent-600 transition-all text-center shadow-md active:scale-95"
+      >
+        Aceptar todas
+      </button>
+
+      <button
+        id="btn-cookie-reject-all"
+        type="button"
+        class="flex-1 bg-transparent border border-secondary-400 text-secondary-200 hover:border-white hover:text-white px-4 py-2 rounded-full text-xs uppercase tracking-wider font-semibold transition-all text-center active:scale-95"
+      >
+        Rechazar opcionales
+      </button>
+    </div>
+
+    <div class="text-center pt-1 border-t border-secondary-800">
+      <button
+        id="btn-cookie-open-modal"
+        type="button"
+        class="text-xs text-primary-400 hover:text-primary-300 underline underline-offset-4 font-medium transition-colors inline-flex items-center gap-1.5"
+      >
+        <SlidersHorizontal className="w-3.5 h-3.5" />
+        Configurar preferencias
+      </button>
+    </div>
+  </aside>
+
+  {/* 2. MODAL DE PREFERENCIAS GRANULARES */}
+  <div 
+    id="cookie-modal" 
+    class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto transition-opacity duration-300 opacity-0 pointer-events-none"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="cookie-modal-title"
+  >
+    <div class="bg-[#1A1A1A] border border-primary-500/30 rounded-2xl max-w-xl w-full p-6 md:p-8 text-white shadow-2xl relative my-8 transform transition-transform duration-300 scale-95 max-h-[90vh] flex flex-col">
+      
+      {/* Cabecera del modal */}
+      <div class="flex items-center justify-between pb-4 border-b border-secondary-800 mb-5 flex-shrink-0">
+        <div>
+          <h2 id="cookie-modal-title" class="font-display text-xl md:text-2xl font-bold text-white">
+            Preferencias de Privacidad
+          </h2>
+          <p class="text-xs text-secondary-400 font-light mt-0.5">
+            Personaliza las categorías de cookies que deseas permitir en La Reserva.
+          </p>
+        </div>
+        <button
+          id="btn-cookie-modal-close"
+          type="button"
+          class="p-1.5 rounded-lg text-secondary-400 hover:text-white hover:bg-secondary-800 transition-colors"
+          aria-label="Cerrar modal"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Contenido scrolleable de categorías */}
+      <div class="space-y-4 overflow-y-auto pr-1 flex-grow mb-6">
+        
+        {/* Categoría 1: Necesarias */}
+        <div class="p-4 rounded-xl bg-secondary-800/40 border border-secondary-700/60">
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="font-display font-semibold text-white text-sm md:text-base">
+                Cookies Técnicas y Necesarias
+              </span>
+            </div>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-primary-500/15 border border-primary-500/30 text-primary-400">
+              Siempre activas
+            </span>
+          </div>
+          <p class="text-xs text-secondary-300 leading-relaxed font-light">
+            Esenciales para la navegación, seguridad básica del sitio y almacenamiento de tus preferencias de consentimiento. No recopilan información con fines comerciales y no pueden ser desactivadas.
+          </p>
+        </div>
+
+        {/* Categoría 2: Analíticas */}
+        <div class="p-4 rounded-xl bg-secondary-800/40 border border-secondary-700/60 transition-colors hover:border-secondary-600">
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <label for="cookie-toggle-analytics" class="font-display font-semibold text-white text-sm md:text-base cursor-pointer">
+              Cookies Analíticas
+            </label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                id="cookie-toggle-analytics" 
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-secondary-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+          <p class="text-xs text-secondary-300 leading-relaxed font-light">
+            Permiten generar estadísticas anónimas sobre el tráfico y uso de la web (cuando se integre Google Analytics 4) para ayudarnos a optimizar la carta de cócteles y la experiencia de usuario.
+          </p>
+        </div>
+
+        {/* Categoría 3: Marketing */}
+        <div class="p-4 rounded-xl bg-secondary-800/40 border border-secondary-700/60 transition-colors hover:border-secondary-600">
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <label for="cookie-toggle-marketing" class="font-display font-semibold text-white text-sm md:text-base cursor-pointer">
+              Cookies de Marketing y Publicidad
+            </label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                id="cookie-toggle-marketing" 
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-secondary-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+          <p class="text-xs text-secondary-300 leading-relaxed font-light">
+            Permiten evaluar la efectividad de campañas publicitarias y mostrar mensajes relevantes en plataformas de terceros (como Meta Ads o Google Ads) cuando iniciemos campañas de marketing.
+          </p>
+        </div>
+
+      </div>
+
+      {/* Pie del modal con acciones */}
+      <div class="pt-4 border-t border-secondary-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 flex-shrink-0">
+        <button
+          id="btn-cookie-modal-reject"
+          type="button"
+          class="bg-transparent border border-secondary-500 text-secondary-200 hover:border-white hover:text-white px-4 py-2.5 rounded-full text-xs uppercase tracking-wider font-semibold transition-all text-center"
+        >
+          Rechazar opcionales
+        </button>
+
+        <button
+          id="btn-cookie-modal-save"
+          type="button"
+          class="bg-secondary-800 border border-primary-500/50 text-primary-400 hover:bg-primary-500 hover:text-secondary-900 px-4 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all text-center"
+        >
+          Guardar selección
+        </button>
+
+        <button
+          id="btn-cookie-modal-accept"
+          type="button"
+          class="bg-gradient-to-r from-primary-500 to-accent-500 text-secondary-900 font-bold px-4 py-2.5 rounded-full text-xs uppercase tracking-wider hover:from-primary-600 hover:to-accent-600 transition-all text-center shadow-md"
+        >
+          Aceptar todas
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  {/* 3. BOTÓN FLOTANTE DISCRETO PARA REABRIR PREFERENCIAS */}
+  <button
+    id="cookie-reopen-trigger"
+    type="button"
+    class="fixed bottom-6 left-6 z-40 bg-[#1A1A1A]/90 hover:bg-[#1A1A1A] border border-primary-500/40 hover:border-primary-500 text-primary-400 hover:text-primary-300 px-3 py-2 rounded-full shadow-lg text-xs font-semibold flex items-center gap-2 backdrop-blur-sm transition-all duration-300 hover:scale-105 opacity-0 pointer-events-none"
+    aria-label="Gestionar preferencias de cookies"
+    title="Gestionar preferencias de cookies"
+  >
+    <ShieldCheck className="w-4 h-4 text-primary-400" />
+    <span class="hidden sm:inline">Cookies</span>
+  </button>
+</div>
+
+<script>
+  import { 
+    acceptAll, 
+    rejectAll, 
+    saveConsent, 
+    getStoredConsent, 
+    openConsentPreferences,
+    hasConsent,
+    STORAGE_KEY,
+    OPEN_MODAL_EVENT
+  } from '@/lib/consent';
+
+  // Exponer API en window para interoperabilidad y pruebas
+  (window as any).LaReservaConsent = {
+    acceptAll,
+    rejectAll,
+    saveConsent,
+    getStoredConsent,
+    hasConsent,
+    openPreferences: openModal,
+  };
+
+  function getElements() {
+    return {
+      banner: document.getElementById('cookie-banner'),
+      modal: document.getElementById('cookie-modal'),
+      reopenBtn: document.getElementById('cookie-reopen-trigger'),
+      btnAcceptAll: document.getElementById('btn-cookie-accept-all'),
+      btnRejectAll: document.getElementById('btn-cookie-reject-all'),
+      btnOpenModal: document.getElementById('btn-cookie-open-modal'),
+      btnModalClose: document.getElementById('btn-cookie-modal-close'),
+      btnModalAccept: document.getElementById('btn-cookie-modal-accept'),
+      btnModalReject: document.getElementById('btn-cookie-modal-reject'),
+      btnModalSave: document.getElementById('btn-cookie-modal-save'),
+      toggleAnalytics: document.getElementById('cookie-toggle-analytics') as HTMLInputElement | null,
+      toggleMarketing: document.getElementById('cookie-toggle-marketing') as HTMLInputElement | null,
+    };
+  }
+
+  function showBanner() {
+    const { banner, reopenBtn } = getElements();
+    if (banner) {
+      banner.classList.remove('translate-y-8', 'opacity-0', 'pointer-events-none');
+      banner.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    }
+    if (reopenBtn) {
+      reopenBtn.classList.add('opacity-0', 'pointer-events-none');
+      reopenBtn.classList.remove('opacity-100', 'pointer-events-auto');
+    }
+  }
+
+  function hideBanner() {
+    const { banner, reopenBtn } = getElements();
+    if (banner) {
+      banner.classList.add('translate-y-8', 'opacity-0', 'pointer-events-none');
+      banner.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    }
+    if (reopenBtn) {
+      reopenBtn.classList.remove('opacity-0', 'pointer-events-none');
+      reopenBtn.classList.add('opacity-100', 'pointer-events-auto');
+    }
+  }
+
+  function openModal() {
+    const { modal, toggleAnalytics, toggleMarketing } = getElements();
+    if (!modal) return;
+
+    // Cargar estado actual en los toggles
+    const current = getStoredConsent();
+    if (toggleAnalytics) {
+      toggleAnalytics.checked = current ? Boolean(current.categories.analytics) : false;
+    }
+    if (toggleMarketing) {
+      toggleMarketing.checked = current ? Boolean(current.categories.marketing) : false;
+    }
+
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modal.classList.add('opacity-100', 'pointer-events-auto');
+    const innerCard = modal.querySelector('div');
+    if (innerCard) {
+      innerCard.classList.remove('scale-95');
+      innerCard.classList.add('scale-100');
+    }
+  }
+
+  function closeModal() {
+    const { modal } = getElements();
+    if (!modal) return;
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    modal.classList.remove('opacity-100', 'pointer-events-auto');
+    const innerCard = modal.querySelector('div');
+    if (innerCard) {
+      innerCard.classList.add('scale-95');
+      innerCard.classList.remove('scale-100');
+    }
+  }
+
+  function handleAcceptAll() {
+    acceptAll();
+    closeModal();
+    hideBanner();
+  }
+
+  function handleRejectAll() {
+    rejectAll();
+    closeModal();
+    hideBanner();
+  }
+
+  function handleSavePreferences() {
+    const { toggleAnalytics, toggleMarketing } = getElements();
+    const analytics = toggleAnalytics ? toggleAnalytics.checked : false;
+    const marketing = toggleMarketing ? toggleMarketing.checked : false;
+
+    saveConsent({ analytics, marketing }, 'customized');
+    closeModal();
+    hideBanner();
+  }
+
+  function initCookieConsent() {
+    const elements = getElements();
+    const stored = getStoredConsent();
+
+    if (!stored) {
+      // Sin decisión previa: mostrar banner tras breve delay estético
+      setTimeout(() => {
+        showBanner();
+      }, 500);
+    } else {
+      // Decisión ya tomada: ocultar banner y mostrar botón de reapertura
+      hideBanner();
+    }
+
+    // Vincular listeners (asegurando evitar duplicados)
+    elements.btnAcceptAll?.replaceWith(elements.btnAcceptAll.cloneNode(true));
+    elements.btnRejectAll?.replaceWith(elements.btnRejectAll.cloneNode(true));
+    elements.btnOpenModal?.replaceWith(elements.btnOpenModal.cloneNode(true));
+    elements.btnModalClose?.replaceWith(elements.btnModalClose.cloneNode(true));
+    elements.btnModalAccept?.replaceWith(elements.btnModalAccept.cloneNode(true));
+    elements.btnModalReject?.replaceWith(elements.btnModalReject.cloneNode(true));
+    elements.btnModalSave?.replaceWith(elements.btnModalSave.cloneNode(true));
+    elements.reopenBtn?.replaceWith(elements.reopenBtn.cloneNode(true));
+
+    const fresh = getElements();
+    fresh.btnAcceptAll?.addEventListener('click', handleAcceptAll);
+    fresh.btnRejectAll?.addEventListener('click', handleRejectAll);
+    fresh.btnOpenModal?.addEventListener('click', openModal);
+    fresh.btnModalClose?.addEventListener('click', closeModal);
+    fresh.btnModalAccept?.addEventListener('click', handleAcceptAll);
+    fresh.btnModalReject?.addEventListener('click', handleRejectAll);
+    fresh.btnModalSave?.addEventListener('click', handleSavePreferences);
+    fresh.reopenBtn?.addEventListener('click', openModal);
+
+    // Cerrar al hacer clic fuera del card del modal
+    fresh.modal?.addEventListener('click', (e) => {
+      if (e.target === fresh.modal) {
+        closeModal();
+      }
+    });
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && fresh.modal && !fresh.modal.classList.contains('pointer-events-none')) {
+        closeModal();
+      }
+    });
+  }
+
+  // Escuchar eventos globales de apertura (por ejemplo, desde enlaces del footer)
+  window.addEventListener(OPEN_MODAL_EVENT, openModal);
+
+  // Delegación de eventos para cualquier enlace con data-open-cookie-preferences
+  document.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement)?.closest('[data-open-cookie-preferences]');
+    if (target) {
+      e.preventDefault();
+      openModal();
+    }
+  });
+
+  // Ejecución inicial y en transiciones de página (Astro ViewTransitions/ClientRouter)
+  document.addEventListener('DOMContentLoaded', initCookieConsent);
+  document.addEventListener('astro:page-load', initCookieConsent);
+</script>

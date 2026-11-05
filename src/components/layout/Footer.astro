@@ -30,6 +30,7 @@ const quickLinks = [
 const legalLinks = [
   { name: 'Privacidad', url: '/privacidad' }, 
   { name: 'Términos', url: '/terminos' },
+  { name: 'Cookies', url: '/cookies' },
 ];
 ---
 
@@ -178,12 +179,19 @@ const legalLinks = [
       <p class="text-secondary-400 text-sm text-center md:text-left">
         © {currentYear} {SITE_INFO.name}. Todos los derechos reservados.
       </p>
-      <div class="flex gap-6 text-sm text-secondary-400">
+      <div class="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2 text-sm text-secondary-400">
         {legalLinks.map(link => (
           <a href={link.url} class="hover:text-primary-500 transition-colors">
             {link.name}
           </a>
         ))}
+        <button
+          type="button"
+          data-open-cookie-preferences
+          class="hover:text-primary-500 transition-colors cursor-pointer inline-flex items-center gap-1"
+        >
+          Gestionar cookies
+        </button>
       </div>
     </div>
 

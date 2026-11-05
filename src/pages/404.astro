@@ -1,0 +1,80 @@
+---
+// src/pages/404.astro
+export const prerender = true;
+import PageLayout from '@/layouts/PageLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import { getGlobalSettings } from '@/lib/data';
+
+const settings = await getGlobalSettings();
+---
+
+<PageLayout 
+  title="Página no encontrada (404) | La Reserva Bartending" 
+  description="La página que buscas no existe o ha sido movida. Descubre nuestras experiencias de coctelería para eventos en Lima."
+  noindex={true}
+>
+  <section class="min-h-[75vh] flex items-center justify-center py-20 px-4 bg-white relative">
+    <div class="container-custom max-w-xl mx-auto text-center">
+      
+      {/* Indicador de marca superior */}
+      <span class="text-primary-600 font-bold tracking-widest uppercase text-xs md:text-sm mb-3 block">
+        Error 404
+      </span>
+
+      {/* Número 404 con la tipografía serif editorial de La Reserva */}
+      <h1 class="text-7xl md:text-9xl font-display font-bold text-secondary-900 tracking-tight">
+        404
+      </h1>
+
+      {/* Detalle minimalista en dorado */}
+      <div class="w-12 h-0.5 bg-primary-500 mx-auto my-6"></div>
+
+      {/* Titular sobrio y de buen gusto */}
+      <h2 class="text-2xl md:text-3xl font-display font-semibold text-secondary-900 mb-4">
+        Página fuera de carta
+      </h2>
+
+      {/* Texto conciso */}
+      <p class="text-secondary-500 text-base md:text-lg font-light leading-relaxed mb-10 max-w-md mx-auto">
+        El enlace que intentas abrir no existe o ha sido movido. Te invitamos a regresar al inicio o descubrir nuestras propuestas.
+      </p>
+
+      {/* Llamados a la acción esenciales */}
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <Button 
+          href="/" 
+          variant="primary" 
+          size="md"
+          class="w-full sm:w-auto"
+        >
+          Volver al Inicio
+        </Button>
+
+        <Button 
+          href="/experiencias" 
+          variant="secondary" 
+          size="md"
+          class="w-full sm:w-auto"
+        >
+          Ver Experiencias
+        </Button>
+      </div>
+
+      {/* Contacto sutil */}
+      {settings.whatsapp_url && (
+        <p class="mt-12 text-xs text-secondary-400">
+          ¿Buscabas algo en particular?{' '}
+          <a 
+            href={settings.whatsapp_url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="text-primary-600 hover:text-primary-700 underline underline-offset-4 transition-colors font-medium"
+          >
+            Escríbenos por WhatsApp
+          </a>
+        </p>
+      )}
+
+    </div>
+  </section>
+</PageLayout>
