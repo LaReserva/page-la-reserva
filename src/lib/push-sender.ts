@@ -62,8 +62,8 @@ export async function sendPushNotificationToAdmins({ payload, targetUserId }: Se
       title: payload.title,
       body: payload.body,
       url: payload.url || '/admin',
-      icon: payload.icon || '/logo.png',
-      badge: payload.badge || '/logo.png',
+      icon: payload.icon || '/notification-icon.png',
+      badge: payload.badge || '/notification-icon.png',
       tag: payload.tag || `admin-notif-${Date.now()}`,
     });
 

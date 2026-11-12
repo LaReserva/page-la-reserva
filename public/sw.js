@@ -26,8 +26,8 @@ self.addEventListener('push', (event) => {
   const title = payload.title || '🔔 Nueva Notificación - La Reserva';
   const options = {
     body: payload.body || 'Tienes una nueva actividad en el panel.',
-    icon: payload.icon || '/logo.png',
-    badge: payload.badge || '/logo.png',
+    icon: payload.icon || '/notification-icon.png',
+    badge: payload.badge || '/notification-icon.png',
     vibrate: [200, 100, 200],
     data: {
       url: payload.url || '/admin',

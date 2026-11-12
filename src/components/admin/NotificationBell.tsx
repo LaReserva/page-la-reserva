@@ -185,8 +185,8 @@ export function NotificationBell() {
           const reg = await navigator.serviceWorker.ready;
           await reg.showNotification('🔔 ¡Prueba en pantalla!', {
             body: 'Si ves este mensaje, el navegador tiene permiso y puede mostrar alertas.',
-            icon: '/logo.png',
-            badge: '/logo.png',
+            icon: '/notification-icon.png',
+            badge: '/notification-icon.png',
           });
         } catch (swErr) {
           console.warn('No se pudo lanzar notificación directa:', swErr);
@@ -353,8 +353,8 @@ export function NotificationBell() {
         navigator.serviceWorker.ready.then((reg) => {
           reg.showNotification(item.title, {
             body: item.subtitle,
-            icon: '/logo.png',
-            badge: '/logo.png',
+            icon: '/notification-icon.png',
+            badge: '/notification-icon.png',
             tag: item.id,
             data: { url: item.link },
           });
@@ -363,7 +363,7 @@ export function NotificationBell() {
           try {
             const desktopNotif = new Notification(item.title, {
               body: item.subtitle,
-              icon: '/logo.png',
+              icon: '/notification-icon.png',
               tag: item.id,
             });
             desktopNotif.onclick = () => {
@@ -376,7 +376,7 @@ export function NotificationBell() {
         try {
           const desktopNotif = new Notification(item.title, {
             body: item.subtitle,
-            icon: '/logo.png',
+            icon: '/notification-icon.png',
             tag: item.id,
           });
           desktopNotif.onclick = () => {
