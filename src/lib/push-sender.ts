@@ -81,7 +81,10 @@ export async function sendPushNotificationToAdmins({ payload, targetUserId }: Se
         };
 
         try {
-          await webpush.sendNotification(pushSubscription, notificationData);
+          await webpush.sendNotification(pushSubscription, notificationData, {
+            urgency: 'high',
+            TTL: 86400,
+          });
           sentCount++;
         } catch (err: any) {
           // 404 Not Found o 410 Gone indican que el usuario canceló el permiso o el navegador revocó la clave

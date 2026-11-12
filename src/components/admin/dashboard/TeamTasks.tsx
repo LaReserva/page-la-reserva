@@ -89,6 +89,18 @@ export function TeamTasks() {
 
   useEffect(() => {
     initData();
+
+    // Suscripción Realtime para actualizar la lista de tareas en vivo sin recargar la página
+    const channel = supabase
+      .channel('team-tasks-live-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_tasks' }, () => {
+        fetchTasks();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   async function initData() {
