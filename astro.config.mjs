@@ -27,6 +27,7 @@ export default defineConfig({
     },
 
     ssr: {
+      external: ['web-push'],
       noExternal: ['react-hook-form', '@hookform/resolvers'],
     },
 

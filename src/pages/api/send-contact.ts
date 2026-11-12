@@ -3,6 +3,7 @@ export const prerender = false;
 import type { APIRoute } from 'astro';
 import { Resend } from 'resend';
 import { supabase } from '@/lib/supabase';
+import { sendPushNotificationToAdmins } from '@/lib/push-sender';
 
 const resend = new Resend(import.meta.env.RESEND_API_KEY);
 
@@ -64,6 +65,18 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
 
     if (dbError) throw dbError;
+
+    // 4.1 Enviar Notificación Web Push a los administradores
+    sendPushNotificationToAdmins({
+      payload: {
+        title: '✉️ Nuevo Mensaje de Contacto',
+        body: `${name}: ${subject}`,
+        url: '/admin/mensajes',
+        tag: `contact-${dbMessage.id}`,
+      },
+    }).catch((err) => {
+      console.error('Error enviando notificación push de contacto:', err);
+    });
 
     // 5. Enviar Correo al ADMIN (Este genera el Message-ID original para el hilo)
     const sendToAdmin = resend.emails.send({

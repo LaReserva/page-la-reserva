@@ -3,15 +3,20 @@ import { useState, useEffect, Fragment, useRef } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { 
   Bell, FileText, Calendar, Loader2, CheckCheck, Trash2, 
-  ClipboardList, Mail, Star 
+  ClipboardList, Mail, Star, Smartphone, Send, BellRing
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js';
 import { cn } from '@/utils/utils';
+import { 
+  isPushNotificationSupported, 
+  getCurrentPushSubscription, 
+  subscribeDeviceToPush, 
+  unsubscribeDeviceFromPush 
+} from '@/utils/pushNotifications';
 
-// ... (MANTENEMOS TUS DEFINICIONES DE TIPOS IGUALES PARA NO ROMPER NADA) ...
 type TaskPayload = { id: string; content: string; assigned_to: string | null; created_by: string; created_at: string; };
 type MessagePayload = { id: string; name: string; subject: string; created_at: string; status: string; };
 type TestimonialPayload = { id: string; client_name: string; rating: number; created_at: string; };
@@ -45,9 +50,16 @@ export function NotificationBell() {
   
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Estados para Web Push Notifications
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [testSending, setTestSending] = useState(false);
+  const [testSuccess, setTestSuccess] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUnlocked = useRef(false); // Ref para controlar si ya desbloqueamos el audio
+  const audioUnlocked = useRef(false);
 
   // Helper: IDs leídos individualmente
   const getReadIds = (): string[] => {
@@ -63,24 +75,28 @@ export function NotificationBell() {
     return stored ? new Date(stored) : new Date(0);
   };
 
-  // --- NUEVA LÓGICA DE CLICK ---
   const handleNotificationClick = (id: string, closePopover: () => void) => {
-    // 1. Actualizar estado visual inmediatamente
     setNotifications(prev => prev.filter(n => n.id !== id));
     setUnreadCount(prev => Math.max(0, prev - 1));
 
-    // 2. Persistir en localStorage para que no vuelva a aparecer al recargar
     const currentReadIds = getReadIds();
     if (!currentReadIds.includes(id)) {
         localStorage.setItem('la_reserva_read_ids', JSON.stringify([...currentReadIds, id]));
     }
 
-    // 3. Cerrar popover (opcional, si quieres que se cierre al clickear)
     closePopover();
   };
 
   useEffect(() => {
     let mounted = true;
+
+    // Verificar soporte de Web Push
+    if (isPushNotificationSupported()) {
+      setPushSupported(true);
+      getCurrentPushSubscription().then((sub) => {
+        if (mounted) setPushSubscribed(!!sub);
+      });
+    }
 
     const initData = async () => {
       try {
@@ -110,16 +126,13 @@ export function NotificationBell() {
     initData();
     audioRef.current = new Audio('/sounds/notification.mp3'); 
 
-    // --- AUDIO FIX: UNLOCKER ---
-    // Los navegadores bloquean el audio automático si no ha habido interacción previa.
-    // Esto detecta el primer click en cualquier parte para "armar" el audio.
     const unlockAudio = () => {
         if (!audioUnlocked.current && audioRef.current) {
             audioRef.current.play().then(() => {
                 audioRef.current?.pause();
                 audioRef.current!.currentTime = 0;
                 audioUnlocked.current = true;
-            }).catch(() => {}); // Ignorar error si falla, reintentará luego
+            }).catch(() => {});
             document.removeEventListener('click', unlockAudio);
         }
     };
@@ -131,9 +144,79 @@ export function NotificationBell() {
     };
   }, []);
 
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    setTestSuccess(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('No hay sesión de administrador activa');
+
+      if (pushSubscribed) {
+        const res = await unsubscribeDeviceFromPush(token);
+        if (res.success) setPushSubscribed(false);
+      } else {
+        const res = await subscribeDeviceToPush(token);
+        if (res.success) {
+          setPushSubscribed(true);
+        } else {
+          alert(res.error || 'No se pudo activar las notificaciones.');
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error al actualizar notificaciones push');
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setTestSending(true);
+    setTestSuccess(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('No hay sesión de administrador');
+
+      // 1. Probar disparo directo en el Service Worker del navegador
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          await reg.showNotification('🔔 ¡Prueba en pantalla!', {
+            body: 'Si ves este mensaje, el navegador tiene permiso y puede mostrar alertas.',
+            icon: '/logo.png',
+            badge: '/logo.png',
+          });
+        } catch (swErr) {
+          console.warn('No se pudo lanzar notificación directa:', swErr);
+        }
+      }
+
+      // 2. Probar envío remoto a través de Google FCM / Servidor
+      const res = await fetch('/api/admin/push/test', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (data.success && data.sentCount > 0) {
+        setTestSuccess(true);
+        setTimeout(() => setTestSuccess(false), 5000);
+      } else {
+        alert(data.message || data.error || 'No se pudo enviar la prueba.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Error enviando notificación de prueba: ' + (err.message || err));
+    } finally {
+      setTestSending(false);
+    }
+  };
+
   const fetchInitialNotifications = async (uid: string, role: string) => {
     const lastCleared = getLastCleared();
-    const readIds = getReadIds(); // Obtenemos IDs ya leídos
+    const readIds = getReadIds();
     const isSalesOrSuper = role === 'sales' || role === 'super_admin';
     let allNotifs: NotificationItem[] = [];
 
@@ -194,7 +277,6 @@ export function NotificationBell() {
     const results = await Promise.all(promises);
     results.forEach(group => { if (group) allNotifs = [...allNotifs, ...group as any[]]; });
 
-    // FILTRADO MEJORADO: Fecha de limpieza general Y IDs específicos leídos
     const processed = allNotifs
       .filter(n => new Date(n.date) > lastCleared && !readIds.includes(n.id))
       .map(n => ({ ...n, isNew: true, type: n.type as NotificationType }))
@@ -204,7 +286,6 @@ export function NotificationBell() {
     setUnreadCount(processed.length);
   };
 
-  // ... (MANTENEMOS LOGICA REALTIME IGUAL) ...
   useEffect(() => {
     if (!userRole || !userId) return;
     const channel = supabase.channel('admin-dashboard-notifications');
@@ -225,8 +306,8 @@ export function NotificationBell() {
 
     channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'team_tasks' },
       (p: RealtimePostgresInsertPayload<TaskPayload>) => {
-        if (p.new.assigned_to === userId) 
-            handleRealtime(p, 'task', 'Nueva Tarea Asignada', p.new.content, '/admin/tareas');
+        if (!p.new.assigned_to || p.new.assigned_to === userId) 
+            handleRealtime(p, 'task', 'Nueva Tarea Asignada', p.new.content, '/admin');
       });
 
     channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'testimonials' },
@@ -241,19 +322,21 @@ export function NotificationBell() {
         });
       });
 
-    channel.subscribe();
+    channel.subscribe((status, err) => {
+      if (err) console.error('Error en canal Realtime de notificaciones:', err);
+      console.log('🔔 Estado de Supabase Realtime:', status);
+    });
     return () => { supabase.removeChannel(channel); };
   }, [userRole, userId]);
 
   const addNotification = (item: NotificationItem) => {
-    // Check rápido si ya fue leída localmente (por si acaso recarga rápida)
     const readIds = getReadIds();
     if (readIds.includes(item.id)) return;
 
     setNotifications(prev => [item, ...prev]);
     setUnreadCount(prev => prev + 1);
     
-    // Intento de reproducción robusto
+    // Reproducir sonido local
     if (audioRef.current) {
         audioRef.current.volume = 0.5;
         const playPromise = audioRef.current.play();
@@ -263,12 +346,54 @@ export function NotificationBell() {
             });
         }
     }
+
+    // Disparar notificación nativa de Windows / Navegador cuando llega un evento
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.showNotification(item.title, {
+            body: item.subtitle,
+            icon: '/logo.png',
+            badge: '/logo.png',
+            tag: item.id,
+            data: { url: item.link },
+          });
+        }).catch((err) => {
+          console.warn('Error en showNotification del SW, usando fallback:', err);
+          try {
+            const desktopNotif = new Notification(item.title, {
+              body: item.subtitle,
+              icon: '/logo.png',
+              tag: item.id,
+            });
+            desktopNotif.onclick = () => {
+              window.focus();
+              window.location.href = item.link;
+            };
+          } catch (e) {}
+        });
+      } else {
+        try {
+          const desktopNotif = new Notification(item.title, {
+            body: item.subtitle,
+            icon: '/logo.png',
+            tag: item.id,
+          });
+          desktopNotif.onclick = () => {
+            window.focus();
+            window.location.href = item.link;
+          };
+        } catch (err) {
+          console.error('Error mostrando notificación nativa:', err);
+        }
+      }
+    }
   };
 
   const handleClearAll = (closePopover: () => void) => {
     const now = new Date().toISOString();
     localStorage.setItem('la_reserva_notifs_cleared', now);
-    localStorage.removeItem('la_reserva_read_ids'); // Limpiamos los IDs individuales para ahorrar espacio, ya que la fecha manda
+    localStorage.removeItem('la_reserva_read_ids');
     setNotifications([]);
     setUnreadCount(0);
     closePopover();
@@ -294,11 +419,63 @@ export function NotificationBell() {
 
           <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-2 scale-95" enterTo="opacity-100 translate-y-0 scale-100" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0 scale-100" leaveTo="opacity-0 translate-y-2 scale-95">
             <Popover.Panel className="fixed inset-x-4 top-24 z-50 md:absolute md:inset-auto md:right-0 md:top-full md:mt-3 w-auto md:w-96 origin-top md:origin-top-right">
-              <div className="bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 flex flex-col max-h-[70vh] md:max-h-[500px] overflow-hidden border border-secondary-100">
+              <div className="bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 flex flex-col max-h-[75vh] md:max-h-[540px] overflow-hidden border border-secondary-100">
                 <div className="px-5 py-4 border-b border-secondary-100 bg-white flex justify-between items-center sticky top-0 z-10">
                   <h3 className="text-base font-bold text-secondary-900">Notificaciones</h3>
                   {unreadCount > 0 && <span className="bg-primary-50 text-primary-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-primary-100">{unreadCount} NUEVAS</span>}
                 </div>
+
+                {/* Barra de control para Notificaciones Push en Celular/PC */}
+                {pushSupported ? (
+                  <div className="bg-gradient-to-r from-secondary-50 to-primary-50/40 px-4 py-2.5 border-b border-secondary-100 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={cn("p-1.5 rounded-md shrink-0", pushSubscribed ? "bg-green-100 text-green-700" : "bg-secondary-200 text-secondary-600")}>
+                        <Smartphone size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-secondary-900 leading-tight truncate">
+                          {pushSubscribed ? 'Alertas en celular/PC activas' : 'Recibir alertas en este equipo'}
+                        </p>
+                        <p className="text-[10px] text-secondary-500 leading-tight">
+                          {pushSubscribed ? 'Te avisará con la web cerrada' : 'Sin entrar a la página'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {pushSubscribed && (
+                        <button
+                          type="button"
+                          onClick={handleSendTestPush}
+                          disabled={testSending || pushLoading}
+                          title="Enviar una notificación push de prueba"
+                          className="px-2 py-1 bg-white hover:bg-secondary-100 border border-secondary-200 rounded text-[11px] font-medium text-secondary-700 transition-colors flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {testSending ? <Loader2 size={12} className="animate-spin text-primary-600" /> : <Send size={12} className="text-primary-600" />}
+                          <span>{testSuccess ? '¡Enviada!' : 'Probar'}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleTogglePush}
+                        disabled={pushLoading}
+                        className={cn(
+                          "px-2.5 py-1 rounded text-[11px] font-semibold transition-colors flex items-center gap-1 disabled:opacity-50",
+                          pushSubscribed
+                            ? "bg-secondary-100 hover:bg-red-50 text-secondary-600 hover:text-red-600 border border-secondary-200"
+                            : "bg-primary-600 hover:bg-primary-700 text-white shadow-sm"
+                        )}
+                      >
+                        {pushLoading && <Loader2 size={12} className="animate-spin" />}
+                        {pushSubscribed ? 'Desactivar' : 'Activar'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-[11px] text-amber-800 flex items-center gap-1.5">
+                    <BellRing size={14} className="shrink-0 text-amber-600" />
+                    <span>En iPhone, agrega esta página a tu <strong>Pantalla de inicio</strong> para activar notificaciones.</span>
+                  </div>
+                )}
 
                 <div className="overflow-y-auto custom-scrollbar bg-secondary-50/30">
                   {loading ? (
@@ -317,7 +494,7 @@ export function NotificationBell() {
                           <a 
                             key={`${item.type}-${item.id}`}
                             href={item.link} 
-                            onClick={() => handleNotificationClick(item.id, close)} // AQUÍ ESTÁ EL CAMBIO CLAVE
+                            onClick={() => handleNotificationClick(item.id, close)}
                             className={cn("relative block px-5 py-4 transition-all group active:scale-[0.99]", item.isNew ? "bg-white" : "bg-secondary-50/50 hover:bg-white", style.hover)}
                           >
                             {item.isNew && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-r-full"></div>}

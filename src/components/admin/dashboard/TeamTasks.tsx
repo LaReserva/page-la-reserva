@@ -159,7 +159,23 @@ export function TeamTasks() {
         .single();
 
       if (error) throw error;
-      if (data) setTasks(prev => prev.map(t => t.id === optimisticId ? (data as unknown as TeamTask) : t));
+      if (data) {
+        setTasks(prev => prev.map(t => t.id === optimisticId ? (data as unknown as TeamTask) : t));
+
+        // Enviar notificación Push de la nueva tarea
+        fetch('/api/webhooks/supabase-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'team_tasks',
+            record: {
+              id: (data as any).id,
+              content: (data as any).content,
+              assigned_to: (data as any).assigned_to,
+            },
+          }),
+        }).catch((err) => console.error('Error enviando push de tarea:', err));
+      }
     } catch (error) {
       console.error(error);
       setTasks(prev => prev.filter(t => t.id !== optimisticId));

@@ -208,6 +208,17 @@ export function CreateManualEventModal({ isOpen, onClose, onCreated, initialClie
 
       if (eventError) throw eventError;
 
+      fetch('/api/webhooks/supabase-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'events',
+          record: {
+            event_type: formData.eventType.name,
+          },
+        }),
+      }).catch((e) => console.error('Error enviando push de evento:', e));
+
       onCreated();
       onClose();
 

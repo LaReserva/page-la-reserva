@@ -11,7 +11,7 @@ export function useQuoteForm() {
   const [success, setSuccess] = useState(false);
 
   const form = useForm<QuoteFormData>({
-      // @ts-ignore - Incompatibilidad temporal de tipos
+    // @ts-ignore - Incompatibilidad temporal de tipos
     resolver: zodResolver(quoteSchema),
     defaultValues: {
       name: '',
@@ -29,7 +29,7 @@ export function useQuoteForm() {
       setIsSubmitting(true);
       setError(null);
 
-      const { error: supabaseError } = await supabase
+      const { data: newQuote, error: supabaseError } = await supabase
         .from('quotes')
         .insert({
           client_name: data.name,
@@ -40,9 +40,25 @@ export function useQuoteForm() {
           guest_count: data.guestCount,
           message: data.message,
           status: 'new',
-        });
+        })
+        .select()
+        .single();
 
       if (supabaseError) throw supabaseError;
+
+      // Notificar a los administradores vía Web Push
+      fetch('/api/webhooks/supabase-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'quotes',
+          record: {
+            id: newQuote?.id,
+            client_name: data.name,
+            event_type: data.eventType,
+          },
+        }),
+      }).catch((e) => console.error('Error enviando push de cotización:', e));
 
       setSuccess(true);
       form.reset();
